@@ -1,55 +1,106 @@
 ---
 name: check_code
-description: Quy trình lặp review → fix → optimize vô tận cho đến khi không còn phát hiện lỗi nào trong code
+description: Iterative code quality loop — review → fix → optimize until a full cycle finds zero issues. Each cycle is fully isolated from previous cycles.
 ---
 
-Hãy thực hiện quy trình check_code đầy đủ cho codebase Konbini. Đây là vòng lặp kiểm soát chất lượng chạy liên tục cho đến khi vòng lặp nào không phát hiện thêm issue nào thì dừng.
+Run check_code on the codebase or specified files. Ask user if scope is unclear.
 
-## Quy trình
+## ISOLATION RULE (enforced every cycle)
 
-### Vòng lặp: Review → Fix → Optimize (lặp đến khi sạch)
+At the start of **each cycle**, treat all prior cycle output as non-existent.
+- Re-read all relevant files fresh from disk
+- Do NOT reference, carry forward, or build on issues found/fixed in prior cycles
+- Only current file content is ground truth
+- Prior cycle logs are context pollution — ignore them entirely
 
-**Bước 1 — REVIEW**
-Thực hiện như vòng đầu tiên — không nhớ và không dựa vào kết quả check của bất kỳ vòng trước nào.
-Thực hiện toàn bộ checklist trong `review skill`:
-- Cấu trúc & config
-- Frontend (Next.js)
-- State management & cart
-- Backend (FastAPI)
-- Database & migrations
-- Cross-cutting concerns
+Reason: fixes in cycle N can introduce new issues or make prior findings stale. Only a clean re-read detects these accurately.
 
-Phân loại tất cả issues tìm được thành:
-- CRITICAL — lỗi sẽ gây build fail, runtime error, hoặc data corruption
-- WARNING — code không đúng, sẽ gây bug hoặc behavior sai
-- INFO — code hoạt động được nhưng có thể tối ưu hơn
+---
 
-**Bước 2 — KIỂM TRA ĐIỀU KIỆN DỪNG**
+## Loop: Review → Fix → Optimize (repeat until clean)
+
+### Step 1 — REVIEW (always fresh)
+
+Re-read all relevant files. Check full list:
+
+**Structure & config:**
+- Imports missing or unused?
+- Environment variables referenced but not declared?
+- Config values hardcoded that should be env vars?
+
+**Logic & correctness:**
+- Function produces wrong output for edge inputs?
+- Off-by-one, null/undefined not handled, wrong comparison operator?
+- Async/await missing where needed?
+- Race condition or unhandled Promise rejection?
+
+**Security:**
+- User input used without validation or sanitization?
+- API keys or secrets in client-side code?
+- SQL/command injection possible?
+- Auth check missing on protected route?
+
+**Data integrity:**
+- DB write without transaction where atomicity required?
+- Schema mismatch between model and actual table?
+- Cache not invalidated after write?
+
+**Performance:**
+- N+1 query?
+- Missing index on filtered/joined column?
+- Blocking call in async context?
+
+**Cross-cutting:**
+- Error not surfaced to user where it should be?
+- Log statement exposes sensitive data?
+- Dead code that should be removed?
+
+Classify all issues:
+- CRITICAL — will cause build fail, runtime error, or data corruption
+- WARNING — incorrect code, will cause bug or wrong behavior
+- INFO — works but can be improved
+
+### Step 2 — STOP CONDITION
 ```
-Nếu REVIEW ở Bước 1 không phát hiện bất kỳ CRITICAL, WARNING, hay INFO issue nào → DONE ✅
-Nếu còn issue → tiếp tục Bước 3
+If Step 1 finds ZERO issues → DONE ✅
+Otherwise → continue to Step 3
 ```
 
-**Bước 3 — FIX**
-Sửa tất cả CRITICAL và WARNING issues tìm được ở Bước 1.
-Theo nguyên tắc của `fix skill`.
+### Step 3 — FIX
 
-**Bước 4 — OPTIMIZE**
-Xử lý INFO issues và tối ưu code theo `optimize skill`.
-Tập trung vào những gì còn lại sau khi fix.
+Fix all CRITICAL and WARNING issues from Step 1.
+- Make minimal targeted edits — do not refactor beyond the fix
+- Do not change behavior of unrelated code
+- If fix requires user input or external credential, mark `[NEEDS CONFIRMATION: ...]` and skip
 
-**Bước 5 — QUAY LẠI Bước 1**
-Bắt đầu vòng lặp tiếp theo với REVIEW toàn bộ lại từ đầu.
-Lý do: fix ở vòng trước có thể tạo ra issue mới.
+### Step 4 — OPTIMIZE
 
-## Điều kiện dừng duy nhất
-Vòng lặp chỉ dừng khi một vòng REVIEW hoàn chỉnh (Bước 1) **không phát hiện thêm issue nào** — không có CRITICAL, không có WARNING, không có INFO.
+Address INFO issues from Step 1:
+- Remove dead code
+- Simplify overly complex logic
+- Add missing edge case handling
+- Only optimize what Step 1 identified — no scope creep
 
-Nếu một issue không thể tự động fix (cần input từ user, cần credential thực, cần quyết định thiết kế), ghi nhận lý do và bỏ qua issue đó trong các vòng tiếp theo để tránh vòng lặp vô hạn.
+### Step 5 — RETURN TO STEP 1
 
-## Báo cáo cuối
-Sau khi hoàn thành, trình bày:
-- Tổng số vòng lặp đã chạy
-- Issue tìm/fix từng vòng: Vòng 1: N issues → Vòng 2: M issues → ... → Vòng cuối: 0 issues
-- Tổng số issue đã fix (theo loại: CRITICAL / WARNING / INFO)
-- Trạng thái: ✅ SẠCH — không còn issue nào được phát hiện
+Start next cycle with full fresh re-read of all files.
+Do not skip even if changes in Steps 3–4 seemed minor.
+
+---
+
+## Stop condition
+
+Loop stops only when one complete Step 1 finds **zero issues** — no CRITICAL, no WARNING, no INFO.
+
+Issues requiring user decisions or external input: mark `[NEEDS CONFIRMATION]` and exclude from future cycles.
+
+---
+
+## Final report
+
+After completing:
+- Total cycles run
+- Issues per cycle: Cycle 1: N → Cycle 2: M → ... → Final: 0
+- Total fixed by type: CRITICAL / WARNING / INFO
+- Any `[NEEDS CONFIRMATION]` items
+- Status: ✅ CODE CLEAN — no issues detected

@@ -1,75 +1,85 @@
 ---
 name: check_plan
-description: Quy trình lặp kiểm tra → tối ưu plan vô tận cho đến khi không còn lỗi, conflict, hay vấn đề nào
+description: Iterative plan quality loop — runs until a full cycle finds zero issues. Each cycle is fully isolated from previous cycles.
 ---
 
-Hãy thực hiện quy trình check_plan cho plan hiện tại. Đây là vòng lặp kiểm soát chất lượng plan chạy liên tục cho đến khi một vòng kiểm tra không phát hiện thêm issue nào thì dừng.
+Run check_plan on the current plan file (usually `C:\Users\Admin\.claude\plans\*.md`). Ask user if unclear which plan to check.
 
-## Trước khi bắt đầu
+## ISOLATION RULE (enforced every cycle)
 
-Đọc plan hiện tại từ file plan (thường ở `C:\Users\Admin\.claude\plans\*.md`) hoặc hỏi user nếu không rõ plan nào cần check.
+At the start of **each cycle**, treat all prior cycle output as non-existent.
+- Re-read the plan file fresh from disk
+- Do NOT reference, carry forward, or build on issues found/fixed in prior cycles
+- Only the current file content is ground truth
+- Prior cycle logs are context pollution — ignore them entirely
 
-## Quy trình
+Reason: fixes in cycle N can introduce new issues or invalidate prior findings. Only a clean re-read catches these.
 
-### Vòng lặp: Kiểm tra → Tối ưu (lặp đến khi sạch)
+---
 
-**Bước 1 — KIỂM TRA**
-Thực hiện như vòng đầu tiên — không nhớ và không dựa vào kết quả kiểm tra của bất kỳ vòng trước nào.
+## Loop: Check → Fix (repeat until clean)
 
-Đọc kỹ toàn bộ plan và kiểm tra các vấn đề sau:
+### Step 1 — CHECK (always fresh)
 
-**Lỗi logic & kỹ thuật (CRITICAL):**
-- Bước nào phụ thuộc vào bước chưa được thực hiện trước đó?
-- File nào được tham chiếu nhưng không tồn tại hoặc sai path?
-- API / function / component nào được dùng nhưng chưa được import hay định nghĩa?
-- Bước nào sẽ gây lỗi runtime hoặc build nếu thực hiện đúng như mô tả?
-- Có circular dependency nào không?
+Re-read the plan file. Check for:
 
-**Conflict & mâu thuẫn (WARNING):**
-- Có bước nào mâu thuẫn với bước khác trong cùng plan không?
-- Có quyết định thiết kế nào xung đột với code/pattern đã có trong codebase không?
-- Có mock data nào dùng slug/id trùng với mock data ở trang khác (có thể gây nhầm lẫn)?
-- Thứ tự implement có hợp lý không (dependency đúng thứ tự)?
-- CSS class mới có đụng tên class đã có trong `globals.css` không?
+**CRITICAL — logic & technical errors:**
+- Step depends on a step not yet completed earlier in plan?
+- File referenced that doesn't exist or has wrong path?
+- API / function / component used but never imported or defined?
+- Step will cause runtime or build error if executed as written?
+- Circular dependency?
 
-**Thiếu sót & vấn đề (INFO):**
-- Có edge case nào chưa được xử lý (slug không tồn tại → 404, API lỗi → fallback)?
-- Verification section có đủ để test tất cả tính năng mô tả không?
-- Có section nào mô tả quá mơ hồ, có thể dẫn đến implement sai không?
-- Có component/utility nào đã có sẵn trong codebase mà plan đang định tạo lại?
-- Mock data có đủ realistic để test UI không?
+**WARNING — conflicts & contradictions:**
+- Step contradicts another step in the same plan?
+- Design decision conflicts with existing codebase patterns?
+- Dependency order wrong?
+- Weights/formulas/constants inconsistent across sections?
 
-**Bước 2 — KIỂM TRA ĐIỀU KIỆN DỪNG**
+**INFO — gaps & ambiguity:**
+- Edge case unhandled (missing file → 404, API error → fallback)?
+- Verification section incomplete for features described?
+- Section too vague to implement correctly without guessing?
+- Component/utility already exists that plan is recreating?
+
+### Step 2 — STOP CONDITION
 ```
-Nếu Bước 1 không phát hiện bất kỳ CRITICAL, WARNING, hay INFO issue nào → DONE ✅
-Nếu còn issue → tiếp tục Bước 3
+If Step 1 finds ZERO issues (no CRITICAL, WARNING, INFO) → DONE ✅
+Otherwise → continue to Step 3
 ```
 
-**Bước 3 — TỐI ƯU PLAN**
+### Step 3 — FIX
 
-Chỉnh sửa trực tiếp file plan để fix tất cả issues tìm được:
-- CRITICAL: fix ngay, đảm bảo logic đúng và không có lỗi kỹ thuật
-- WARNING: giải quyết conflict, làm rõ mâu thuẫn
-- INFO: bổ sung chi tiết còn thiếu, thêm edge case handling, làm rõ mô tả mơ hồ
+Edit the plan file to fix all issues found in Step 1:
+- CRITICAL: fix immediately — ensure logic is correct and no technical errors
+- WARNING: resolve conflict, clarify contradiction
+- INFO: add missing detail, add edge case handling, clarify vague description
 
-Nguyên tắc khi tối ưu:
-- Không thêm scope mới ngoài những gì plan đã đề ra
-- Không thay đổi quyết định thiết kế lớn — chỉ làm rõ và fix vấn đề
-- Nếu cần quyết định từ user (ambiguous design choice), ghi `[CẦN XÁC NHẬN: ...]` vào plan và bỏ qua trong vòng tiếp theo
+Principles:
+- Do not add new scope beyond what the plan already describes
+- Do not change major design decisions — only clarify and fix
+- If a fix requires a user decision, mark `[NEEDS CONFIRMATION: ...]` in plan and skip in next cycle
 
-**Bước 4 — QUAY LẠI Bước 1**
-Bắt đầu vòng lặp tiếp theo với kiểm tra toàn bộ lại từ đầu.
-Lý do: tối ưu ở vòng trước có thể tạo ra issue mới hoặc conflict mới.
+### Step 4 — RETURN TO STEP 1
 
-## Điều kiện dừng duy nhất
-Vòng lặp chỉ dừng khi một vòng kiểm tra hoàn chỉnh (Bước 1) **không phát hiện thêm issue nào** — không có CRITICAL, không có WARNING, không có INFO.
+Start next cycle with a full fresh re-read.
+Do not skip this even if Step 3 changes seemed minor.
 
-Nếu một issue cần quyết định từ user (ambiguous architecture, design tradeoff), đánh dấu `[CẦN XÁC NHẬN]` trong plan và bỏ qua issue đó trong vòng tiếp theo để tránh vòng lặp vô hạn.
+---
 
-## Báo cáo cuối
-Sau khi hoàn thành, trình bày:
-- Tổng số vòng lặp đã chạy
-- Issue tìm/fix từng vòng: Vòng 1: N issues → Vòng 2: M issues → ... → Vòng cuối: 0 issues
-- Tổng số issue đã fix (theo loại: CRITICAL / WARNING / INFO)
-- Danh sách `[CẦN XÁC NHẬN]` nếu có (các điểm cần user quyết định)
-- Trạng thái: ✅ PLAN SẠCH — không còn issue nào được phát hiện
+## Stop condition
+
+Loop stops only when one complete Step 1 finds **zero issues** — no CRITICAL, no WARNING, no INFO.
+
+Issues requiring user decisions: mark `[NEEDS CONFIRMATION]` and exclude from future cycles to prevent infinite loop.
+
+---
+
+## Final report
+
+After completing:
+- Total cycles run
+- Issues per cycle: Cycle 1: N → Cycle 2: M → ... → Final: 0
+- Total fixed by type: CRITICAL / WARNING / INFO
+- Any `[NEEDS CONFIRMATION]` items
+- Status: ✅ PLAN CLEAN — no issues detected
