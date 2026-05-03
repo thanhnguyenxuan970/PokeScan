@@ -28,6 +28,8 @@ When all steps are done (or blocked with reason), state:
 - Steps completed: N
 - Steps blocked: M (with reasons)
 
+Run `/compact` immediately after implementation completes.
+
 ---
 
 ## Phase 3 — VERIFY CODE

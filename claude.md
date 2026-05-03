@@ -30,45 +30,58 @@ Stack: SwiftUI, FastAPI, PostgreSQL, TCGPlayer/eBay APIs, Apple Vision.
 | 2 | Scan counter — 20/month free tier, UserDefaults + monthly reset | `Services/ScanCounterService.swift` | ✅ Done |
 | 2 | Paywall sheet — fires on scan #21 attempt, single moment (G10) | `Features/Paywall/PaywallView.swift` | ✅ Done |
 | 2 | CameraViewModel wired: LivePricingService + ScanCounterService + showPaywall | `Features/Scanner/CameraViewModel.swift` | ✅ Done |
+| 3 | TCGPlayer live pricing — TTLCache, SKU→product_id, marketPrice | `backend/app/services/tcgplayer.py` | ✅ Done |
+| 3 | eBay Finding API completed sales + weighted aggregator | `backend/app/services/ebay.py`, `aggregator.py` | ✅ Done |
+| 3 | pokemontcg.io set DB refresh, base1/ex5 collision fix | `Services/SetDatabaseService.swift`, `SetResolver.swift` | ✅ Done |
+| 3 | Sign in with Apple — Keychain JWT, restoreSession, backend verify | `Services/AuthService.swift`, `Features/Auth/SignInView.swift` | ✅ Done |
+| 3 | Collection persistence — SwiftData + server-synced push/pull | `Persistence/CollectionStore.swift`, `Services/CollectionSyncService.swift` | ✅ Done |
+| 3 | Collection backend routes — GET/POST/DELETE wired to PostgreSQL | `backend/app/routers/collection.py`, `database.py` | ✅ Done |
+| 3 | StoreKit 2 Pro purchase, Transaction.updates, paywall wired | `Services/StoreKitService.swift`, `Features/Paywall/` | ✅ Done |
 
-### Stubs (not yet built)
+### Stubs / Remaining
 
 | Component | File | Phase |
 |---|---|---|
-| Real TCGPlayer pricing (SKU→product_id catalog lookup) | `backend/app/services/tcgplayer.py` | Phase 3 |
-| eBay + CardMarket pricing (G3 multi-source) | `backend/app/services/` | Phase 3 |
-| Set DB refresh from pokemontcg.io API | `Services/SetResolver.swift` | Phase 3 |
-| StoreKit purchase flow in PaywallView | `Features/Paywall/PaywallView.swift` | Phase 3 |
-| Collection (server-synced) | `Features/Collection/CollectionView.swift` | Phase 3 |
-| Auth (Sign in with Apple) | — | Phase 3 |
-| Persistence (local + server sync) | `Persistence/` (empty) | Phase 3 |
 | Grade ROI (Pro tier) | `Features/GradeROI/GradeROIView.swift` | Phase 4 |
+| Fake/counterfeit detection (G6) | — | Phase 4 |
+| Japanese card support (G8) | — | Phase 4+ |
 
 ---
 
-## Next Session — Phase 3 Priorities
+## Next Session — Phase 4 Priorities
 
-1. **Real TCGPlayer pricing** — wire `backend/app/services/tcgplayer.py`: OAuth token → catalog search (card_sku → product_id) → `marketPrice` field (completed sales, never `lowPrice`). Needs TCGPlayer API keys in `.env`.
-2. **eBay pricing** — 30-day completed sales endpoint. Combine with TCGPlayer into weighted `market_price` aggregate.
-3. **pokemontcg.io set DB refresh** — replace static `set_database.json` with API-fetched set list. Background refresh, bundle as fallback. Fixes `base1`/`ex5` total collision (G1).
-4. **Sign in with Apple** — auth gate for collection sync. Required before Phase 3 persistence.
-5. **Collection persistence** — server-synced (G9). Local cache first, sync on every add.
-6. **StoreKit Pro tier** — wire upgrade button in `PaywallView`. $4.99/mo or $39/yr.
+1. **Provision real API keys** — fill `backend/.env`: `TCGPLAYER_PUBLIC_KEY`, `TCGPLAYER_PRIVATE_KEY`, `EBAY_APP_ID`, `EBAY_CERT_ID`, `JWT_SECRET`, `APPLE_BUNDLE_ID`. Set `POKESCAN_USE_MOCK=0`.
+2. **Grade ROI screen** — condition slider → expected PSA grade → net profit after grading fee. Pop report inline. Maps to G4.
+3. **Fake detection layer** — font weight + holo pattern hash + card number format. "High risk" verdict. Maps to G6.
+4. **App Store Connect setup** — create IAP products `com.yourname.pokescan.pro.monthly` + `.pro.annual`, add `.storekit` config for Simulator.
+5. **Deploy backend** — Railway / Fly.io. Set `DATABASE_URL` in production env. Run `alembic upgrade head` against prod DB.
 
 ---
 
-## Phase 2 Backend — How to Run
+## Backend — How to Run (Phase 3+)
 
 ```bash
 cd backend
 pip install -r requirements.txt
+
+# Start PostgreSQL (Docker)
+docker run -d --name pokescan-db \
+  -e POSTGRES_USER=pokescan -e POSTGRES_PASSWORD=pokescan -e POSTGRES_DB=pokescan \
+  -p 5432:5432 postgres:16
+
+# Run migrations
+alembic upgrade head
+
+# Start server
 uvicorn app.main:app --reload
 # → http://localhost:8000/health
 # → http://localhost:8000/price/{card_sku}
+# → http://localhost:8000/collection  (requires Bearer JWT)
 ```
 
-Set `POKESCAN_USE_MOCK=1` in Xcode scheme env vars to use MockPricingService (no network).
-Set `POKESCAN_VISION_FAST=1` to switch Vision to `.fast` mode for latency benchmarking.
+Env flags:
+- `POKESCAN_USE_MOCK=1` → MockPricingService (no TCGPlayer/eBay calls)
+- `POKESCAN_VISION_FAST=1` → Vision `.fast` mode for latency benchmarking
 
 ---
 
@@ -93,6 +106,20 @@ Set `POKESCAN_VISION_FAST=1` to switch Vision to `.fast` mode for latency benchm
 | Paywall on `startScan()` guard, not after result | Cleanest UX: scan #20 completes without interruption, #21 attempt hits the gate. No mid-scan paywall. |
 | `ScanCounterService.recordScan()` called only on `.result` | Failed detections and network errors don't consume a scan credit. Fair to user. |
 | pydantic-settings v2 `model_config = SettingsConfigDict(...)` | `class Config` is pydantic v1 API, deprecated in v2. Avoids DeprecationWarning and future breakage. |
+
+## Key Decisions Made (Phase 3)
+
+| Decision | Rationale |
+|---|---|
+| `@MainActor class` (not `actor`) for `SetDatabaseService` | Swift actors cannot have `@Published`. `ObservableObject` requires a class. `@MainActor class` gives same isolation guarantee. |
+| `SetResolver` DI via `init(entries:)`, removed singleton | `CameraViewModel` rebuilds `CardIdentificationService` + `SetResolver` via Combine when set DB refreshes. Singleton prevented live refresh. |
+| StoreKit stub in T2, replaced in T6 | `PricingService.swift` references `StoreKitService.shared.isPro` at compile time. Stub (always `false`) unblocks T2 without T6 dependency. |
+| `CollectionSyncService` reads JWT from Keychain directly | Avoids circular import with `AuthService`. Both share `KeychainKeys.serverToken` constant defined in `KeychainKeys.swift`. |
+| `SignInWithAppleButton` + `handleAppleAuthorization(_:)` | `onCompletion:` receives `Result<ASAuthorization, Error>` internally — calling `auth.signIn()` inside causes double `ASAuthorizationController` crash. New public method forwards credential directly. |
+| eBay Finding API uses `SECURITY-APPNAME` param, not OAuth Bearer | Finding API authenticates via app name query param. OAuth bearer is for Browse/Trading APIs only. Removed `get_bearer_token()` entirely. |
+| `SELECT ... FOR UPDATE` in `get_or_create_user` | Serializes concurrent card inserts per user, preventing TOCTOU on free-tier 50-card limit. |
+| `get_user` (no upsert) for DELETE route | Delete path should not create a user row. Separate `get_user` returns `None` → 404 cleanly. |
+| `User.tier` needs both `server_default` and `default` | `server_default` is DB-level only; SQLAlchemy doesn't auto-refresh after flush. Python-level `default="free"` ensures in-memory object has correct tier for new users. |
 
 ---
 
