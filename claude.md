@@ -6,6 +6,56 @@ Stack: SwiftUI, FastAPI, PostgreSQL, TCGPlayer/eBay APIs, Apple Vision.
 
 ---
 
+## Build Status (updated 2026-05-03)
+
+### Completed
+
+| Phase | Component | File | Status |
+|---|---|---|---|
+| 0 | Camera session + permissions | `Features/Scanner/CameraViewModel.swift` | ✅ Done |
+| 0 | Scanner UI — reticle, state machine, button | `Features/Scanner/ScannerView.swift` | ✅ Done |
+| 0 | Camera preview bridge | `Features/Scanner/CameraPreviewView.swift` | ✅ Done |
+| 0 | Card model — SKU, multi-source price, language | `Models/Card.swift` | ✅ Done |
+| 1 | Vision OCR delegate + frame throttle | `Services/VisionService.swift` | ✅ Done |
+| 1 | Set number regex + card name + language detection | `Services/CardIdentificationService.swift` | ✅ Done |
+| 1 | Pricing protocol + mock (simulates backend proxy) | `Services/PricingService.swift` | ✅ Done |
+| 1 | Full state machine wired: scanning→detected→loading→result | `Features/Scanner/CameraViewModel.swift` | ✅ Done |
+| 1 | Card detail sheet — name, set, SKU, price | `Features/CardDetail/CardDetailView.swift` | ✅ Done |
+
+### Stubs (not yet built)
+
+| Component | File | Phase |
+|---|---|---|
+| Collection (server-synced) | `Features/Collection/CollectionView.swift` | Phase 3 |
+| Grade ROI (Pro tier) | `Features/GradeROI/GradeROIView.swift` | Phase 4 |
+| Backend (FastAPI) | — | Phase 2 |
+| Auth (Sign in with Apple) | — | Phase 3 |
+| Persistence (local + server sync) | `Persistence/` (empty) | Phase 3 |
+
+---
+
+## Next Session — Phase 2 Priorities
+
+1. **Real PricingService** — replace `MockPricingService` with `URLSession` call to FastAPI `/price/{card_sku}`. Needs backend running first.
+2. **FastAPI backend skeleton** — `/price/{card_sku}` endpoint proxying TCGPlayer API. API keys server-side only (hard constraint).
+3. **Set code resolution** — `CardIdentificationService` hardcodes `setCode = "unknown"`. Phase 2 needs a set database lookup: set number `025/102` → `base1`.
+4. **Latency audit** — Vision `.accurate` mode can be slow. Benchmark on iPhone 13. If >400ms, switch to `.fast` and measure accuracy delta. G2 target: ≤600ms end-to-end.
+5. **Scan count enforcement** — implement free tier scan counter (gate at scan #21 per G10).
+
+---
+
+## Key Decisions Made (Phase 1)
+
+| Decision | Rationale |
+|---|---|
+| `presentedCard` separate from `detectedCard` | Sheet must open only after price fetch, not on card detection. Two vars needed: one for mid-scan state display, one for sheet trigger. |
+| `guard scanState == .loading else { return }` after price fetch | Prevents in-flight fetch Task from reopening sheet after user resets. |
+| `VisionService.isProcessing` flag (not actor isolation) | Both `captureOutput` and Vision completion run on same serial `sessionQueue` — no race, no actor overhead needed. |
+| `setCode = "unknown"` in Phase 1 | Real set resolution requires a set database (Pokémon TCG API mapping). Deferred to Phase 2; doesn't block scan flow. |
+| Mock price 0.5–150 range | Wide range surfaces UI edge cases (sub-$1 display, 3-digit price). Real distribution is similar. |
+
+---
+
 ## Competitor Pain Points → Project Goals
 
 Research source: App Store reviews across PokeScope, Dex, Acorn, Pokellector, TCGPlayer, TCG Card Scanner, Pokedata (2024–2025).

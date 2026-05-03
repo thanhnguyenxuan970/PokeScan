@@ -33,6 +33,10 @@ struct ScannerView: View {
                 }
             }
         }
+        .sheet(item: $viewModel.presentedCard) { card in
+            CardDetailView(card: card)
+                .onDisappear { viewModel.resetScan() }
+        }
     }
 
     // MARK: - Reticle

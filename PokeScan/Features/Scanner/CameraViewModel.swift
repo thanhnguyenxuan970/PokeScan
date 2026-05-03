@@ -9,10 +9,15 @@ enum ScanState {
 final class CameraViewModel: NSObject, ObservableObject {
     @Published var scanState: ScanState = .idle
     @Published var isAuthorized = false
+    @Published var detectedCard: Card?
+    @Published var presentedCard: Card?
 
     let session = AVCaptureSession()
     private let output = AVCaptureVideoDataOutput()
     private let sessionQueue = DispatchQueue(label: "com.pokescan.camera")
+    private let visionService = VisionService()
+    private let cardService = CardIdentificationService()
+    private var pricingService: PricingService = MockPricingService()
 
     override init() {
         super.init()
@@ -33,6 +38,8 @@ final class CameraViewModel: NSObject, ObservableObject {
         }
     }
 
+    // SWIFT_STRICT_CONCURRENCY=complete would flag session/output/visionService as @MainActor-isolated.
+    // Safe here: non-strict mode + serial sessionQueue. Track if upgrading concurrency level.
     nonisolated private func setupSession() {
         sessionQueue.async { [weak self] in
             guard let self else { return }
@@ -58,8 +65,13 @@ final class CameraViewModel: NSObject, ObservableObject {
                 return
             }
 
-            // Phase 1: replace nil with VisionService sample buffer delegate
-            self.output.setSampleBufferDelegate(nil, queue: self.sessionQueue)
+            let vision = self.visionService
+            vision.onResult = { [weak self] result in
+                Task { @MainActor [weak self] in
+                    self?.handleVisionResult(result)
+                }
+            }
+            self.output.setSampleBufferDelegate(vision, queue: self.sessionQueue)
             if self.session.canAddOutput(self.output) {
                 self.session.addOutput(self.output)
             }
@@ -81,6 +93,32 @@ final class CameraViewModel: NSObject, ObservableObject {
         }
     }
 
+    func handleVisionResult(_ result: VisionResult) {
+        guard scanState == .scanning else { return }
+        switch result {
+        case .failure:
+            return
+        case .success(let observations):
+            guard let card = cardService.identify(from: observations) else { return }
+            detectedCard = card
+            scanState = .detected
+            Task {
+                try? await Task.sleep(for: .milliseconds(400))
+                guard scanState == .detected else { return }
+                scanState = .loading
+                do {
+                    let priced = try await pricingService.fetchPrice(for: card)
+                    guard scanState == .loading else { return }
+                    detectedCard = priced
+                    presentedCard = priced
+                    scanState = .result
+                } catch {
+                    scanState = .idle
+                }
+            }
+        }
+    }
+
     func startScan() {
         guard scanState == .idle else { return }
         scanState = .scanning
@@ -88,5 +126,7 @@ final class CameraViewModel: NSObject, ObservableObject {
 
     func resetScan() {
         scanState = .idle
+        detectedCard = nil
+        presentedCard = nil
     }
 }
