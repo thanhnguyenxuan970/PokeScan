@@ -21,26 +21,54 @@ Stack: SwiftUI, FastAPI, PostgreSQL, TCGPlayer/eBay APIs, Apple Vision.
 | 1 | Pricing protocol + mock (simulates backend proxy) | `Services/PricingService.swift` | ✅ Done |
 | 1 | Full state machine wired: scanning→detected→loading→result | `Features/Scanner/CameraViewModel.swift` | ✅ Done |
 | 1 | Card detail sheet — name, set, SKU, price | `Features/CardDetail/CardDetailView.swift` | ✅ Done |
+| 2 | Static set database (27 sets, total→setCode heuristic) | `Resources/set_database.json` + `Services/SetResolver.swift` | ✅ Done |
+| 2 | Set code resolution wired into card identification | `Services/CardIdentificationService.swift` | ✅ Done |
+| 2 | AppConfig — env-based backend URL + Vision level toggle | `Config/AppConfig.swift` | ✅ Done |
+| 2 | Vision latency timing (DEBUG log) + `.accurate`/`.fast` toggle | `Services/VisionService.swift` | ✅ Done |
+| 2 | FastAPI backend skeleton — `/health` + `/price/{card_sku}` (Phase 2 stub price) | `backend/app/` | ✅ Done |
+| 2 | LivePricingService — URLSession → FastAPI, keeps MockPricingService for tests | `Services/PricingService.swift` | ✅ Done |
+| 2 | Scan counter — 20/month free tier, UserDefaults + monthly reset | `Services/ScanCounterService.swift` | ✅ Done |
+| 2 | Paywall sheet — fires on scan #21 attempt, single moment (G10) | `Features/Paywall/PaywallView.swift` | ✅ Done |
+| 2 | CameraViewModel wired: LivePricingService + ScanCounterService + showPaywall | `Features/Scanner/CameraViewModel.swift` | ✅ Done |
 
 ### Stubs (not yet built)
 
 | Component | File | Phase |
 |---|---|---|
+| Real TCGPlayer pricing (SKU→product_id catalog lookup) | `backend/app/services/tcgplayer.py` | Phase 3 |
+| eBay + CardMarket pricing (G3 multi-source) | `backend/app/services/` | Phase 3 |
+| Set DB refresh from pokemontcg.io API | `Services/SetResolver.swift` | Phase 3 |
+| StoreKit purchase flow in PaywallView | `Features/Paywall/PaywallView.swift` | Phase 3 |
 | Collection (server-synced) | `Features/Collection/CollectionView.swift` | Phase 3 |
-| Grade ROI (Pro tier) | `Features/GradeROI/GradeROIView.swift` | Phase 4 |
-| Backend (FastAPI) | — | Phase 2 |
 | Auth (Sign in with Apple) | — | Phase 3 |
 | Persistence (local + server sync) | `Persistence/` (empty) | Phase 3 |
+| Grade ROI (Pro tier) | `Features/GradeROI/GradeROIView.swift` | Phase 4 |
 
 ---
 
-## Next Session — Phase 2 Priorities
+## Next Session — Phase 3 Priorities
 
-1. **Real PricingService** — replace `MockPricingService` with `URLSession` call to FastAPI `/price/{card_sku}`. Needs backend running first.
-2. **FastAPI backend skeleton** — `/price/{card_sku}` endpoint proxying TCGPlayer API. API keys server-side only (hard constraint).
-3. **Set code resolution** — `CardIdentificationService` hardcodes `setCode = "unknown"`. Phase 2 needs a set database lookup: set number `025/102` → `base1`.
-4. **Latency audit** — Vision `.accurate` mode can be slow. Benchmark on iPhone 13. If >400ms, switch to `.fast` and measure accuracy delta. G2 target: ≤600ms end-to-end.
-5. **Scan count enforcement** — implement free tier scan counter (gate at scan #21 per G10).
+1. **Real TCGPlayer pricing** — wire `backend/app/services/tcgplayer.py`: OAuth token → catalog search (card_sku → product_id) → `marketPrice` field (completed sales, never `lowPrice`). Needs TCGPlayer API keys in `.env`.
+2. **eBay pricing** — 30-day completed sales endpoint. Combine with TCGPlayer into weighted `market_price` aggregate.
+3. **pokemontcg.io set DB refresh** — replace static `set_database.json` with API-fetched set list. Background refresh, bundle as fallback. Fixes `base1`/`ex5` total collision (G1).
+4. **Sign in with Apple** — auth gate for collection sync. Required before Phase 3 persistence.
+5. **Collection persistence** — server-synced (G9). Local cache first, sync on every add.
+6. **StoreKit Pro tier** — wire upgrade button in `PaywallView`. $4.99/mo or $39/yr.
+
+---
+
+## Phase 2 Backend — How to Run
+
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+# → http://localhost:8000/health
+# → http://localhost:8000/price/{card_sku}
+```
+
+Set `POKESCAN_USE_MOCK=1` in Xcode scheme env vars to use MockPricingService (no network).
+Set `POKESCAN_VISION_FAST=1` to switch Vision to `.fast` mode for latency benchmarking.
 
 ---
 
@@ -53,6 +81,18 @@ Stack: SwiftUI, FastAPI, PostgreSQL, TCGPlayer/eBay APIs, Apple Vision.
 | `VisionService.isProcessing` flag (not actor isolation) | Both `captureOutput` and Vision completion run on same serial `sessionQueue` — no race, no actor overhead needed. |
 | `setCode = "unknown"` in Phase 1 | Real set resolution requires a set database (Pokémon TCG API mapping). Deferred to Phase 2; doesn't block scan flow. |
 | Mock price 0.5–150 range | Wide range surfaces UI edge cases (sub-$1 display, 3-digit price). Real distribution is similar. |
+
+## Key Decisions Made (Phase 2)
+
+| Decision | Rationale |
+|---|---|
+| Static bundled `set_database.json` (not API call) | Offline resolution, zero latency, no network dep. Phase 3 adds pokemontcg.io refresh. Bundle is fallback. |
+| `SetResolver` total→setCode heuristic (newest-wins) | Simple, deterministic. Known false positives: `base1`/`ex5` (both 102 cards) → resolves as Hidden Legends for vintage Base Set cards. Acceptable for Phase 2; fixed in Phase 3 with full API. |
+| `LivePricingService` + `MockPricingService` kept side-by-side | `POKESCAN_USE_MOCK=1` env var enables mock without code change. Safe for CI and offline dev. |
+| Phase 2 backend returns stub price ($4.99) | TCGPlayer SKU→product_id mapping requires catalog search (Phase 3). Stub proves URLSession pipeline end-to-end without blocking iOS wiring. |
+| Paywall on `startScan()` guard, not after result | Cleanest UX: scan #20 completes without interruption, #21 attempt hits the gate. No mid-scan paywall. |
+| `ScanCounterService.recordScan()` called only on `.result` | Failed detections and network errors don't consume a scan credit. Fair to user. |
+| pydantic-settings v2 `model_config = SettingsConfigDict(...)` | `class Config` is pydantic v1 API, deprecated in v2. Avoids DeprecationWarning and future breakage. |
 
 ---
 
