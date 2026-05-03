@@ -1,7 +1,9 @@
+import SwiftData
 import SwiftUI
 
 struct ScannerView: View {
     @StateObject private var viewModel = CameraViewModel()
+    @Environment(\.modelContext) private var modelContext
 
     private let reticleWidthRatio: CGFloat = 0.85
     private let cardAspectRatio: CGFloat = 2.5 / 3.5
@@ -36,6 +38,13 @@ struct ScannerView: View {
         .sheet(item: $viewModel.presentedCard) { card in
             CardDetailView(card: card)
                 .onDisappear { viewModel.resetScan() }
+        }
+        .onChange(of: viewModel.scanState) { _, newState in
+            if newState == .result, let card = viewModel.presentedCard {
+                Task {
+                    await CollectionSyncService.shared.addCard(card, context: modelContext)
+                }
+            }
         }
         .sheet(isPresented: $viewModel.showPaywall) {
             PaywallView { viewModel.showPaywall = false }

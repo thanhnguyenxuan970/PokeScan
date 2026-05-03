@@ -17,14 +17,18 @@ final class ScanCounterService {
         scansThisMonth = defaults.integer(forKey: countKey)
     }
 
-    /// Returns true if user can start a new scan (count < limit).
+    /// Returns true if user can start a new scan. Pro users always can.
+    @MainActor
     func canScan() -> Bool {
+        if StoreKitService.shared.isPro { return true }
         resetIfNewMonth()
         return scansThisMonth < Self.freeMonthlyLimit
     }
 
     /// Call after scanState reaches .result (successful scan only).
+    @MainActor
     func recordScan() {
+        if StoreKitService.shared.isPro { return }
         scansThisMonth += 1
         defaults.set(scansThisMonth, forKey: countKey)
     }

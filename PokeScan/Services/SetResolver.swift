@@ -1,16 +1,10 @@
 import Foundation
 
 final class SetResolver {
-    static let shared = SetResolver()
-
     private let entries: [SetEntry]
 
-    private init() {
-        guard let url = Bundle.main.url(forResource: "set_database", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let decoded = try? JSONDecoder().decode([SetEntry].self, from: data)
-        else { entries = []; return }
-        entries = decoded
+    init(entries: [SetEntry]) {
+        self.entries = entries
     }
 
     /// Resolves setCode from "NNN/TTT" format and card language.
@@ -26,8 +20,15 @@ final class SetResolver {
         guard !candidates.isEmpty else { return "unknown" }
         if candidates.count == 1 { return candidates[0].setCode }
 
-        // Newest set wins. Ties broken by setCode ascending for determinism.
-        // Phase 3 replaces this heuristic with pokemontcg.io lookup.
+        // When printedTotal is available, use it to disambiguate sets with same total.
+        // Example: base1 (printedTotal=102) vs ex5/Hidden Legends (printedTotal=101).
+        let withPrinted = candidates.filter { $0.printedTotal != nil }
+        if withPrinted.count == candidates.count {
+            let byPrinted = withPrinted.filter { $0.printedTotal == total }
+            if byPrinted.count == 1 { return byPrinted[0].setCode }
+        }
+
+        // Fallback: newest set wins. Ties broken by setCode ascending for determinism.
         let valid = candidates
             .filter { cardNum <= $0.total }
             .sorted {

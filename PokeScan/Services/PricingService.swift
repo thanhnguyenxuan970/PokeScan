@@ -27,9 +27,17 @@ final class LivePricingService: PricingService {
     }
 
     func fetchPrice(for card: Card) async throws -> Card {
-        let url = baseURL
-            .appending(path: "price")
-            .appending(path: card.cardSKU)
+        let tier = StoreKitService.shared.isPro ? "pro" : "free"
+        var components = URLComponents()
+        components.scheme = baseURL.scheme
+        components.host = baseURL.host
+        components.port = baseURL.port
+        components.path = "/price/\(card.cardSKU)"
+        components.queryItems = [URLQueryItem(name: "tier", value: tier)]
+
+        guard let url = components.url else {
+            throw PricingError.invalidResponse
+        }
 
         let (data, response) = try await session.data(from: url)
 
@@ -44,7 +52,7 @@ final class LivePricingService: PricingService {
 
         var result = card
         result.marketPrice = dto.marketPrice
-        result.priceSource = .tcgplayer
+        result.priceSource = dto.priceSources.count > 1 ? .aggregated : .tcgplayer
         return result
     }
 }
@@ -55,15 +63,19 @@ private struct PriceResponseDTO: Decodable {
     let cardSku: String
     let marketPrice: Double?
     let priceSource: String
+    let priceSources: [String]
     let isCompletedSale: Bool
     let fetchedAt: String
+    let stalenessFlag: Bool
 
     enum CodingKeys: String, CodingKey {
         case cardSku = "card_sku"
         case marketPrice = "market_price"
         case priceSource = "price_source"
+        case priceSources = "price_sources"
         case isCompletedSale = "is_completed_sale"
         case fetchedAt = "fetched_at"
+        case stalenessFlag = "staleness_flag"
     }
 }
 

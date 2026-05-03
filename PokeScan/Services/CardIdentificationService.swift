@@ -5,6 +5,12 @@ final class CardIdentificationService {
     private static let setNumberRegex = try! NSRegularExpression(pattern: #"\b\d{1,3}/\d{1,3}\b"#)
     private static let numericOnlyRegex = try! NSRegularExpression(pattern: #"^\d+(/\d+)?$"#)
 
+    private let setResolver: SetResolver
+
+    init(setResolver: SetResolver) {
+        self.setResolver = setResolver
+    }
+
     func identify(from observations: [VNRecognizedTextObservation]) -> Card? {
         // Vision Y-axis: 0 = bottom, 1 = top — sort descending to get top of card first
         let sorted = observations.sorted { $0.boundingBox.midY > $1.boundingBox.midY }
@@ -19,7 +25,7 @@ final class CardIdentificationService {
             id: UUID(),
             name: name,
             setNumber: setNumber,
-            setCode: SetResolver.shared.resolve(setNumber: setNumber, language: language),
+            setCode: setResolver.resolve(setNumber: setNumber, language: language),
             language: language,
             marketPrice: nil,
             priceSource: nil,

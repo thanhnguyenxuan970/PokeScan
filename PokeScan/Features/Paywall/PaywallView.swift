@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PaywallView: View {
     let onDismiss: () -> Void
+    @StateObject private var store = StoreKitService.shared
 
     var body: some View {
         VStack(spacing: 24) {
@@ -20,13 +21,28 @@ struct PaywallView: View {
                 .padding(.horizontal)
 
             VStack(spacing: 12) {
-                Button("Upgrade to Pro — $4.99/mo") {
-                    // Phase 3: StoreKit purchase
+                if let monthly = store.proMonthly {
+                    PurchaseButton(product: monthly)
+                } else {
+                    Button("Upgrade to Pro — $4.99/mo") {}
+                        .buttonStyle(.borderedProminent)
+                        .tint(.yellow)
+                        .foregroundStyle(.black)
+                        .disabled(true)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.yellow)
-                .foregroundStyle(.black)
-                .disabled(true)
+
+                if let annual = store.proAnnual {
+                    Button("$39/yr — save 35%") {
+                        Task { try? await store.purchase(annual) }
+                    }
+                    .foregroundStyle(.secondary)
+                }
+
+                Button("Restore Purchases") {
+                    Task { await store.restorePurchases() }
+                }
+                .font(.footnote)
+                .foregroundStyle(.tertiary)
 
                 Button("Maybe Later") { onDismiss() }
                     .foregroundStyle(.secondary)
@@ -35,5 +51,8 @@ struct PaywallView: View {
         .padding(32)
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
+        .onChange(of: store.isPro) { _, isPro in
+            if isPro { onDismiss() }
+        }
     }
 }

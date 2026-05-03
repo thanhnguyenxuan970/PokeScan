@@ -1,4 +1,5 @@
 import AVFoundation
+import Combine
 import SwiftUI
 
 enum ScanState {
@@ -16,7 +17,8 @@ final class CameraViewModel: NSObject, ObservableObject {
     private let output = AVCaptureVideoDataOutput()
     private let sessionQueue = DispatchQueue(label: "com.pokescan.camera")
     private let visionService = VisionService()
-    private let cardService = CardIdentificationService()
+    private var cardService: CardIdentificationService
+    private var cancellables = Set<AnyCancellable>()
     private var pricingService: PricingService = {
         #if DEBUG
         if ProcessInfo.processInfo.environment["POKESCAN_USE_MOCK"] == "1" {
@@ -29,7 +31,18 @@ final class CameraViewModel: NSObject, ObservableObject {
     @Published var showPaywall = false
 
     override init() {
+        cardService = CardIdentificationService(
+            setResolver: SetResolver(entries: SetDatabaseService.shared.sets)
+        )
         super.init()
+        SetDatabaseService.shared.$sets
+            .dropFirst()
+            .sink { [weak self] newSets in
+                self?.cardService = CardIdentificationService(
+                    setResolver: SetResolver(entries: newSets)
+                )
+            }
+            .store(in: &cancellables)
         Task { await checkAuthorization() }
     }
 
