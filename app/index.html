@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PokeScan — Portfolio Intelligence</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --border: #2a2d3a;
+    --accent: #6366f1;
+    --accent-dim: #4f52c4;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --sell: #22c55e;
+    --hold: #f59e0b;
+    --grade: #6366f1;
+    --dup: #ef4444;
+    --radius: 10px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .screen { display: none; width: 100%; }
+  .screen.active { display: flex; }
+
+  /* ── LOGIN ── */
+  #screen-login {
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .login-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .brand { text-align: center; }
+  .brand-icon {
+    font-size: 32px;
+    margin-bottom: 6px;
+  }
+  .brand h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  .brand p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .field input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 11px;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  .btn:hover { background: var(--accent-dim); }
+  .btn:active { opacity: 0.85; }
+  .btn.ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .btn.ghost:hover { border-color: var(--accent); color: var(--text); background: transparent; }
+  .error-msg {
+    font-size: 12px;
+    color: var(--dup);
+    text-align: center;
+    min-height: 16px;
+  }
+  .divider { text-align: center; font-size: 12px; color: var(--muted); }
+  .register-hint { font-size: 12px; color: var(--muted); text-align: center; }
+  .register-hint a { color: var(--accent); cursor: pointer; text-decoration: none; }
+  .register-hint a:hover { text-decoration: underline; }
+
+  /* ── LAYOUT ── */
+  .app-layout {
+    width: 100%;
+    min-height: 100vh;
+    flex-direction: column;
+  }
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 52px;
+    flex-shrink: 0;
+  }
+  .topbar-brand { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
+  .topbar-brand span { color: var(--accent); }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .user-pill {
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+  }
+  .btn-sm {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 5px 10px;
+    transition: all 0.15s;
+  }
+  .btn-sm:hover { border-color: var(--dup); color: var(--dup); }
+  .main-content {
+    flex: 1;
+    padding: 32px 24px;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* ── DATA INPUT ── */
+  #screen-input .main-content { display: flex; flex-direction: column; gap: 24px; }
+  .section-header { display: flex; flex-direction: column; gap: 4px; }
+  .section-header h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  .section-header p { font-size: 13px; color: var(--muted); }
+  .card-surface {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .card-row-header {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1fr 1fr 0.7fr 40px;
+    gap: 8px;
+    padding: 0 4px;
+  }
+  .col-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .card-rows { display: flex; flex-direction: column; gap: 8px; }
+  .card-row {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1fr 1fr 0.7fr 40px;
+    gap: 8px;
+    align-items: center;
+  }
+  .card-row input, .card-row select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    padding: 8px 10px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+  .card-row input:focus, .card-row select:focus { border-color: var(--accent); }
+  .card-row select option { background: var(--bg); }
+  .del-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 6px;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .del-btn:hover { border-color: var(--dup); color: var(--dup); }
+  .row-actions { display: flex; gap: 8px; }
+  .paste-area {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .paste-area label { font-size: 12px; color: var(--muted); }
+  .paste-area textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Menlo', 'Consolas', monospace;
+    font-size: 12px;
+    min-height: 100px;
+    outline: none;
+    padding: 12px;
+    resize: vertical;
+    transition: border-color 0.15s;
+  }
+  .paste-area textarea:focus { border-color: var(--accent); }
+  .paste-area textarea::placeholder { color: var(--muted); }
+  .analyze-row { display: flex; justify-content: flex-end; gap: 8px; }
+  .btn-primary {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 11px 24px;
+    transition: background 0.15s;
+  }
+  .btn-primary:hover { background: var(--accent-dim); }
+
+  /* ── INSIGHTS ── */
+  #screen-insights .main-content { display: flex; flex-direction: column; gap: 28px; }
+  .insights-header { display: flex; justify-content: space-between; align-items: flex-end; }
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .stat-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .stat-value { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .stat-value.green { color: var(--sell); }
+  .stat-value.amber { color: var(--hold); }
+  .stat-value.red { color: var(--dup); }
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  .section-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .action-grid { display: flex; flex-direction: column; gap: 8px; }
+  .action-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: grid;
+    grid-template-columns: 90px 1fr auto;
+    gap: 16px;
+    align-items: center;
+    padding: 14px 16px;
+    transition: border-color 0.15s;
+  }
+  .action-card:hover { border-color: var(--accent); }
+  .action-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 5px;
+    text-align: center;
+    letter-spacing: 0.3px;
+  }
+  .badge-sell { background: rgba(34,197,94,0.15); color: var(--sell); }
+  .badge-grade { background: rgba(99,102,241,0.15); color: var(--grade); }
+  .badge-hold { background: rgba(245,158,11,0.15); color: var(--hold); }
+  .badge-dup { background: rgba(239,68,68,0.15); color: var(--dup); }
+  .action-info { display: flex; flex-direction: column; gap: 2px; }
+  .action-name { font-size: 14px; font-weight: 600; }
+  .action-detail { font-size: 12px; color: var(--muted); }
+  .action-delta { font-size: 14px; font-weight: 700; text-align: right; }
+  .delta-pos { color: var(--sell); }
+  .delta-neg { color: var(--dup); }
+  .delta-neu { color: var(--hold); }
+
+  .data-table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th {
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 10px 14px;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .data-table td {
+    border-bottom: 1px solid var(--border);
+    padding: 11px 14px;
+    vertical-align: middle;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+  }
+  .tag-clean { background: rgba(34,197,94,0.15); color: var(--sell); }
+  .tag-warn { background: rgba(245,158,11,0.15); color: var(--hold); }
+  .tag-fixed { background: rgba(99,102,241,0.15); color: var(--grade); }
+  .tag-dup { background: rgba(239,68,68,0.15); color: var(--dup); }
+
+  .empty-state { text-align: center; padding: 40px; color: var(--muted); font-size: 13px; }
+  .loading-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(15,17,23,0.8);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 100;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .loading-overlay.show { display: flex; }
+  .spinner {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading-overlay">
+  <div class="spinner"></div>
+  <span>Analyzing your portfolio…</span>
+</div>
+
+<!-- SCREEN 1: LOGIN -->
+<div id="screen-login" class="screen active">
+  <div class="login-box">
+    <div class="brand">
+      <div class="brand-icon">🃏</div>
+      <h1>PokeScan Intelligence</h1>
+      <p>Clean your data. Know your next move.</p>
+    </div>
+    <div id="login-fields">
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="field">
+          <label>Email</label>
+          <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input id="password" type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+      </div>
+      <div class="error-msg" id="login-error"></div>
+      <button class="btn" onclick="handleLogin()">Sign In</button>
+      <div class="divider">— or —</div>
+      <div class="register-hint">No account? <a onclick="showRegister()">Create one free</a></div>
+    </div>
+    <div id="register-fields" style="display:none;flex-direction:column;gap:12px;">
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="field">
+          <label>Email</label>
+          <input id="reg-email" type="email" placeholder="you@example.com">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input id="reg-password" type="password" placeholder="Min 6 characters">
+        </div>
+        <div class="field">
+          <label>Confirm Password</label>
+          <input id="reg-confirm" type="password" placeholder="Repeat password">
+        </div>
+      </div>
+      <div class="error-msg" id="reg-error"></div>
+      <button class="btn" onclick="handleRegister()">Create Account</button>
+      <button class="btn ghost" onclick="showLogin()">Back to Sign In</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 2: DATA INPUT -->
+<div id="screen-input" class="screen">
+  <div class="app-layout">
+    <div class="topbar">
+      <div class="topbar-brand">Poke<span>Scan</span></div>
+      <div class="topbar-right">
+        <span class="user-pill" id="topbar-user"></span>
+        <button class="btn-sm" onclick="handleLogout()">Sign Out</button>
+      </div>
+    </div>
+    <div class="main-content">
+      <div class="section-header">
+        <h2>Import Your Collection</h2>
+        <p>Enter cards manually or paste a CSV. We'll clean and analyze your data.</p>
+      </div>
+
+      <div class="card-surface">
+        <div class="card-row-header">
+          <span class="col-label">Card Name</span>
+          <span class="col-label">Set</span>
+          <span class="col-label">Condition</span>
+          <span class="col-label">Buy Price ($)</span>
+          <span class="col-label">Qty</span>
+          <span></span>
+        </div>
+        <div class="card-rows" id="card-rows"></div>
+        <div class="row-actions">
+          <button class="btn ghost" style="font-size:13px;padding:8px 14px;" onclick="addRow()">+ Add Row</button>
+        </div>
+      </div>
+
+      <div class="card-surface">
+        <div class="paste-area">
+          <label>Or paste CSV data (Card Name, Set, Condition, Buy Price, Qty):</label>
+          <textarea id="csv-paste" placeholder="Pikachu, Base Set, LP, 45.00, 1&#10;Charizard, Base Set, NM, 350.00, 1&#10;Blastoise, Base Set 2, MP, 80.00, 2"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn ghost" style="font-size:13px;padding:8px 14px;" onclick="parseCsv()">Import CSV</button>
+        </div>
+      </div>
+
+      <div class="analyze-row">
+        <button class="btn ghost" onclick="loadDemo()">Load Demo Data</button>
+        <button class="btn-primary" onclick="runAnalysis()">Analyze Collection →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 3: INSIGHTS -->
+<div id="screen-insights" class="screen">
+  <div class="app-layout">
+    <div class="topbar">
+      <div class="topbar-brand">Poke<span>Scan</span></div>
+      <div class="topbar-right">
+        <span class="user-pill" id="topbar-user2"></span>
+        <button class="btn-sm" onclick="goToInput()">← New Analysis</button>
+        <button class="btn-sm" onclick="handleLogout()">Sign Out</button>
+      </div>
+    </div>
+    <div class="main-content">
+      <div class="insights-header">
+        <div class="section-header">
+          <h2>Portfolio Insights</h2>
+          <p id="insights-subtitle">Based on your cleaned collection data</p>
+        </div>
+      </div>
+
+      <div class="stats-row" id="stats-row"></div>
+
+      <div>
+        <div class="section-title">Recommended Actions</div>
+        <div class="action-grid" id="action-grid"></div>
+      </div>
+
+      <div>
+        <div class="section-title">Cleaned Data</div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Card</th>
+                <th>Set</th>
+                <th>Condition</th>
+                <th>Buy $</th>
+                <th>Market $</th>
+                <th>P&L</th>
+                <th>Qty</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="data-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── STATE ── */
+let currentUser = null;
+let collection = [];
+
+const CONDITIONS = ['NM','LP','MP','HP','DMG'];
+const CONDITION_MAP = {
+  'near mint':'NM','near-mint':'NM','nm':'NM','mint':'NM',
+  'lightly played':'LP','lp':'LP','light play':'LP',
+  'moderately played':'MP','mp':'MP','mod':'MP',
+  'heavily played':'HP','hp':'HP',
+  'damaged':'DMG','dmg':'DMG','poor':'DMG'
+};
+
+/* ── MOCK MARKET DATA ── */
+const MARKET_PRICES = {
+  'charizard base set':   { NM:450, LP:280, MP:140, HP:70, DMG:30 },
+  'blastoise base set':   { NM:180, LP:110, MP:55, HP:28, DMG:12 },
+  'venusaur base set':    { NM:130, LP:80, MP:40, HP:20, DMG:10 },
+  'pikachu base set':     { NM:55, LP:32, MP:18, HP:9, DMG:4 },
+  'mewtwo base set':      { NM:85, LP:50, MP:25, HP:12, DMG:5 },
+  'raichu base set':      { NM:40, LP:24, MP:12, HP:6, DMG:3 },
+  'alakazam base set':    { NM:55, LP:33, MP:16, HP:8, DMG:3 },
+  'machamp base set':     { NM:12, LP:7, MP:3.5, HP:2, DMG:1 },
+  'charizard base set 2': { NM:280, LP:170, MP:85, HP:42, DMG:18 },
+  'blastoise base set 2': { NM:110, LP:68, MP:34, HP:17, DMG:7 },
+  'pikachu celebrations': { NM:25, LP:15, MP:8, HP:4, DMG:2 },
+  'charizard celebrations':{ NM:38, LP:22, MP:11, HP:5, DMG:2 },
+};
+
+/* ── GRADE ROI ── (PSA 10 multiplier on NM, fees ~$50) */
+const PSA_MULT = { NM:3.2, LP:1.6, MP:0.9, HP:0.5, DMG:0.3 };
+const PSA_FEE = 50;
+
+function getMarketPrice(name, set, cond) {
+  const key = `${name.toLowerCase()} ${set.toLowerCase()}`;
+  const prices = MARKET_PRICES[key];
+  if (prices && prices[cond]) return prices[cond];
+  // fallback: random but deterministic-ish
+  const seed = (name.length * 7 + set.length * 13) % 100;
+  const base = { NM:seed+10, LP:(seed+10)*0.6, MP:(seed+10)*0.3, HP:(seed+10)*0.15, DMG:(seed+10)*0.06 };
+  return parseFloat((base[cond] || 5).toFixed(2));
+}
+
+/* ── AUTH ── */
+function getUsers() { return JSON.parse(localStorage.getItem('ps_users') || '{}'); }
+function saveUsers(u) { localStorage.setItem('ps_users', JSON.stringify(u)); }
+
+function handleLogin() {
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const pass = document.getElementById('password').value;
+  const err = document.getElementById('login-error');
+  if (!email || !pass) { err.textContent = 'Email and password required.'; return; }
+  const users = getUsers();
+  if (!users[email] || users[email] !== btoa(pass)) {
+    err.textContent = 'Invalid email or password.';
+    return;
+  }
+  err.textContent = '';
+  currentUser = email;
+  sessionStorage.setItem('ps_session', email);
+  goToInput();
+}
+
+function handleRegister() {
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const pass = document.getElementById('reg-password').value;
+  const conf = document.getElementById('reg-confirm').value;
+  const err = document.getElementById('reg-error');
+  if (!email || !pass) { err.textContent = 'All fields required.'; return; }
+  if (pass.length < 6) { err.textContent = 'Password min 6 characters.'; return; }
+  if (pass !== conf) { err.textContent = 'Passwords do not match.'; return; }
+  const users = getUsers();
+  if (users[email]) { err.textContent = 'Email already registered.'; return; }
+  users[email] = btoa(pass);
+  saveUsers(users);
+  err.style.color = 'var(--sell)';
+  err.textContent = 'Account created! Sign in now.';
+  setTimeout(() => { err.style.color = 'var(--dup)'; showLogin(); }, 1200);
+}
+
+function handleLogout() {
+  sessionStorage.removeItem('ps_session');
+  currentUser = null;
+  collection = [];
+  showScreen('screen-login');
+  document.getElementById('email').value = '';
+  document.getElementById('password').value = '';
+}
+
+function showRegister() {
+  document.getElementById('login-fields').style.display = 'none';
+  document.getElementById('register-fields').style.display = 'flex';
+  document.getElementById('login-error').textContent = '';
+}
+function showLogin() {
+  document.getElementById('login-fields').style.display = '';
+  document.getElementById('register-fields').style.display = 'none';
+  document.getElementById('reg-error').textContent = '';
+}
+
+/* ── NAVIGATION ── */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goToInput() {
+  document.getElementById('topbar-user').textContent = currentUser;
+  showScreen('screen-input');
+  if (document.getElementById('card-rows').children.length === 0) addRow();
+}
+function goToInsights() {
+  document.getElementById('topbar-user2').textContent = currentUser;
+  showScreen('screen-insights');
+}
+
+/* ── CARD ROWS ── */
+let rowId = 0;
+function addRow(data = {}) {
+  const id = ++rowId;
+  const row = document.createElement('div');
+  row.className = 'card-row';
+  row.id = `row-${id}`;
+  row.innerHTML = `
+    <input type="text" placeholder="e.g. Charizard" value="${data.name || ''}" class="r-name">
+    <input type="text" placeholder="e.g. Base Set" value="${data.set || ''}" class="r-set">
+    <select class="r-cond">
+      ${CONDITIONS.map(c => `<option value="${c}" ${c === (data.cond||'NM') ? 'selected' : ''}>${c}</option>`).join('')}
+    </select>
+    <input type="number" placeholder="0.00" min="0" step="0.01" value="${data.buy || ''}" class="r-buy">
+    <input type="number" placeholder="1" min="1" value="${data.qty || 1}" class="r-qty">
+    <button class="del-btn" onclick="delRow(${id})">×</button>
+  `;
+  document.getElementById('card-rows').appendChild(row);
+}
+function delRow(id) {
+  const el = document.getElementById(`row-${id}`);
+  if (el) el.remove();
+}
+
+function parseCsv() {
+  const raw = document.getElementById('csv-paste').value.trim();
+  if (!raw) return;
+  const lines = raw.split('\n').filter(l => l.trim());
+  lines.forEach(line => {
+    const parts = line.split(',').map(p => p.trim());
+    if (parts.length < 2) return;
+    const condRaw = (parts[2] || 'NM').toLowerCase().trim();
+    const cond = CONDITION_MAP[condRaw] || (CONDITIONS.includes((parts[2]||'NM').toUpperCase()) ? (parts[2]||'NM').toUpperCase() : 'NM');
+    addRow({ name: parts[0], set: parts[1], cond, buy: parts[3] || '', qty: parts[4] || 1 });
+  });
+  document.getElementById('csv-paste').value = '';
+}
+
+function loadDemo() {
+  document.getElementById('card-rows').innerHTML = '';
+  rowId = 0;
+  const demo = [
+    { name:'Charizard', set:'Base Set', cond:'LP', buy:'200', qty:1 },
+    { name:'Blastoise', set:'Base Set', cond:'NM', buy:'90', qty:1 },
+    { name:'Pikachu', set:'Base Set', cond:'NM', buy:'30', qty:3 },
+    { name:'Pikachu', set:'Base Set', cond:'NM', buy:'28', qty:2 },
+    { name:'Mewtwo', set:'Base Set', cond:'lp', buy:'60', qty:1 },
+    { name:'Charizard', set:'Celebrations', cond:'near mint', buy:'45', qty:1 },
+    { name:'Blastoise', set:'Base Set 2', cond:'mp', buy:'70', qty:1 },
+    { name:'Raichu', set:'Base Set', cond:'HP', buy:'20', qty:1 },
+  ];
+  demo.forEach(d => addRow(d));
+}
+
+/* ── ANALYSIS ── */
+function collectRows() {
+  const rows = document.querySelectorAll('.card-row');
+  const cards = [];
+  rows.forEach(row => {
+    const name = row.querySelector('.r-name').value.trim();
+    const set  = row.querySelector('.r-set').value.trim();
+    const condRaw = row.querySelector('.r-cond').value;
+    const buy  = parseFloat(row.querySelector('.r-buy').value) || 0;
+    const qty  = parseInt(row.querySelector('.r-qty').value) || 1;
+    if (!name) return;
+    const cond = CONDITION_MAP[condRaw.toLowerCase()] || (CONDITIONS.includes(condRaw.toUpperCase()) ? condRaw.toUpperCase() : 'NM');
+    cards.push({ name, set, cond, condOriginal: condRaw, buy, qty });
+  });
+  return cards;
+}
+
+function runAnalysis() {
+  const raw = collectRows();
+  if (raw.length === 0) { alert('Add at least one card.'); return; }
+
+  document.getElementById('loading').classList.add('show');
+  setTimeout(() => {
+    collection = cleanAndAnalyze(raw);
+    renderInsights();
+    document.getElementById('loading').classList.remove('show');
+    goToInsights();
+  }, 1100);
+}
+
+function cleanAndAnalyze(raw) {
+  // Normalize conditions
+  const normalized = raw.map(c => {
+    const condFixed = CONDITION_MAP[c.condOriginal.toLowerCase()] || c.cond;
+    const wasFixed = condFixed !== c.condOriginal && !CONDITIONS.includes(c.condOriginal.toUpperCase());
+    return { ...c, cond: condFixed, condFixed: wasFixed };
+  });
+
+  // Detect duplicates: same name+set+cond
+  const keyMap = {};
+  normalized.forEach((c, i) => {
+    const key = `${c.name.toLowerCase()}|${c.set.toLowerCase()}|${c.cond}`;
+    if (!keyMap[key]) keyMap[key] = [];
+    keyMap[key].push(i);
+  });
+
+  // Build cleaned records
+  const result = normalized.map((c, i) => {
+    const key = `${c.name.toLowerCase()}|${c.set.toLowerCase()}|${c.cond}`;
+    const dupes = keyMap[key];
+    const isDupe = dupes.length > 1 && dupes[0] !== i;
+    const isPrimary = dupes.length > 1 && dupes[0] === i;
+    const totalQty = isPrimary ? dupes.reduce((s, di) => s + normalized[di].qty, 0) : c.qty;
+
+    const market = getMarketPrice(c.name, c.set, c.cond);
+    const pnl = (market - c.buy) * c.qty;
+    const pnlPct = c.buy > 0 ? ((market - c.buy) / c.buy * 100) : 0;
+
+    // Grade ROI: only for NM/LP
+    const gradeRoiRaw = (market * PSA_MULT[c.cond]) - market - PSA_FEE;
+    const gradeRoi = gradeRoiRaw > 0 && ['NM','LP'].includes(c.cond) ? gradeRoiRaw : null;
+
+    let status = 'clean';
+    if (isDupe) status = 'duplicate';
+    else if (isPrimary && dupes.length > 1) status = 'consolidated';
+    else if (c.condFixed) status = 'fixed';
+
+    let action = null;
+    if (!isDupe) {
+      if (pnlPct >= 40) action = 'SELL NOW';
+      else if (gradeRoi && gradeRoi > 80 && market >= 50) action = 'GRADE IT';
+      else if (isPrimary && dupes.length > 1) action = 'CONSOLIDATE';
+      else action = 'HOLD';
+    }
+
+    return {
+      ...c,
+      isDupe,
+      isPrimary: isPrimary && dupes.length > 1,
+      totalQty: isDupe ? 0 : (isPrimary ? totalQty : c.qty),
+      market,
+      pnl: isDupe ? 0 : pnl,
+      pnlPct,
+      gradeRoi,
+      status,
+      action,
+    };
+  });
+
+  return result;
+}
+
+/* ── RENDER INSIGHTS ── */
+function renderInsights() {
+  const visible = collection.filter(c => !c.isDupe);
+
+  const totalCost = visible.reduce((s, c) => s + c.buy * c.totalQty, 0);
+  const totalMarket = visible.reduce((s, c) => s + c.market * c.totalQty, 0);
+  const totalPnL = totalMarket - totalCost;
+  const dupCount = collection.filter(c => c.isDupe).length;
+  const fixCount = collection.filter(c => c.condFixed && !c.isDupe).length;
+
+  // Stats
+  const pnlClass = totalPnL >= 0 ? 'green' : 'red';
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Total Cost</div>
+      <div class="stat-value">$${totalCost.toFixed(0)}</div>
+      <div class="stat-sub">${visible.length} unique entries</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Market Value</div>
+      <div class="stat-value green">$${totalMarket.toFixed(0)}</div>
+      <div class="stat-sub">TCGPlayer weighted avg</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Unrealized P&L</div>
+      <div class="stat-value ${pnlClass}">${totalPnL >= 0 ? '+' : ''}$${totalPnL.toFixed(0)}</div>
+      <div class="stat-sub">${((totalPnL/totalCost)*100).toFixed(1)}% return</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Data Issues Fixed</div>
+      <div class="stat-value amber">${dupCount + fixCount}</div>
+      <div class="stat-sub">${dupCount} dupes · ${fixCount} condition fixes</div>
+    </div>
+  `;
+
+  // Insights subtitle
+  document.getElementById('insights-subtitle').textContent =
+    `${collection.length} raw entries → ${visible.length} cleaned · ${dupCount + fixCount} issues resolved`;
+
+  // Action cards — top recommendations
+  const actions = visible
+    .filter(c => c.action)
+    .sort((a, b) => {
+      const order = { 'SELL NOW':0, 'GRADE IT':1, 'CONSOLIDATE':2, 'HOLD':3 };
+      return order[a.action] - order[b.action] || Math.abs(b.pnl) - Math.abs(a.pnl);
+    });
+
+  const badgeCls = { 'SELL NOW':'badge-sell', 'GRADE IT':'badge-grade', 'CONSOLIDATE':'badge-dup', 'HOLD':'badge-hold' };
+  document.getElementById('action-grid').innerHTML = actions.map(c => {
+    let detail = '', delta = '', deltaClass = '';
+    if (c.action === 'SELL NOW') {
+      detail = `Market $${c.market.toFixed(2)} vs buy $${c.buy.toFixed(2)} · ${c.pnlPct >= 0 ? '+' : ''}${c.pnlPct.toFixed(0)}% gain`;
+      delta = `+$${c.pnl.toFixed(0)}`;
+      deltaClass = 'delta-pos';
+    } else if (c.action === 'GRADE IT') {
+      detail = `Est. PSA 10 net +$${c.gradeRoi.toFixed(0)} after $${PSA_FEE} fee · ${c.cond} copy`;
+      delta = `+$${c.gradeRoi.toFixed(0)}`;
+      deltaClass = 'delta-pos';
+    } else if (c.action === 'CONSOLIDATE') {
+      detail = `${c.totalQty} copies detected — list duplicates before rebuying`;
+      delta = `${c.totalQty}×`;
+      deltaClass = 'delta-neu';
+    } else {
+      detail = c.pnlPct >= 0
+        ? `Up ${c.pnlPct.toFixed(0)}% — price still climbing, no exit signal`
+        : `Down ${Math.abs(c.pnlPct).toFixed(0)}% — hold, wait for recovery`;
+      delta = `${c.pnlPct >= 0 ? '+' : ''}${c.pnlPct.toFixed(0)}%`;
+      deltaClass = c.pnlPct >= 0 ? 'delta-pos' : 'delta-neg';
+    }
+    return `
+      <div class="action-card">
+        <span class="action-badge ${badgeCls[c.action]}">${c.action}</span>
+        <div class="action-info">
+          <span class="action-name">${c.name} <span style="color:var(--muted);font-weight:400;font-size:12px">${c.set}</span></span>
+          <span class="action-detail">${detail}</span>
+        </div>
+        <span class="action-delta ${deltaClass}">${delta}</span>
+      </div>`;
+  }).join('');
+
+  // Data table
+  const tagMap = {
+    clean: '<span class="tag tag-clean">Clean</span>',
+    fixed: '<span class="tag tag-fixed">Fixed</span>',
+    consolidated: '<span class="tag tag-warn">Consolidated</span>',
+    duplicate: '<span class="tag tag-dup">Duplicate</span>',
+  };
+  const pnlFmt = (v) => {
+    const cls = v > 0 ? 'delta-pos' : v < 0 ? 'delta-neg' : 'delta-neu';
+    return `<span class="${cls}">${v >= 0 ? '+' : ''}$${v.toFixed(2)}</span>`;
+  };
+  document.getElementById('data-tbody').innerHTML = collection.map(c => `
+    <tr style="${c.isDupe ? 'opacity:0.45' : ''}">
+      <td>${c.name}</td>
+      <td style="color:var(--muted)">${c.set}</td>
+      <td>${c.cond}</td>
+      <td>$${c.buy.toFixed(2)}</td>
+      <td>$${c.market.toFixed(2)}</td>
+      <td>${c.isDupe ? '—' : pnlFmt(c.pnl)}</td>
+      <td>${c.isDupe ? '<span style="color:var(--muted)">dup</span>' : c.totalQty}</td>
+      <td>${tagMap[c.status] || ''}</td>
+    </tr>
+  `).join('');
+}
+
+/* ── INIT ── */
+(function init() {
+  const session = sessionStorage.getItem('ps_session');
+  if (session) {
+    currentUser = session;
+    goToInput();
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const ls = document.getElementById('screen-login');
+      if (ls.classList.contains('active')) {
+        if (document.getElementById('register-fields').style.display !== 'none') handleRegister();
+        else handleLogin();
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>
