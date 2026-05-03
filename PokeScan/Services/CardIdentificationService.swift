@@ -19,7 +19,7 @@ final class CardIdentificationService {
             id: UUID(),
             name: name,
             setNumber: setNumber,
-            setCode: "unknown",
+            setCode: SetResolver.shared.resolve(setNumber: setNumber, language: language),
             language: language,
             marketPrice: nil,
             priceSource: nil,

@@ -17,7 +17,16 @@ final class CameraViewModel: NSObject, ObservableObject {
     private let sessionQueue = DispatchQueue(label: "com.pokescan.camera")
     private let visionService = VisionService()
     private let cardService = CardIdentificationService()
-    private var pricingService: PricingService = MockPricingService()
+    private var pricingService: PricingService = {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["POKESCAN_USE_MOCK"] == "1" {
+            return MockPricingService()
+        }
+        #endif
+        return LivePricingService()
+    }()
+    private let scanCounter = ScanCounterService.shared
+    @Published var showPaywall = false
 
     override init() {
         super.init()
@@ -112,6 +121,7 @@ final class CameraViewModel: NSObject, ObservableObject {
                     detectedCard = priced
                     presentedCard = priced
                     scanState = .result
+                    scanCounter.recordScan()
                 } catch {
                     scanState = .idle
                 }
@@ -121,6 +131,10 @@ final class CameraViewModel: NSObject, ObservableObject {
 
     func startScan() {
         guard scanState == .idle else { return }
+        guard scanCounter.canScan() else {
+            showPaywall = true
+            return
+        }
         scanState = .scanning
     }
 

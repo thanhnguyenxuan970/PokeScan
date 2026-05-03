@@ -37,6 +37,9 @@ struct ScannerView: View {
             CardDetailView(card: card)
                 .onDisappear { viewModel.resetScan() }
         }
+        .sheet(isPresented: $viewModel.showPaywall) {
+            PaywallView { viewModel.showPaywall = false }
+        }
     }
 
     // MARK: - Reticle

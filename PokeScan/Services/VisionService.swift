@@ -20,6 +20,10 @@ final class VisionService: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
             return
         }
 
+        #if DEBUG
+        let visionStart = Date()
+        #endif
+
         let request = VNRecognizeTextRequest { [weak self] request, error in
             self?.isProcessing = false
             if let error {
@@ -27,9 +31,14 @@ final class VisionService: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
                 return
             }
             let observations = request.results as? [VNRecognizedTextObservation] ?? []
+            #if DEBUG
+            let elapsed = Date().timeIntervalSince(visionStart) * 1000
+            let level = AppConfig.visionRecognitionLevel == .accurate ? "accurate" : "fast"
+            print("[VisionService] OCR: \(String(format: "%.0f", elapsed))ms (\(level))")
+            #endif
             self?.onResult?(.success(observations))
         }
-        request.recognitionLevel = .accurate
+        request.recognitionLevel = AppConfig.visionRecognitionLevel
         request.usesLanguageCorrection = false
 
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
