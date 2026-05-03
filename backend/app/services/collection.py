@@ -6,13 +6,21 @@ from app.models_db import User, CollectionCard
 
 
 async def get_or_create_user(db: AsyncSession, apple_user_id: str) -> User:
-    result = await db.execute(select(User).where(User.apple_user_id == apple_user_id))
+    # FOR UPDATE serializes concurrent card inserts from same user, preventing TOCTOU on tier limit.
+    result = await db.execute(
+        select(User).where(User.apple_user_id == apple_user_id).with_for_update()
+    )
     user = result.scalar_one_or_none()
     if user is None:
         user = User(apple_user_id=apple_user_id)
         db.add(user)
         await db.flush()
     return user
+
+
+async def get_user(db: AsyncSession, apple_user_id: str) -> User | None:
+    result = await db.execute(select(User).where(User.apple_user_id == apple_user_id))
+    return result.scalar_one_or_none()
 
 
 async def count_active_cards(db: AsyncSession, user_id: Any) -> int:

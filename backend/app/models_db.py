@@ -12,7 +12,7 @@ class User(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     apple_user_id = Column(String, unique=True, nullable=False)
-    tier = Column(String, nullable=False, server_default="free")
+    tier = Column(String, nullable=False, server_default="free", default="free")
     created_at = Column(TIMESTAMP(timezone=True), server_default=text("NOW()"))
 
     cards = relationship("CollectionCard", back_populates="user", cascade="all, delete-orphan")
