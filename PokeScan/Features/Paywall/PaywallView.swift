@@ -47,6 +47,18 @@ struct PaywallView: View {
                 Button("Maybe Later") { onDismiss() }
                     .foregroundStyle(.secondary)
             }
+
+            if store.purchasePending {
+                Text("Purchase pending approval…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let error = store.purchaseError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
         }
         .padding(32)
         .presentationDetents([.medium])

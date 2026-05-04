@@ -1,5 +1,10 @@
 import logging
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from starlette.requests import Request
 from datetime import datetime, timezone
 from app.models import PriceResponse
 from app.services.tcgplayer import fetch_completed_sale_price as tcg_fetch
@@ -7,12 +12,28 @@ from app.services.ebay import fetch_completed_sale_price as ebay_fetch
 from app.services.aggregator import aggregate
 from app.routers import auth as auth_router
 from app.routers import collection as collection_router
+from app.routers import grading as grading_router
+from app.routers import detection as detection_router
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="PokeScan Backend", version="0.3.0")
+limiter = Limiter(key_func=get_remote_address)
+
+app = FastAPI(title="PokeScan Backend", version="0.4.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://pokescan.app"],
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+)
+
 app.include_router(auth_router.router)
 app.include_router(collection_router.router)
+app.include_router(grading_router.router)
+app.include_router(detection_router.router)
 
 
 @app.get("/health")
@@ -21,7 +42,8 @@ async def health():
 
 
 @app.get("/price/{card_sku}", response_model=PriceResponse)
-async def get_price(card_sku: str, tier: str = "free") -> PriceResponse:
+@limiter.limit("60/minute")
+async def get_price(_request: Request, card_sku: str, tier: str = "free") -> PriceResponse:
     """
     Returns completed-sale market price for card_sku.
     G3: marketPrice only — never listing price.

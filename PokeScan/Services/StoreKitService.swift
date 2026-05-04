@@ -8,9 +8,11 @@ final class StoreKitService: ObservableObject {
     @Published private(set) var isPro: Bool = false
     @Published private(set) var proMonthly: Product? = nil
     @Published private(set) var proAnnual: Product? = nil
+    @Published var purchasePending: Bool = false
+    @Published var purchaseError: String? = nil
 
-    static let proMonthlyID = "com.yourname.pokescan.pro.monthly"
-    static let proAnnualID  = "com.yourname.pokescan.pro.annual"
+    static let proMonthlyID = "com.pokescan.app.pro.monthly"
+    static let proAnnualID  = "com.pokescan.app.pro.annual"
 
     private init() {
         Task {
@@ -36,19 +38,26 @@ final class StoreKitService: ObservableObject {
     }
 
     func purchase(_ product: Product) async throws {
-        let result = try await product.purchase()
-        switch result {
-        case .success(let verification):
-            let transaction = try verification.payloadValue
-            await transaction.finish()
-            isPro = true
-            await syncProStatusToBackend(transaction: transaction)
-        case .userCancelled:
-            break
-        case .pending:
-            break
-        @unknown default:
-            break
+        purchaseError = nil
+        purchasePending = false
+        do {
+            let result = try await product.purchase()
+            switch result {
+            case .success(let verification):
+                let transaction = try verification.payloadValue
+                await transaction.finish()
+                isPro = true
+                await syncProStatusToBackend(transaction: transaction)
+            case .userCancelled:
+                break
+            case .pending:
+                purchasePending = true
+            @unknown default:
+                break
+            }
+        } catch {
+            purchaseError = error.localizedDescription
+            throw error
         }
     }
 

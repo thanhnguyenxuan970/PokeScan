@@ -1,0 +1,32 @@
+{
+  "_formatVersion": "1.0",
+  "identifier": "com.pokescan.app",
+  "products": [
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "identifier": "com.pokescan.app.pro.monthly",
+      "localizations": [],
+      "productID": "com.pokescan.app.pro.monthly",
+      "referenceName": "PokeScan Pro Monthly",
+      "subscriptionGroupID": "pokescan_pro",
+      "type": "RecurringSubscription",
+      "recurringSubscriptionPeriod": "P1M"
+    },
+    {
+      "displayPrice": "39.99",
+      "familyShareable": false,
+      "identifier": "com.pokescan.app.pro.annual",
+      "localizations": [],
+      "productID": "com.pokescan.app.pro.annual",
+      "referenceName": "PokeScan Pro Annual",
+      "subscriptionGroupID": "pokescan_pro",
+      "type": "RecurringSubscription",
+      "recurringSubscriptionPeriod": "P1Y"
+    }
+  ],
+  "settings": {
+    "_enableAskToBuyInterruption": false,
+    "_receiptPresentationURL": "receipt.json"
+  }
+}
