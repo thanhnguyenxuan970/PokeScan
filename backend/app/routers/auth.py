@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
+from app.config import settings
 from app.services.auth import verify_apple_token, create_server_token, decode_server_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -56,7 +57,13 @@ async def verify_receipt(
 
     # Placeholder: accept any valid JWT + known product ID as Pro verification.
     # Phase 3 infra wires real App Store Server API receipt validation here.
-    if body.product_id not in ("com.yourname.pokescan.pro.monthly", "com.yourname.pokescan.pro.annual"):
+    if not settings.apple_bundle_id:
+        raise HTTPException(status_code=503, detail="Server misconfigured")
+    valid_ids = {
+        f"{settings.apple_bundle_id}.pro.monthly",
+        f"{settings.apple_bundle_id}.pro.annual",
+    }
+    if body.product_id not in valid_ids:
         raise HTTPException(status_code=400, detail="Unknown product")
 
     return {"status": "pro", "apple_user_id": apple_user_id}
