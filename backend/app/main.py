@@ -47,25 +47,33 @@ async def get_price(_request: Request, card_sku: str, tier: str = "free") -> Pri
     """
     Returns completed-sale market price for card_sku.
     G3: marketPrice only — never listing price.
-    tier=free: TCGPlayer only. tier=pro: weighted avg TCGPlayer + eBay.
+    EN cards (tier=free): TCGPlayer only. EN (tier=pro): weighted avg TCGPlayer + eBay.
+    JP cards: eBay completed sales only (TCGPlayer has no JP catalog).
     API keys stay server-side — never exposed to client.
     """
+    is_japanese = "jp" in card_sku.lower()
     try:
-        tcg_result = await tcg_fetch(card_sku)
-        tcg_price = tcg_result.get("market_price")
-        staleness_flag = tcg_result.get("staleness_flag", False)
+        tcg_price = None
+        staleness_flag = False
+        tcg_error = None
+        if not is_japanese:
+            tcg_result = await tcg_fetch(card_sku)
+            tcg_price = tcg_result.get("market_price")
+            staleness_flag = tcg_result.get("staleness_flag", False)
+            tcg_error = tcg_result.get("error")
 
         ebay_price = None
-        if tier == "pro":
+        if tier == "pro" or is_japanese:
             try:
                 ebay_price = await ebay_fetch(card_sku)
             except Exception as e:
                 logger.warning("eBay fetch failed for %s: %s", card_sku, e)
 
-        agg = aggregate(tcg_price, ebay_price, tier)
+        # JP cards have no TCGPlayer data; tier gate is irrelevant — always use eBay path
+        agg = aggregate(tcg_price, ebay_price, "pro" if is_japanese else tier)
 
         price_source = "aggregated" if len(agg["price_sources"]) > 1 else (
-            agg["price_sources"][0] if agg["price_sources"] else "tcgplayer"
+            agg["price_sources"][0] if agg["price_sources"] else "unknown"
         )
 
         return PriceResponse(
@@ -76,7 +84,7 @@ async def get_price(_request: Request, card_sku: str, tier: str = "free") -> Pri
             is_completed_sale=True,
             fetched_at=datetime.now(timezone.utc).isoformat(),
             staleness_flag=staleness_flag,
-            error=tcg_result.get("error"),
+            error=tcg_error,
         )
     except Exception as e:
         logger.error("price fetch failed for %s: %s", card_sku, e)

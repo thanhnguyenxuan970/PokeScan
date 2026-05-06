@@ -3,24 +3,13 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.auth import decode_server_token
 from app.services import collection as col_svc
 from app.database import get_db
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.dependencies import get_current_user_id
 
 router = APIRouter(prefix="/collection", tags=["collection"])
-_bearer = HTTPBearer()
 
 FREE_TIER_LIMIT = 50
-
-
-async def get_current_user_id(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
-) -> str:
-    try:
-        return decode_server_token(credentials.credentials)
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
 class CardIn(BaseModel):

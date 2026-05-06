@@ -25,5 +25,27 @@
   { "setCode": "sv5",    "name": "Temporal Forces",         "total": 218, "releaseYear": 2024, "series": "SV",     "language": "english" },
   { "setCode": "sv6",    "name": "Twilight Masquerade",     "total": 226, "releaseYear": 2024, "series": "SV",     "language": "english" },
   { "setCode": "sv7",    "name": "Stellar Crown",           "total": 175, "releaseYear": 2024, "series": "SV",     "language": "english" },
-  { "setCode": "sv8",    "name": "Surging Sparks",          "total": 252, "releaseYear": 2024, "series": "SV",     "language": "english" }
+  { "setCode": "sv8",    "name": "Surging Sparks",          "total": 252, "releaseYear": 2024, "series": "SV",     "language": "english" },
+
+  { "setCode": "sv1-jp",  "name": "Scarlet ex",              "total": 78,  "releaseYear": 2023, "series": "SV",     "language": "japanese" },
+  { "setCode": "sv2-jp",  "name": "Triplet Beat",            "total": 69,  "releaseYear": 2023, "series": "SV",     "language": "japanese" },
+  { "setCode": "sv3-jp",  "name": "Snow Hazard",             "total": 66,  "releaseYear": 2023, "series": "SV",     "language": "japanese" },
+  { "setCode": "sv3b-jp", "name": "Clay Burst",              "total": 66,  "releaseYear": 2023, "series": "SV",     "language": "japanese" },
+  { "setCode": "sv4-jp",  "name": "Future Flash",            "total": 78,  "releaseYear": 2023, "series": "SV",     "language": "japanese" },
+  { "setCode": "sv4a-jp", "name": "Shiny Treasure ex",       "total": 190, "releaseYear": 2023, "series": "SV",     "language": "japanese" },
+  { "setCode": "sv5-jp",  "name": "Wild Force",              "total": 67,  "releaseYear": 2024, "series": "SV",     "language": "japanese" },
+  { "setCode": "sv5b-jp", "name": "Cyber Judge",             "total": 67,  "releaseYear": 2024, "series": "SV",     "language": "japanese" },
+  { "setCode": "sv6-jp",  "name": "Mask of Change",          "total": 64,  "releaseYear": 2024, "series": "SV",     "language": "japanese" },
+  { "setCode": "sv6a-jp", "name": "Night Wanderer",          "total": 64,  "releaseYear": 2024, "series": "SV",     "language": "japanese" },
+  { "setCode": "sv7-jp",  "name": "Stellar Miracle",         "total": 80,  "releaseYear": 2024, "series": "SV",     "language": "japanese" },
+  { "setCode": "sv8-jp",  "name": "Super Electric Breaker",  "total": 72,  "releaseYear": 2024, "series": "SV",     "language": "japanese" },
+
+  { "setCode": "base1-jp", "name": "Expansion Pack",         "total": 102, "releaseYear": 1996, "series": "Base",   "language": "japanese" },
+  { "setCode": "base2-jp", "name": "Jungle",                 "total": 48,  "releaseYear": 1997, "series": "Base",   "language": "japanese" },
+  { "setCode": "base3-jp", "name": "Fossil",                 "total": 48,  "releaseYear": 1997, "series": "Base",   "language": "japanese" },
+  { "setCode": "base4-jp", "name": "Rocket Gang",            "total": 64,  "releaseYear": 1997, "series": "Base",   "language": "japanese" },
+  { "setCode": "base5-jp", "name": "Gym Heroes",             "total": 132, "releaseYear": 1998, "series": "Gym",    "language": "japanese" },
+  { "setCode": "base6-jp", "name": "Gym Challenge",          "total": 132, "releaseYear": 1998, "series": "Gym",    "language": "japanese" },
+  { "setCode": "neo1-jp",  "name": "Gold, Silver, to a New World!", "total": 96, "releaseYear": 1998, "series": "Neo", "language": "japanese" },
+  { "setCode": "neo2-jp",  "name": "Crossing the Ruins",     "total": 64,  "releaseYear": 1999, "series": "Neo",    "language": "japanese" }
 ]

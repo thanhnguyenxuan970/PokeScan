@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.routers.collection import get_current_user_id
+from app.dependencies import get_current_user_id
 from app.services import collection as col_svc
 from app.services import grading_roi
 from app.database import get_db

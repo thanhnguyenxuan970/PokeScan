@@ -83,6 +83,7 @@ private extension SetEntry {
     init?(from apiSet: PokemonTCGSet) {
         let yearString = apiSet.releaseDate.prefix(4)
         guard let year = Int(yearString) else { return nil }
+        let language = apiSet.id.contains("-jp") ? "japanese" : "english"
         self.init(
             setCode: apiSet.id,
             name: apiSet.name,
@@ -90,7 +91,7 @@ private extension SetEntry {
             printedTotal: apiSet.printedTotal,
             releaseYear: year,
             series: apiSet.series,
-            language: "english"
+            language: language
         )
     }
 }
