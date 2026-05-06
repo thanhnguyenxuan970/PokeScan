@@ -6,7 +6,7 @@ Stack: SwiftUI, FastAPI, PostgreSQL, TCGPlayer/eBay APIs, Apple Vision.
 
 ---
 
-## Build Status (updated 2026-05-06)
+## Build Status (updated 2026-05-06, pre-launch fixes applied)
 
 ### Completed
 
@@ -47,6 +47,9 @@ Stack: SwiftUI, FastAPI, PostgreSQL, TCGPlayer/eBay APIs, Apple Vision.
 | 5 | JP set database — 20 JP sets added (SV era + classic era), manual curation from Bulbapedia | `Resources/set_database.json` | ✅ Done |
 | 5 | JP pricing path — JP SKUs skip TCGPlayer, use eBay-only; free+pro tiers both get eBay for JP | `backend/app/main.py` | ✅ Done |
 | 5 | SetDatabaseService JP fix — removed `language: "english"` hardcode, infers from `-jp` suffix | `Services/SetDatabaseService.swift` | ✅ Done |
+| pre | Auth product ID fix — `com.yourname.*` → dynamic from `settings.apple_bundle_id`; guard for empty bundle ID | `backend/app/routers/auth.py` | ✅ Done |
+| pre | `.env.production.example` — added `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `POSTGRES_USER/PASSWORD/DB` | `backend/.env.production.example` | ✅ Done |
+| pre | docker-compose DB credentials — hardcoded `pokescan/pokescan` → `${POSTGRES_USER/PASSWORD/DB}` | `backend/docker-compose.yml` | ✅ Done |
 
 ### Stubs / Remaining
 
@@ -61,10 +64,13 @@ Stack: SwiftUI, FastAPI, PostgreSQL, TCGPlayer/eBay APIs, Apple Vision.
 
 ## Next Session — Pre-launch (External Actions Required)
 
-1. **Provision real API keys** — fill `backend/.env`: `TCGPLAYER_PUBLIC_KEY`, `TCGPLAYER_PRIVATE_KEY`, `EBAY_APP_ID`, `EBAY_CERT_ID`, `JWT_SECRET`, `APPLE_BUNDLE_ID`. Set `POKESCAN_USE_MOCK=0`.
+All code is now launch-ready. Remaining steps are external only:
+
+1. **Provision real API keys** — fill `backend/.env` (use `.env.production.example` as template): `TCGPLAYER_PUBLIC_KEY`, `TCGPLAYER_PRIVATE_KEY`, `EBAY_APP_ID`, `EBAY_CERT_ID`, `JWT_SECRET`, `APPLE_BUNDLE_ID=com.pokescan.app`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`. Set `POKESCAN_USE_MOCK=0`.
 2. **App Store Connect** — create IAP products `com.pokescan.app.pro.monthly` + `.pro.annual`, subscription group `pokescan_pro`. Add `PokeScan.storekit` to Xcode scheme for Simulator.
 3. **Deploy backend** — `docker-compose up --build` locally first, then Railway/Fly.io. Run `alembic upgrade head` against prod DB.
-4. **End-to-end test** — scan real card → price → Grade ROI → result. Test fake detection. Test paywall → purchase → Pro unlocks. Scan JP card → eBay-only price returns.
+4. **Set `POKESCAN_ENV=production`** in Xcode release scheme before archiving.
+5. **End-to-end test** — scan real card → price → Grade ROI → result. Test fake detection. Test paywall → purchase → Pro unlocks. Scan JP card → eBay-only price returns.
 
 ---
 
@@ -153,6 +159,14 @@ Env flags:
 | JP cards bypass tier gate in `aggregate()` | JP cards have no TCGPlayer data; tier distinction is meaningless. Passing `tier="pro"` to `aggregate()` when `is_japanese=True` gives eBay-only result for both free and pro JP users. Avoids `market_price: None` on free JP scans. |
 | `SetDatabaseService` language infer from `-jp` suffix | `api.pokemontcg.io` never returns JP sets today, but fix is future-proofing. `contains("-jp")` chosen over `hasSuffix("-jp")` to catch potential mid-code variants. |
 | JP set total collisions within JP language (e.g. base2-jp + base3-jp both 48) | `SetResolver` newest-wins tiebreaker applies within JP same-total sets, same as EN behavior. Acceptable Phase 5 limitation. |
+
+## Key Decisions Made (Pre-launch)
+
+| Decision | Rationale |
+|---|---|
+| Auth product IDs derived from `settings.apple_bundle_id` (not hardcoded) | Placeholder used `"com.yourname.pokescan.pro.*"` — wouldn't match iOS client's `"com.pokescan.app.pro.*"`. All Pro purchases would be rejected. Fix reads bundle ID from env var, zero hardcoded strings. |
+| Guard `if not settings.apple_bundle_id` before building `valid_ids` | Empty default would produce `{".pro.monthly", ".pro.annual"}` — nonsensical but technically passable by a crafted request. 503 fails loudly on misconfiguration instead of silently degrading. |
+| Docker-compose DB credentials via `${VAR}` (not hardcoded `pokescan/pokescan`) | Hardcoded credentials in docker-compose.yml = plaintext secrets in git. `${VAR}` reads from `.env` at compose time, zero code change for different envs. |
 
 ---
 
