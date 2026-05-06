@@ -6,7 +6,7 @@ Stack: SwiftUI, FastAPI, PostgreSQL, TCGPlayer/eBay APIs, Apple Vision.
 
 ---
 
-## Build Status (updated 2026-05-03)
+## Build Status (updated 2026-05-06)
 
 ### Completed
 
@@ -37,24 +37,34 @@ Stack: SwiftUI, FastAPI, PostgreSQL, TCGPlayer/eBay APIs, Apple Vision.
 | 3 | Collection persistence — SwiftData + server-synced push/pull | `Persistence/CollectionStore.swift`, `Services/CollectionSyncService.swift` | ✅ Done |
 | 3 | Collection backend routes — GET/POST/DELETE wired to PostgreSQL | `backend/app/routers/collection.py`, `database.py` | ✅ Done |
 | 3 | StoreKit 2 Pro purchase, Transaction.updates, paywall wired | `Services/StoreKitService.swift`, `Features/Paywall/` | ✅ Done |
+| 4 | Grade ROI backend — `POST /grading/roi`, condition→grade multipliers, break-even calc | `backend/app/services/grading_roi.py`, `routers/grading.py` | ✅ Done |
+| 4 | Grade ROI iOS — condition/service picker, ROI results card, Pro gate | `Models/GradeROIModels.swift`, `Services/GradeROIService.swift`, `Features/GradeROI/` | ✅ Done |
+| 4 | Fake detection backend — `POST /detection/authenticity`, rules-based scorer | `backend/app/services/authenticity.py`, `routers/detection.py` | ✅ Done |
+| 4 | Fake detection iOS — risk badge in CardDetailView, detail sheet | `Models/AuthenticityResult.swift`, `Services/FakeDetectionService.swift` | ✅ Done |
+| 4 | StoreKit IAP — real product IDs, purchasePending/purchaseError states, .storekit config | `Services/StoreKitService.swift`, `PokeScan.storekit` | ✅ Done |
+| 4 | Backend deployment prep — Dockerfile, docker-compose (with PG healthcheck), CORS, rate limiting | `backend/Dockerfile`, `docker-compose.yml`, `.env.production.example` | ✅ Done |
+| 5 | `app/dependencies.py` — extract `get_current_user_id` from `collection.py`, all 3 routers updated | `backend/app/dependencies.py` | ✅ Done |
+| 5 | JP set database — 20 JP sets added (SV era + classic era), manual curation from Bulbapedia | `Resources/set_database.json` | ✅ Done |
+| 5 | JP pricing path — JP SKUs skip TCGPlayer, use eBay-only; free+pro tiers both get eBay for JP | `backend/app/main.py` | ✅ Done |
+| 5 | SetDatabaseService JP fix — removed `language: "english"` hardcode, infers from `-jp` suffix | `Services/SetDatabaseService.swift` | ✅ Done |
 
 ### Stubs / Remaining
 
 | Component | File | Phase |
 |---|---|---|
-| Grade ROI (Pro tier) | `Features/GradeROI/GradeROIView.swift` | Phase 4 |
-| Fake/counterfeit detection (G6) | — | Phase 4 |
-| Japanese card support (G8) | — | Phase 4+ |
+| App Store Connect — create IAP products in dashboard | external | Pre-launch |
+| Backend deploy to Railway/Fly.io | external | Pre-launch |
+| Provision real API keys in `backend/.env` | external | Pre-launch |
+| E2E test after deploy | manual | Pre-launch |
 
 ---
 
-## Next Session — Phase 4 Priorities
+## Next Session — Pre-launch (External Actions Required)
 
 1. **Provision real API keys** — fill `backend/.env`: `TCGPLAYER_PUBLIC_KEY`, `TCGPLAYER_PRIVATE_KEY`, `EBAY_APP_ID`, `EBAY_CERT_ID`, `JWT_SECRET`, `APPLE_BUNDLE_ID`. Set `POKESCAN_USE_MOCK=0`.
-2. **Grade ROI screen** — condition slider → expected PSA grade → net profit after grading fee. Pop report inline. Maps to G4.
-3. **Fake detection layer** — font weight + holo pattern hash + card number format. "High risk" verdict. Maps to G6.
-4. **App Store Connect setup** — create IAP products `com.yourname.pokescan.pro.monthly` + `.pro.annual`, add `.storekit` config for Simulator.
-5. **Deploy backend** — Railway / Fly.io. Set `DATABASE_URL` in production env. Run `alembic upgrade head` against prod DB.
+2. **App Store Connect** — create IAP products `com.pokescan.app.pro.monthly` + `.pro.annual`, subscription group `pokescan_pro`. Add `PokeScan.storekit` to Xcode scheme for Simulator.
+3. **Deploy backend** — `docker-compose up --build` locally first, then Railway/Fly.io. Run `alembic upgrade head` against prod DB.
+4. **End-to-end test** — scan real card → price → Grade ROI → result. Test fake detection. Test paywall → purchase → Pro unlocks. Scan JP card → eBay-only price returns.
 
 ---
 
@@ -120,6 +130,29 @@ Env flags:
 | `SELECT ... FOR UPDATE` in `get_or_create_user` | Serializes concurrent card inserts per user, preventing TOCTOU on free-tier 50-card limit. |
 | `get_user` (no upsert) for DELETE route | Delete path should not create a user row. Separate `get_user` returns `None` → 404 cleanly. |
 | `User.tier` needs both `server_default` and `default` | `server_default` is DB-level only; SQLAlchemy doesn't auto-refresh after flush. Python-level `default="free"` ensures in-memory object has correct tier for new users. |
+
+## Key Decisions Made (Phase 4)
+
+| Decision | Rationale |
+|---|---|
+| Grade multipliers hardcoded (not fetched from PSA pop report) | Phase 4 scope. Static multipliers (grade 10 = 4×, grade 9 = 2×, etc.) are directionally correct and sufficient for ROI decision. Dynamic multipliers require PSA API integration (Phase 5). |
+| `_has_suspicious_chars` via codepoint comparison, not regex | Unicode regex with literal chars caused encoding corruption across platforms. Codepoint comparison is explicit, readable, and encoding-safe. |
+| `listed_price` + `market_price` both sent to `/detection/authenticity` | Client sends market_price (from scan) and listed_price (price being evaluated). Backend compares them directly — no extra pricing API call needed per request. |
+| `get_current_user_id` imported cross-router from `collection.py` | Function defined in collection router, not a shared module. Acceptable for Phase 4; refactor to `app/dependencies.py` before multi-developer work. |
+| `@ObservedObject` for `StoreKitService.shared` in new views | Phase 3 used `@StateObject` in `PaywallView` (pre-existing, technically wrong). All new Phase 4 views use `@ObservedObject` — correct pattern for externally owned singletons. |
+| `docker-compose` DB healthcheck + `depends_on: condition: service_healthy` | `depends_on: [db]` doesn't wait for PostgreSQL to accept connections. Without healthcheck, API crashes on startup race. |
+
+---
+
+## Key Decisions Made (Phase 5)
+
+| Decision | Rationale |
+|---|---|
+| `get_current_user_id` extracted to `app/dependencies.py` | Was cross-imported from `collection.py` into `detection.py` + `grading.py`. Fragile. `dependencies.py` is the correct FastAPI pattern for shared auth logic. |
+| JP set data manually curated (not from API) | `api.pokemontcg.io` is English-only — no `language=ja` filter exists. Static curation from Bulbapedia is one-time cost, zero runtime dep. |
+| JP cards bypass tier gate in `aggregate()` | JP cards have no TCGPlayer data; tier distinction is meaningless. Passing `tier="pro"` to `aggregate()` when `is_japanese=True` gives eBay-only result for both free and pro JP users. Avoids `market_price: None` on free JP scans. |
+| `SetDatabaseService` language infer from `-jp` suffix | `api.pokemontcg.io` never returns JP sets today, but fix is future-proofing. `contains("-jp")` chosen over `hasSuffix("-jp")` to catch potential mid-code variants. |
+| JP set total collisions within JP language (e.g. base2-jp + base3-jp both 48) | `SetResolver` newest-wins tiebreaker applies within JP same-total sets, same as EN behavior. Acceptable Phase 5 limitation. |
 
 ---
 
