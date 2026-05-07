@@ -12,6 +12,8 @@ Run `/check_plan.md` on the plan file.
 - Do not proceed to Phase 2 until check_plan.md reports ✅ PLAN CLEAN.
 - If `[NEEDS CONFIRMATION]` items remain, surface them to user and wait for resolution before continuing.
 
+Run `/compact` after Phase 1 completes.
+
 ---
 
 ## Phase 2 — IMPLEMENT
@@ -39,6 +41,8 @@ Run `/check_code.md` on all files created or modified during Phase 2.
 - Scope: only files touched in Phase 2 (not the entire codebase).
 - Do not proceed past Phase 3 until check_code.md reports ✅ CODE CLEAN.
 
+Run `/compact` after Phase 3 completes.
+
 ---
 
 ## Phase 4 — REVIEW & FIX
@@ -49,6 +53,8 @@ Run `/review` then `/caveman-review` on all files created or modified during Pha
 - Re-run `/caveman-review` after fixes until no issues remain.
 - Do not proceed to Phase 5 until review is clean.
 
+Run `/compact` after Phase 4 completes.
+
 ---
 
 ## Phase 5 — CLOSE
@@ -56,6 +62,8 @@ Run `/review` then `/caveman-review` on all files created or modified during Pha
 Run `/close.md` to finalize the delivery.
 
 - Do not run close.md until Phase 4 review is clean.
+
+Run `/compact` after Phase 5 completes.
 
 ---
 
