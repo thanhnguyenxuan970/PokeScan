@@ -50,27 +50,45 @@ Stack: SwiftUI, FastAPI, PostgreSQL, TCGPlayer/eBay APIs, Apple Vision.
 | pre | Auth product ID fix — `com.yourname.*` → dynamic from `settings.apple_bundle_id`; guard for empty bundle ID | `backend/app/routers/auth.py` | ✅ Done |
 | pre | `.env.production.example` — added `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `POSTGRES_USER/PASSWORD/DB` | `backend/.env.production.example` | ✅ Done |
 | pre | docker-compose DB credentials — hardcoded `pokescan/pokescan` → `${POSTGRES_USER/PASSWORD/DB}` | `backend/docker-compose.yml` | ✅ Done |
+| pre | `AppConfig.privacyPolicyURL` constant added; PP `Link` added to `PaywallView` (above Restore Purchases) | `Config/AppConfig.swift`, `Features/Paywall/PaywallView.swift` | ✅ Done |
+| pre | `OnboardingView` — logo, 3 value prop rows, PP link, "Start Scanning" CTA | `Features/Onboarding/OnboardingView.swift` | ✅ Done |
+| pre | `PokeScanApp` onboarding gate — `@AppStorage("hasSeenOnboarding")` shows OnboardingView on first launch | `App/PokeScanApp.swift` | ✅ Done |
 
 ### Stubs / Remaining
 
-| Component | File | Phase |
-|---|---|---|
-| App Store Connect — create IAP products in dashboard | external | Pre-launch |
-| Backend deploy to Railway/Fly.io | external | Pre-launch |
-| Provision real API keys in `backend/.env` | external | Pre-launch |
-| E2E test after deploy | manual | Pre-launch |
+| Component | File | Phase | Status |
+|---|---|---|---|
+| Privacy Policy hosted URL — paste real UUID into `AppConfig.privacyPolicyURL` | `Config/AppConfig.swift` line 29 | Pre-launch | ⏸ Code done, needs real termly.io URL to replace `REPLACE_ME` |
+| App Icon 1024×1024 PNG | `Assets.xcassets/AppIcon` in Xcode | Pre-launch | ❌ Not done — create in Canva, drag into Xcode |
+| App Store Connect — create IAP products in dashboard | external | Pre-launch | ❌ Blocked: Apple Dev registration errors |
+| Backend deploy to Railway/Fly.io | external | Pre-launch | ❌ Not done |
+| eBay API keys | external | Pre-launch | ❌ Blocked: pending account approval |
+| TCGPlayer API keys | external | Pre-launch | ⏸ Skipped for v1.0 — not self-service, requires email to api@tcgplayer.com |
+| JWT_SECRET + Postgres credentials | `backend/.env` | Pre-launch | ❌ Not filled |
+| E2E test after deploy | manual | Pre-launch | ❌ Not done |
 
 ---
 
-## Next Session — Pre-launch (External Actions Required)
+## Next Session — Pre-launch (Updated 2026-05-07)
 
-All code is now launch-ready. Remaining steps are external only:
+### Unblocked — Do Now
 
-1. **Provision real API keys** — fill `backend/.env` (use `.env.production.example` as template): `TCGPLAYER_PUBLIC_KEY`, `TCGPLAYER_PRIVATE_KEY`, `EBAY_APP_ID`, `EBAY_CERT_ID`, `JWT_SECRET`, `APPLE_BUNDLE_ID=com.pokescan.app`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`. Set `POKESCAN_USE_MOCK=0`.
-2. **App Store Connect** — create IAP products `com.pokescan.app.pro.monthly` + `.pro.annual`, subscription group `pokescan_pro`. Add `PokeScan.storekit` to Xcode scheme for Simulator.
-3. **Deploy backend** — `docker-compose up --build` locally first, then Railway/Fly.io. Run `alembic upgrade head` against prod DB.
-4. **Set `POKESCAN_ENV=production`** in Xcode release scheme before archiving.
-5. **End-to-end test** — scan real card → price → Grade ROI → result. Test fake detection. Test paywall → purchase → Pro unlocks. Scan JP card → eBay-only price returns.
+1. **Privacy Policy URL** — go to `termly.io`, generate free policy (Mobile App, "PokeScan"). Copy hosted URL. Replace `REPLACE_ME` in `Config/AppConfig.swift:29`. Paste URL into App Store Connect → App Information → Privacy Policy URL field.
+2. **App Icon** — Canva → 1024×1024 PNG, no transparent background (Apple rejects). In Xcode Project Navigator: open `Assets.xcassets` → `AppIcon` → set Scales to "Single Scale" → drag PNG in.
+3. **JWT_SECRET** — `openssl rand -hex 32` → paste into `backend/.env`. Set `POSTGRES_PASSWORD` to strong value. Update `DATABASE_URL` accordingly.
+
+### Blocked — Waiting on External
+
+5. **eBay API** — pending approval. When approved: fill `EBAY_APP_ID` + `EBAY_CERT_ID` in `backend/.env`, set `POKESCAN_USE_MOCK=0`.
+6. **Apple Developer account** — registration errors unresolved. Required for: App Store Connect IAP setup, archiving, TestFlight. Resolve at `developer.apple.com`.
+7. **TCGPlayer** — not self-service. Email `api@tcgplayer.com`. Not a launch blocker — app ships eBay-only pricing for v1.0.
+
+### After All Unblocked
+
+8. **App Store Connect** — create IAP products `com.pokescan.app.pro.monthly` ($4.99/mo) + `com.pokescan.app.pro.annual` ($39.99/yr), subscription group `pokescan_pro`.
+9. **Deploy backend** — `docker-compose up --build` locally → Railway/Fly.io. Run `alembic upgrade head` against prod DB.
+10. **Set `POKESCAN_ENV=production`** in Xcode release scheme before archiving.
+11. **E2E test** — scan real card → price → Grade ROI → result. Test paywall → purchase → Pro unlocks. Scan JP card → eBay-only price.
 
 ---
 
@@ -167,6 +185,13 @@ Env flags:
 | Auth product IDs derived from `settings.apple_bundle_id` (not hardcoded) | Placeholder used `"com.yourname.pokescan.pro.*"` — wouldn't match iOS client's `"com.pokescan.app.pro.*"`. All Pro purchases would be rejected. Fix reads bundle ID from env var, zero hardcoded strings. |
 | Guard `if not settings.apple_bundle_id` before building `valid_ids` | Empty default would produce `{".pro.monthly", ".pro.annual"}` — nonsensical but technically passable by a crafted request. 503 fails loudly on misconfiguration instead of silently degrading. |
 | Docker-compose DB credentials via `${VAR}` (not hardcoded `pokescan/pokescan`) | Hardcoded credentials in docker-compose.yml = plaintext secrets in git. `${VAR}` reads from `.env` at compose time, zero code change for different envs. |
+| TCGPlayer skipped for v1.0 launch | API not self-service — requires email to api@tcgplayer.com, approval takes weeks. eBay-only pricing sufficient for launch. TCGPlayer added post-launch when keys arrive. |
+| `POKESCAN_USE_MOCK=1` until eBay keys arrive | Keeps app runnable locally during API approval wait. Flip to `0` when `EBAY_APP_ID` + `EBAY_CERT_ID` are filled. |
+| Privacy Policy, App Icon, Onboarding identified as missing pre-launch requirements | Coin-app launch checklist analysis (2026-05-07) revealed 3 items not in original pre-launch plan. All required before App Store submission. |
+| `privacyPolicyURL` as static `let` in `AppConfig` (not env var) | URL is public-facing and non-sensitive. Env var would add deploy complexity for zero security benefit. Placeholder `REPLACE_ME` in code; real UUID swapped before archive. |
+| Onboarding gate via `@AppStorage` on `App` struct, not `UserDefaults` directly | `@AppStorage` is reactive — `PokeScanApp` body re-evaluates automatically when `hasSeenOnboarding` flips in `OnboardingView`. Direct `UserDefaults` read in `WindowGroup` would be non-reactive and require manual state bridging. |
+| PP `Link` placed above "Restore Purchases" in `PaywallView` | Apple App Review guideline: legal links must be visible before any purchase action. Below "Restore" = after purchase UI = potential rejection. |
+| Single `OnboardingView` (not multi-screen flow) | 3-screen carousel adds navigation state, page indicators, and gesture handling — week of work. Single screen with 3 feature rows conveys same value props in 30min. Revisit post-launch if retention data suggests onboarding drop-off. |
 
 ---
 

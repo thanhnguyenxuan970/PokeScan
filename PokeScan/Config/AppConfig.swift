@@ -24,4 +24,7 @@ enum AppConfig {
     static var visionRecognitionLevel: VNRequestTextRecognitionLevel {
         ProcessInfo.processInfo.environment["POKESCAN_VISION_FAST"] == "1" ? .fast : .accurate
     }
+
+    // Replace REPLACE_ME with real UUID from termly.io before production build
+    static let privacyPolicyURL = URL(string: "https://app.termly.io/policy-viewer/policy.html?policyUUID=REPLACE_ME")!
 }

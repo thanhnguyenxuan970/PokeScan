@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct PokeScanApp: App {
     @StateObject private var auth = AuthService.shared
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
 
     init() {
         Task {
@@ -14,8 +15,13 @@ struct PokeScanApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ScannerView()
-                .environmentObject(auth)
+            if hasSeenOnboarding {
+                ScannerView()
+                    .environmentObject(auth)
+            } else {
+                OnboardingView()
+                    .environmentObject(auth)
+            }
         }
         .modelContainer(for: CardRecord.self)
     }

@@ -38,6 +38,10 @@ struct PaywallView: View {
                     .foregroundStyle(.secondary)
                 }
 
+                Link("Privacy Policy", destination: AppConfig.privacyPolicyURL)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 Button("Restore Purchases") {
                     Task { await store.restorePurchases() }
                 }

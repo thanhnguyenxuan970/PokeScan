@@ -1,6 +1,6 @@
 ---
 name: process
-description: Full delivery pipeline. Runs check_plan.md → implement → check_code.md → caveman-review & fix → close.md → caveman-commit in sequence.
+description: Full delivery pipeline. Runs check_plan.md → implement → check_code.md → review → caveman-review & fix → close.md → caveman-commit in sequence.
 ---
 
 Execute the full delivery pipeline for the current plan. Ask user which plan file if unclear.
@@ -43,7 +43,7 @@ Run `/check_code.md` on all files created or modified during Phase 2.
 
 ## Phase 4 — REVIEW & FIX
 
-Run `/caveman-review` on all files created or modified during Phase 2.
+Run `/review` then `/caveman-review` on all files created or modified during Phase 2.
 
 - Fix every issue surfaced before proceeding.
 - Re-run `/caveman-review` after fixes until no issues remain.
