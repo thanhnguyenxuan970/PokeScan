@@ -1,12 +1,57 @@
 # claude.md — Project Meta-Guide
 
 ## What This Project Is
-iOS app: scan physical trading cards (Pokémon, MTG, sports cards) → real-time market valuation.
-Stack: SwiftUI, FastAPI, PostgreSQL, TCGPlayer/eBay APIs, Apple Vision.
+Card scanning app (Pokémon, MTG, sports cards) → real-time market valuation.
+**iOS build complete (paused — Apple Dev registration blocked). Android migration in progress.**
+Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastAPI, PostgreSQL, TCGPlayer/eBay APIs.
 
 ---
 
-## Build Status (updated 2026-05-06, pre-launch fixes applied)
+## Android Migration Status (updated 2026-05-08)
+
+### Why Android
+Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
+
+### Android Tech Stack
+Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retrofit 2 + OkHttp + Moshi, Firebase Auth + Google Sign-In, EncryptedSharedPreferences, Room, DataStore, Play Billing 7+, Hilt, Kotlin Coroutines + Flow, Compose Navigation.
+
+### Android Build Status
+
+| Phase | Description | Files | Status |
+|---|---|---|---|
+| A0 | Project scaffolding — Gradle, DI stubs, theme, NavGraph | `android/` (21 files) | ✅ Done |
+| A1 | Data layer — domain models, Room DB, SetResolver, SetDatabaseService, ScanCounterService | `android/` (15 items) | ✅ Done |
+| A2 | Auth — SecureStorage, AuthRepository, ApiService stub, SignInScreen, OnboardingScreen | - | ❌ Next |
+| A3 | Scanner — CameraX, ML Kit, ScannerViewModel, ScannerScreen | - | ❌ Not started |
+| A4 | Full features — networking, collection, billing, paywall | - | ❌ Not started |
+| A5 | Polish — ProGuard, navigation gating, permission rationale | - | ❌ Not started |
+
+### Next Session — Android
+1. Plan + implement Phase A2 (Auth — SecureStorage, AuthRepository, ApiService stub, SignInScreen, OnboardingScreen)
+2. Get real `google-services.json` from Firebase Console — required before any Gradle build
+3. Wire `provideApiService()` in NetworkModule (stub for A2, add auth interceptor)
+4. `exportSchema = true` in AppDatabase + create schema export directory (deferred from A1)
+
+### Key Decisions — Android Migration
+
+| Decision | Rationale |
+|---|---|
+| `Theme.PokeScan` extends `android:Theme.Material.Light.NoActionBar` (not AppCompat) | Pure Compose app — no Views, no appcompat needed. Avoids extra dependency. |
+| Placeholder `composable(Routes.SCANNER)` in NavGraph Phase 0 | Empty NavHost crashes on launch. Placeholder prevents crash, replaced Phase 3. |
+| `android:allowBackup="false"` | PokeScan stores collection + financial data — local backup to Google Drive is a privacy risk. |
+| All Gradle deps declared Phase 0 (not incrementally) | Phase 0 goal is "all deps wired." Declaring later-phase deps now locks versions early, avoids mid-development version conflicts. |
+| `HttpLoggingInterceptor` gated on `BuildConfig.DEBUG` | Full HTTP body logging in release would expose JWTs and pricing responses. |
+| `google-services.json` placeholder committed | Unblocks file structure, but Gradle build requires real file from Firebase Console. Placeholder has `REPLACE_WITH_*` sentinel strings. |
+| `SetEntry` domain model has no Moshi annotation | Domain models must be infrastructure-free. Bundle + API parsing uses `SetEntryDto` (in `data/remote/dto/`), which maps to `SetEntry` via `toDomain()`. |
+| `SetResolver.resolve()` takes `entries` as parameter | Enables reactive updates — caller passes current `SetDatabaseService.sets.value`. No singleton or constructor coupling. |
+| `SetEntryDao.replaceAll()` uses `@Transaction` | Wraps `deleteAll()` + `upsertAll()` atomically. Without `@Transaction`, a crash between the two calls leaves Room empty with no recovery path until next API refresh. |
+| `ScanCounterService` uses `Mutex` around read-check-write | `canScan` read and `recordScan` increment are not a single DataStore atomic operation. Mutex serializes concurrent callers and prevents two coroutines both passing the 20-scan limit check. |
+| `SetDatabaseService` scope uses `SupervisorJob()` | Without `SupervisorJob`, an uncaught exception in any child coroutine cancels the parent scope, which kills the `stateIn` collector and stops `sets` from emitting forever. |
+| Bundle `set_database.json` has no `printedTotal` field | All entries parse as `printedTotal=null`. `SetResolver` falls through to newest-wins for collisions until `pokemontcg.io` API refresh populates `printedTotal`. Tests cover both code paths explicitly. |
+
+---
+
+## iOS Build Status (updated 2026-05-06, pre-launch fixes applied)
 
 ### Completed
 
@@ -48,6 +93,7 @@ Stack: SwiftUI, FastAPI, PostgreSQL, TCGPlayer/eBay APIs, Apple Vision.
 | 5 | JP pricing path — JP SKUs skip TCGPlayer, use eBay-only; free+pro tiers both get eBay for JP | `backend/app/main.py` | ✅ Done |
 | 5 | SetDatabaseService JP fix — removed `language: "english"` hardcode, infers from `-jp` suffix | `Services/SetDatabaseService.swift` | ✅ Done |
 | pre | Auth product ID fix — `com.yourname.*` → dynamic from `settings.apple_bundle_id`; guard for empty bundle ID | `backend/app/routers/auth.py` | ✅ Done |
+| android | `POST /auth/google` + `verify_google_token()` + `GOOGLE_CLIENT_ID` config + `google-auth>=2.29` dep | `backend/app/routers/auth.py`, `services/auth.py`, `config.py`, `requirements.txt` | ✅ Done |
 | pre | `.env.production.example` — added `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `POSTGRES_USER/PASSWORD/DB` | `backend/.env.production.example` | ✅ Done |
 | pre | docker-compose DB credentials — hardcoded `pokescan/pokescan` → `${POSTGRES_USER/PASSWORD/DB}` | `backend/docker-compose.yml` | ✅ Done |
 | pre | `AppConfig.privacyPolicyURL` constant added; PP `Link` added to `PaywallView` (above Restore Purchases) | `Config/AppConfig.swift`, `Features/Paywall/PaywallView.swift` | ✅ Done |
