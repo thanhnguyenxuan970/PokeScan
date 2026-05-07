@@ -21,16 +21,16 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 |---|---|---|---|
 | A0 | Project scaffolding — Gradle, DI stubs, theme, NavGraph | `android/` (21 files) | ✅ Done |
 | A1 | Data layer — domain models, Room DB, SetResolver, SetDatabaseService, ScanCounterService | `android/` (15 items) | ✅ Done |
-| A2 | Auth — SecureStorage, AuthRepository, ApiService stub, SignInScreen, OnboardingScreen | - | ❌ Next |
-| A3 | Scanner — CameraX, ML Kit, ScannerViewModel, ScannerScreen | - | ❌ Not started |
+| A2 | Auth — SecureStorage, AuthInterceptor, ApiService, AuthRepository, AuthModule, AuthViewModel, SignInScreen, OnboardingScreen, NavGraph gating, MainActivity wiring | `android/` (9 new + 5 modified) | ✅ Done |
+| A3 | Scanner — CameraX, ML Kit, ScannerViewModel, ScannerScreen | - | ❌ Next |
 | A4 | Full features — networking, collection, billing, paywall | - | ❌ Not started |
 | A5 | Polish — ProGuard, navigation gating, permission rationale | - | ❌ Not started |
 
 ### Next Session — Android
-1. Plan + implement Phase A2 (Auth — SecureStorage, AuthRepository, ApiService stub, SignInScreen, OnboardingScreen)
-2. Get real `google-services.json` from Firebase Console — required before any Gradle build
-3. Wire `provideApiService()` in NetworkModule (stub for A2, add auth interceptor)
-4. `exportSchema = true` in AppDatabase + create schema export directory (deferred from A1)
+1. Get real `google-services.json` from Firebase Console — required before any Gradle build (`android/app/google-services.json`, replace `REPLACE_WITH_*` sentinels)
+2. Plan + implement Phase A3 (Scanner — CameraX, ML Kit, ScannerViewModel, ScannerScreen)
+3. After real `google-services.json` in place: run `./gradlew assembleDebug` and verify A2 build
+4. Verify A2 nav flow: first launch → OnboardingScreen → SignInScreen; post-sign-in → ScannerScreen stays on reopen
 
 ### Key Decisions — Android Migration
 
@@ -48,6 +48,12 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 | `ScanCounterService` uses `Mutex` around read-check-write | `canScan` read and `recordScan` increment are not a single DataStore atomic operation. Mutex serializes concurrent callers and prevents two coroutines both passing the 20-scan limit check. |
 | `SetDatabaseService` scope uses `SupervisorJob()` | Without `SupervisorJob`, an uncaught exception in any child coroutine cancels the parent scope, which kills the `stateIn` collector and stops `sets` from emitting forever. |
 | Bundle `set_database.json` has no `printedTotal` field | All entries parse as `printedTotal=null`. `SetResolver` falls through to newest-wins for collisions until `pokemontcg.io` API refresh populates `printedTotal`. Tests cover both code paths explicitly. |
+| `SecureStorage` uses `EncryptedSharedPreferences` (synchronous) | Token check at NavGraph `startDestination` computation must be sync — happens inside `remember {}` at composition time. No coroutine overhead for a single string read. |
+| `AuthInterceptor` reads token from `SecureStorage` per-request | Token can be cleared after launch (sign-out). Live read per-request handles sign-out correctly. Captured-at-construction token would stay stale. |
+| `NavGraph` receives `secureStorage` + `prefs` as params from `MainActivity` | NavGraph `startDestination` needs sync access to both. Both are synchronous (`EncryptedSharedPreferences` and `SharedPreferences`). No Hilt injection into composable needed — simpler. |
+| Auth nav events via `SharedFlow<AuthEvent>(replay=0)` in `AuthViewModel` | `StateFlow` would replay the last event on recomposition (e.g. after screen rotation), causing double-navigation. `SharedFlow(replay=0)` fires once and done. |
+| `material-icons-core` added to deps in A2 | `OnboardingScreen` uses `Icons.Default.*`. The artifact is NOT a transitive dep of `compose-material3` — must be declared explicitly. BOM-managed, no version conflict. |
+| `RESULT_OK` guard in `SignInScreen` before `handleSignInResult` | User cancelling Google Sign-In returns `RESULT_CANCELED`. Without the guard, `task.result` throws `ApiException(SIGN_IN_CANCELLED)` and shows "Sign-in failed" error to the user. Cancellation should be silent. |
 
 ---
 

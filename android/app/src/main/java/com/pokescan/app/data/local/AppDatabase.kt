@@ -10,7 +10,7 @@ import com.pokescan.app.data.local.entity.SetEntryEntity
 @Database(
     entities = [CardRecordEntity::class, SetEntryEntity::class],
     version = 1,
-    exportSchema = false,
+    exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun cardRecordDao(): CardRecordDao

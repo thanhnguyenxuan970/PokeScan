@@ -2,6 +2,9 @@ package com.pokescan.app.di
 
 import com.pokescan.app.BuildConfig
 import com.pokescan.app.config.AppConfig
+import com.pokescan.app.data.local.SecureStorage
+import com.pokescan.app.data.remote.ApiService
+import com.pokescan.app.data.remote.AuthInterceptor
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import dagger.Module
@@ -20,8 +23,9 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient =
+    fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient =
         OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
             .addInterceptor(HttpLoggingInterceptor().apply {
                 level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
                         else HttpLoggingInterceptor.Level.NONE
@@ -44,5 +48,13 @@ object NetworkModule {
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
 
-    // Phase 2 adds: provideAuthInterceptor(), provideApiService()
+    @Provides
+    @Singleton
+    fun provideAuthInterceptor(secureStorage: SecureStorage): AuthInterceptor =
+        AuthInterceptor(secureStorage)
+
+    @Provides
+    @Singleton
+    fun provideApiService(retrofit: Retrofit): ApiService =
+        retrofit.create(ApiService::class.java)
 }
