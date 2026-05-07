@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from app.config import settings
-from app.services.auth import verify_apple_token, create_server_token, decode_server_token
+from app.services.auth import verify_apple_token, verify_google_token, create_server_token, decode_server_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -31,6 +31,20 @@ async def sign_in_with_apple(body: AppleSignInRequest) -> AppleSignInResponse:
 
     server_token = create_server_token(verified_user_id)
     return AppleSignInResponse(token=server_token)
+
+
+class GoogleSignInRequest(BaseModel):
+    id_token: str
+
+
+@router.post("/google", response_model=AppleSignInResponse)
+async def sign_in_with_google(body: GoogleSignInRequest) -> AppleSignInResponse:
+    """Verifies Google ID token and returns a server JWT."""
+    try:
+        user_id = await verify_google_token(body.id_token)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+    return AppleSignInResponse(token=create_server_token(user_id))
 
 
 _bearer = HTTPBearer()

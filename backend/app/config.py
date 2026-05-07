@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     database_url: str = ""
     environment: str = "development"
     pokescan_use_mock: bool = False
+    google_client_id: str = ""
 
 
 settings = Settings()

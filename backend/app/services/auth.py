@@ -1,6 +1,8 @@
 import asyncio
 import jwt
 from jwt import PyJWKClient
+from google.oauth2 import id_token as google_id_token
+from google.auth.transport import requests as google_requests
 from datetime import datetime, timezone, timedelta
 from app.config import settings
 
@@ -32,8 +34,22 @@ async def verify_apple_token(identity_token: str) -> str:
         raise ValueError(f"Invalid Apple identity token: {exc}") from exc
 
 
+async def verify_google_token(id_token: str) -> str:
+    """Verifies Google ID token. Returns stable Google user ID (sub). Raises ValueError on failure."""
+    try:
+        info = await asyncio.to_thread(
+            google_id_token.verify_oauth2_token,
+            id_token,
+            google_requests.Request(),
+            settings.google_client_id,
+        )
+        return info["sub"]
+    except Exception as exc:
+        raise ValueError(f"Invalid Google ID token: {exc}") from exc
+
+
 def create_server_token(apple_user_id: str) -> str:
-    """Issues a server JWT for the given Apple user ID."""
+    """Issues a server JWT for the given user ID (Apple sub or Google sub)."""
     payload = {
         "sub": apple_user_id,
         "iat": datetime.now(timezone.utc),
