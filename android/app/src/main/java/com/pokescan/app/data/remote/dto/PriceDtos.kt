@@ -1,0 +1,10 @@
+package com.pokescan.app.data.remote.dto
+
+import com.squareup.moshi.Json
+
+data class PriceResponseDto(
+    @Json(name = "market_price") val marketPrice: Double?,
+    @Json(name = "price_source") val priceSource: String?,
+    @Json(name = "card_name") val cardName: String?,
+    @Json(name = "set_code") val setCode: String?,
+)

@@ -11,6 +11,7 @@ import androidx.navigation.compose.rememberNavController
 import com.pokescan.app.data.local.SecureStorage
 import com.pokescan.app.ui.auth.SignInScreen
 import com.pokescan.app.ui.onboarding.OnboardingScreen
+import com.pokescan.app.ui.scanner.ScannerScreen
 
 object Routes {
     const val ONBOARDING  = "onboarding"
@@ -57,8 +58,14 @@ fun NavGraph(
             })
         }
 
-        // Placeholder — Phase 3 replaces with ScannerScreen.
-        composable(Routes.SCANNER) { Box(content = {}) }
+        composable(Routes.SCANNER) {
+            ScannerScreen(
+                onShowPaywall = { navController.navigate(Routes.PAYWALL) }
+            )
+        }
+
+        // Placeholder — Phase 4 replaces with PaywallScreen.
+        composable(Routes.PAYWALL) { Box(content = {}) }
 
         // Phase 4: remaining composable() calls added here as screens are implemented.
     }

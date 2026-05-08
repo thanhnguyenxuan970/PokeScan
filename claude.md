@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-08)
+## Android Migration Status (updated 2026-05-08, A3 complete)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -22,15 +22,17 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 | A0 | Project scaffolding — Gradle, DI stubs, theme, NavGraph | `android/` (21 files) | ✅ Done |
 | A1 | Data layer — domain models, Room DB, SetResolver, SetDatabaseService, ScanCounterService | `android/` (15 items) | ✅ Done |
 | A2 | Auth — SecureStorage, AuthInterceptor, ApiService, AuthRepository, AuthModule, AuthViewModel, SignInScreen, OnboardingScreen, NavGraph gating, MainActivity wiring | `android/` (9 new + 5 modified) | ✅ Done |
-| A3 | Scanner — CameraX, ML Kit, ScannerViewModel, ScannerScreen | - | ❌ Next |
+| A3 | Scanner — CameraX, ML Kit, ScannerViewModel, ScannerScreen | `android/` (7 new + 2 modified) | ✅ Done |
 | A4 | Full features — networking, collection, billing, paywall | - | ❌ Not started |
 | A5 | Polish — ProGuard, navigation gating, permission rationale | - | ❌ Not started |
 
 ### Next Session — Android
 1. Get real `google-services.json` from Firebase Console — required before any Gradle build (`android/app/google-services.json`, replace `REPLACE_WITH_*` sentinels)
-2. Plan + implement Phase A3 (Scanner — CameraX, ML Kit, ScannerViewModel, ScannerScreen)
-3. After real `google-services.json` in place: run `./gradlew assembleDebug` and verify A2 build
-4. Verify A2 nav flow: first launch → OnboardingScreen → SignInScreen; post-sign-in → ScannerScreen stays on reopen
+2. After real `google-services.json` in place: run `./gradlew assembleDebug` — must compile with no errors
+3. Verify A3 nav flow on device: first launch → Onboarding → SignIn → after auth → ScannerScreen (camera preview, reticle, scan button visible)
+4. Verify scan flow: tap "Tap to Scan" → border yellow → hold card → green ("Card Detected") → blue → ModalBottomSheet with price
+5. Verify paywall: after 20 scans, 21st tap → navigate to PAYWALL placeholder (Box)
+6. Plan + implement Phase A4 (collection, billing, paywall screen)
 
 ### Key Decisions — Android Migration
 
@@ -54,6 +56,13 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 | Auth nav events via `SharedFlow<AuthEvent>(replay=0)` in `AuthViewModel` | `StateFlow` would replay the last event on recomposition (e.g. after screen rotation), causing double-navigation. `SharedFlow(replay=0)` fires once and done. |
 | `material-icons-core` added to deps in A2 | `OnboardingScreen` uses `Icons.Default.*`. The artifact is NOT a transitive dep of `compose-material3` — must be declared explicitly. BOM-managed, no version conflict. |
 | `RESULT_OK` guard in `SignInScreen` before `handleSignInResult` | User cancelling Google Sign-In returns `RESULT_CANCELED`. Without the guard, `task.result` throws `ApiException(SIGN_IN_CANCELLED)` and shows "Sign-in failed" error to the user. Cancellation should be silent. |
+| `ProcessCameraProvider.getInstance().addListener()` (not `awaitInstance`) | CameraX 1.3.4 doesn't have `awaitInstance()` (added in 1.4+). `awaitInstance` requires coroutines-guava dep not in project. Listener on `getMainExecutor()` is correct for 1.3.x. |
+| `@Volatile isProcessing` flag (not coroutine channel) | ML Kit analyzer callback runs on a single-threaded executor. `@Volatile` provides visibility guarantee without Mutex overhead. State transitions handle the semantic guard (`!is Scanning`). |
+| 4-rect Canvas draw for reticle dim overlay | `BlendMode.Clear` on Canvas requires `CompositingStrategy.Offscreen` — its import path changed across Compose versions. Drawing 4 filled rects around the reticle hole is portable and always correct. |
+| `ScanButton` "Scan Another" calls `resetScan()` not `startScan()` | `startScan()` guards on `state is Idle`. Calling it from `Result` state returns immediately — button would appear active but do nothing. Separate `onReset` callback routes to the correct action. |
+| `ML Kit flatMap { it.lines }` not `map { it }` on textBlocks | `TextBlock.text` may contain embedded newlines — one block → one string with `\n`. `flatMap { it.lines }.map { it.text }` gives individual line strings, matching what the set number regex expects. |
+| `isCameraStarted` guard in `startCamera` | `CameraPreview` `AndroidView.update` block can fire on each recomposition. Without the guard, multiple `ProcessCameraProvider.bindToLifecycle()` calls would rebind the camera on every recompose — causing flicker and resource waste. |
+| `ScannerViewModel` catches exception from `cameraProviderFuture.get()` | `ListenableFuture.get()` can throw if the camera provider initialization fails (device restriction, permissions race). Without catch, the app crashes. Reset `isCameraStarted = false` to allow retry. |
 
 ---
 
