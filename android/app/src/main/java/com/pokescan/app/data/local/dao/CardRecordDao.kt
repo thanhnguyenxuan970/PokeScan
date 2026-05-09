@@ -25,4 +25,7 @@ interface CardRecordDao {
 
     @Query("SELECT * FROM card_records WHERE serverID = :serverId LIMIT 1")
     suspend fun getByServerId(serverId: String): CardRecordEntity?
+
+    @Query("DELETE FROM card_records")
+    suspend fun deleteAll()
 }

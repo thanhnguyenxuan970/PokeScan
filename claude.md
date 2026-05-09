@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-08, A3 complete)
+## Android Migration Status (updated 2026-05-09, A5 complete)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -23,16 +23,18 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 | A1 | Data layer — domain models, Room DB, SetResolver, SetDatabaseService, ScanCounterService | `android/` (15 items) | ✅ Done |
 | A2 | Auth — SecureStorage, AuthInterceptor, ApiService, AuthRepository, AuthModule, AuthViewModel, SignInScreen, OnboardingScreen, NavGraph gating, MainActivity wiring | `android/` (9 new + 5 modified) | ✅ Done |
 | A3 | Scanner — CameraX, ML Kit, ScannerViewModel, ScannerScreen | `android/` (7 new + 2 modified) | ✅ Done |
-| A4 | Full features — networking, collection, billing, paywall | - | ❌ Not started |
-| A5 | Polish — ProGuard, navigation gating, permission rationale | - | ❌ Not started |
+| A4 | Full features — networking, collection, billing, paywall | `android/` (10 new + 8 modified), `backend/app/routers/auth.py` | ✅ Done |
+| A5 | Polish — ProGuard, navigation gating, permission rationale | `android/` (1 new + 9 modified) | ✅ Done |
 
 ### Next Session — Android
 1. Get real `google-services.json` from Firebase Console — required before any Gradle build (`android/app/google-services.json`, replace `REPLACE_WITH_*` sentinels)
 2. After real `google-services.json` in place: run `./gradlew assembleDebug` — must compile with no errors
-3. Verify A3 nav flow on device: first launch → Onboarding → SignIn → after auth → ScannerScreen (camera preview, reticle, scan button visible)
-4. Verify scan flow: tap "Tap to Scan" → border yellow → hold card → green ("Card Detected") → blue → ModalBottomSheet with price
-5. Verify paywall: after 20 scans, 21st tap → navigate to PAYWALL placeholder (Box)
-6. Plan + implement Phase A4 (collection, billing, paywall screen)
+3. Verify A4 nav flow on device: first launch → Onboarding → SignIn → after auth → MainScreen (Scanner tab + Collection tab in bottom nav)
+4. Verify scan flow: tap "Tap to Scan" → card detected → price result → card appears in Collection tab immediately
+5. Verify paywall: after 20 scans, 21st tap → PaywallScreen (full-screen, no bottom nav) → test purchase → auto-dismiss
+6. Verify collection sync: kill + relaunch → card persists; second device → GET /collection populates local DB
+7. Verify A5 features: (a) `./gradlew assembleRelease` completes with no R8 errors; (b) Collection tab → tap logout → navigates to SignIn, collection empty on relaunch; (c) simulate 401 from backend → app navigates to SignIn automatically
+8. After all verifications pass: submit to Google Play Console (release build, real `google-services.json`, real signing keystore)
 
 ### Key Decisions — Android Migration
 
@@ -63,6 +65,21 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 | `ML Kit flatMap { it.lines }` not `map { it }` on textBlocks | `TextBlock.text` may contain embedded newlines — one block → one string with `\n`. `flatMap { it.lines }.map { it.text }` gives individual line strings, matching what the set number regex expects. |
 | `isCameraStarted` guard in `startCamera` | `CameraPreview` `AndroidView.update` block can fire on each recomposition. Without the guard, multiple `ProcessCameraProvider.bindToLifecycle()` calls would rebind the camera on every recompose — causing flicker and resource waste. |
 | `ScannerViewModel` catches exception from `cameraProviderFuture.get()` | `ListenableFuture.get()` can throw if the camera provider initialization fails (device restriction, permissions race). Without catch, the app crashes. Reset `isCameraStarted = false` to allow retry. |
+| `BillingRepository` is `@Singleton` plain class, not ViewModel | Shared `isPro: StateFlow<Boolean>` across ScannerViewModel + PaywallViewModel. Singleton survives recomposition. `CoroutineScope(SupervisorJob() + Dispatchers.IO)` instead of viewModelScope. |
+| `queryAndVerifyEntitlements()` on billing setup (not `restorePurchases()`) | Cold start restore uses local Play Billing cache — no network call, near-instant. `restorePurchases()` (user-triggered, with server verify) is separate. |
+| Outer + inner NavHost (not single NavHost with conditional bottom bar) | Auth screens and Paywall must not show bottom nav. Conditional visibility is fragile; nested NavHost is clean. startDestination → MAIN (not SCANNER) after auth. |
+| `saveLocal()` fires as fire-and-forget after `ScanState.Result` | Card in Room before user can close sheet — no data loss if dismiss is fast. Nested `viewModelScope.launch` creates a sibling coroutine, not a child of the existing launch. |
+| `syncAll()` fire-and-forget in `CollectionViewModel.init` | No loading spinner in A4. Network errors logged only, retry on next launch. |
+| `material-icons-extended` (not `material-icons-core`) for bottom nav icons | `CameraAlt` and `Style` icons are NOT in material-icons-core. Switched to extended in `libs.versions.toml`. R8 tree-shakes unused icons in release builds. |
+| `scanned_at` serialized as ISO 8601 string in DTOs | `Instant.ofEpochMilli(ms).toString()` → ISO 8601. Safe on minSdk 26 (`java.time.Instant` available). Backend uses datetime field. |
+| No interface for CollectionRepository or BillingRepository | Concrete `@Singleton @Inject constructor` — Hilt auto-wires. RepositoryModule unchanged. |
+| `SwipeToDismissBox` (not deprecated `SwipeToDismiss`) for collection delete | Compose BOM 2024.09.00 = M3 1.3.0. Old `SwipeToDismiss` + `rememberDismissState` deprecated. `SwipeToDismissBox` + `rememberSwipeToDismissBoxState` is the current API. |
+| `POST /auth/verify-receipt/android` added as separate endpoint | Existing `/auth/verify-receipt` is iOS-only (checks `apple_bundle_id`, expects `transaction_id`). Android needs `purchase_token`. Separate endpoint avoids breaking iOS flow. |
+| `AuthEventBus` `SharedFlow<Unit>(replay=0, extraBufferCapacity=1)` for 401 events | `replay=0` prevents re-navigation on NavGraph recomposition (e.g. screen rotation). `extraBufferCapacity=1` + `tryEmit` lets OkHttp background thread emit without suspending. Single-consumer pattern — NavGraph `LaunchedEffect` is the only collector. |
+| 401 guard: `!request.url.encodedPath.contains("auth/")` in `AuthInterceptor` | Without the guard, a 401 from `POST /auth/google` (bad token at sign-in) would emit `unauthorizedEvents` → NavGraph navigates to SignIn while already on SignIn → broken back stack. Guard scopes 401 handling to authenticated endpoints only. |
+| `AuthEventBus` injected into `AuthInterceptor` (not `NavGraph`) | `AuthInterceptor` is OkHttp-layer; `NavGraph` is Compose-layer. Injecting the bus into the interceptor keeps the flow direction clean: OkHttp → bus → NavGraph. Reverse injection would create circular Hilt dependency (NetworkModule → NavGraph). |
+| `signOut()` purges `card_records` but NOT `set_entries` | `card_records` is user PII (scanned collection). `set_entries` is reference data (Pokémon set catalog, no user linkage). Purging reference data on sign-out would cause a blank set database for the next user — unnecessary. |
+| `isShrinkResources = true` requires `isMinifyEnabled = true` | Android build system enforces this constraint. R8 must run first to shrink code; resource shrinker then removes resources referenced only by removed code. Both flags set in release block. |
 
 ---
 

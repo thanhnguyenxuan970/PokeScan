@@ -14,8 +14,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -35,12 +37,20 @@ import com.pokescan.app.data.local.entity.CardRecordEntity
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CollectionScreen(
+    onSignOut: () -> Unit = {},
     viewModel: CollectionViewModel = hiltViewModel(),
 ) {
     val cards by viewModel.cards.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(title = { Text("Collection") })
+        TopAppBar(
+            title = { Text("Collection") },
+            actions = {
+                IconButton(onClick = onSignOut) {
+                    Icon(Icons.Default.Logout, contentDescription = "Sign out")
+                }
+            },
+        )
 
         if (cards.isEmpty()) {
             Box(

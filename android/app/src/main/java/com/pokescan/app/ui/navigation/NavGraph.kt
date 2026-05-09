@@ -11,8 +11,10 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -20,11 +22,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.pokescan.app.data.local.SecureStorage
+import com.pokescan.app.data.remote.AuthEventBus
+import com.pokescan.app.data.repository.AuthRepository
 import com.pokescan.app.ui.auth.SignInScreen
 import com.pokescan.app.ui.collection.CollectionScreen
 import com.pokescan.app.ui.onboarding.OnboardingScreen
 import com.pokescan.app.ui.paywall.PaywallScreen
 import com.pokescan.app.ui.scanner.ScannerScreen
+import kotlinx.coroutines.launch
 
 object Routes {
     const val ONBOARDING  = "onboarding"
@@ -41,6 +46,8 @@ object Routes {
 fun NavGraph(
     secureStorage: SecureStorage,
     prefs: SharedPreferences,
+    authEventBus: AuthEventBus,
+    authRepository: AuthRepository,
     navController: NavHostController = rememberNavController(),
 ) {
     val startDestination = remember {
@@ -48,6 +55,25 @@ fun NavGraph(
             secureStorage.getToken() != null -> Routes.MAIN
             !prefs.getBoolean("hasSeenOnboarding", false) -> Routes.ONBOARDING
             else -> Routes.SIGN_IN
+        }
+    }
+
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        authEventBus.unauthorizedEvents.collect {
+            navController.navigate(Routes.SIGN_IN) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
+    val handleSignOut: () -> Unit = {
+        scope.launch {
+            authRepository.signOut()
+            navController.navigate(Routes.SIGN_IN) {
+                popUpTo(0) { inclusive = true }
+            }
         }
     }
 
@@ -73,7 +99,10 @@ fun NavGraph(
         }
 
         composable(Routes.MAIN) {
-            MainScreen(onPaywall = { navController.navigate(Routes.PAYWALL) })
+            MainScreen(
+                onPaywall = { navController.navigate(Routes.PAYWALL) },
+                onSignOut = handleSignOut,
+            )
         }
 
         composable(Routes.PAYWALL) {
@@ -83,7 +112,7 @@ fun NavGraph(
 }
 
 @Composable
-private fun MainScreen(onPaywall: () -> Unit) {
+private fun MainScreen(onPaywall: () -> Unit, onSignOut: () -> Unit) {
     val innerNav = rememberNavController()
     val backStack by innerNav.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
@@ -125,7 +154,7 @@ private fun MainScreen(onPaywall: () -> Unit) {
                 ScannerScreen(onShowPaywall = onPaywall)
             }
             composable(Routes.COLLECTION) {
-                CollectionScreen()
+                CollectionScreen(onSignOut = onSignOut)
             }
         }
     }

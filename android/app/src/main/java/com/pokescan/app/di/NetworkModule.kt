@@ -4,6 +4,7 @@ import com.pokescan.app.BuildConfig
 import com.pokescan.app.config.AppConfig
 import com.pokescan.app.data.local.SecureStorage
 import com.pokescan.app.data.remote.ApiService
+import com.pokescan.app.data.remote.AuthEventBus
 import com.pokescan.app.data.remote.AuthInterceptor
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -50,8 +51,10 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideAuthInterceptor(secureStorage: SecureStorage): AuthInterceptor =
-        AuthInterceptor(secureStorage)
+    fun provideAuthInterceptor(
+        secureStorage: SecureStorage,
+        authEventBus: AuthEventBus,
+    ): AuthInterceptor = AuthInterceptor(secureStorage, authEventBus)
 
     @Provides
     @Singleton

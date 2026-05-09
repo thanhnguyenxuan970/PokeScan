@@ -5,7 +5,10 @@ import okhttp3.Interceptor
 import okhttp3.Response
 import javax.inject.Inject
 
-class AuthInterceptor @Inject constructor(private val secureStorage: SecureStorage) : Interceptor {
+class AuthInterceptor @Inject constructor(
+    private val secureStorage: SecureStorage,
+    private val authEventBus: AuthEventBus,
+) : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val token = secureStorage.getToken()
@@ -16,6 +19,11 @@ class AuthInterceptor @Inject constructor(private val secureStorage: SecureStora
         } else {
             chain.request()
         }
-        return chain.proceed(request)
+        val response = chain.proceed(request)
+        if (response.code == 401 && !request.url.encodedPath.contains("auth/")) {
+            secureStorage.clearToken()
+            authEventBus.emitUnauthorized()
+        }
+        return response
     }
 }
