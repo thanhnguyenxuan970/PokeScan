@@ -13,6 +13,8 @@ import androidx.lifecycle.viewModelScope
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.pokescan.app.data.repository.BillingRepository
+import com.pokescan.app.data.repository.CollectionRepository
 import com.pokescan.app.data.service.CardIdentificationService
 import com.pokescan.app.data.service.PricingService
 import com.pokescan.app.data.service.ScanCounterService
@@ -47,6 +49,8 @@ class ScannerViewModel @Inject constructor(
     private val cardIdentificationService: CardIdentificationService,
     private val pricingService: PricingService,
     private val scanCounterService: ScanCounterService,
+    private val billingRepository: BillingRepository,
+    private val collectionRepository: CollectionRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<ScanState>(ScanState.Idle)
@@ -131,9 +135,10 @@ class ScannerViewModel @Inject constructor(
             if (_state.value !is ScanState.Detected) return@launch
             _state.value = ScanState.Loading(identified)
             try {
-                val card = pricingService.fetchPrice(identified)
+                val card = pricingService.fetchPrice(identified, isPro = billingRepository.isPro.value)
                 _state.value = ScanState.Result(card)
-                scanCounterService.recordScan(isPro = false)
+                scanCounterService.recordScan(isPro = billingRepository.isPro.value)
+                viewModelScope.launch { collectionRepository.saveLocal(card) }
             } catch (e: Exception) {
                 _state.value = ScanState.Idle
             }
@@ -143,7 +148,7 @@ class ScannerViewModel @Inject constructor(
     fun startScan() {
         if (_state.value !is ScanState.Idle) return
         viewModelScope.launch {
-            if (!scanCounterService.canScan(isPro = false)) {
+            if (!scanCounterService.canScan(isPro = billingRepository.isPro.value)) {
                 _events.emit(ScanEvent.ShowPaywall)
                 return@launch
             }

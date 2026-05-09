@@ -1,9 +1,16 @@
 package com.pokescan.app.data.remote
 
+import com.pokescan.app.data.remote.dto.AndroidVerifyReceiptRequest
+import com.pokescan.app.data.remote.dto.AndroidVerifyReceiptResponse
+import com.pokescan.app.data.remote.dto.CardInDto
+import com.pokescan.app.data.remote.dto.CardOutDto
+import com.pokescan.app.data.remote.dto.DeleteCardResponseDto
 import com.pokescan.app.data.remote.dto.GoogleSignInRequest
 import com.pokescan.app.data.remote.dto.GoogleSignInResponse
+import com.pokescan.app.data.remote.dto.PostCardResponseDto
 import com.pokescan.app.data.remote.dto.PriceResponseDto
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -18,4 +25,16 @@ interface ApiService {
         @Path("cardSku") cardSku: String,
         @Query("tier") tier: String,
     ): PriceResponseDto
+
+    @GET("collection")
+    suspend fun getCollection(): List<CardOutDto>
+
+    @POST("collection")
+    suspend fun postCard(@Body card: CardInDto): PostCardResponseDto
+
+    @DELETE("collection/{id}")
+    suspend fun deleteCard(@Path("id") id: String): DeleteCardResponseDto
+
+    @POST("auth/verify-receipt/android")
+    suspend fun verifyAndroidReceipt(@Body body: AndroidVerifyReceiptRequest): AndroidVerifyReceiptResponse
 }

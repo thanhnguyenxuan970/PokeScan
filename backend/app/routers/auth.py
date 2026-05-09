@@ -81,3 +81,28 @@ async def verify_receipt(
         raise HTTPException(status_code=400, detail="Unknown product")
 
     return {"status": "pro", "apple_user_id": apple_user_id}
+
+
+class AndroidVerifyReceiptRequest(BaseModel):
+    product_id: str
+    purchase_token: str
+
+
+@router.post("/verify-receipt/android")
+async def verify_android_receipt(
+    body: AndroidVerifyReceiptRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+) -> dict:
+    try:
+        decode_server_token(credentials.credentials)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    valid_ids = {
+        "com.pokescan.app.pro.monthly",
+        "com.pokescan.app.pro.annual",
+    }
+    if body.product_id not in valid_ids:
+        raise HTTPException(status_code=400, detail="Unknown product")
+    # Placeholder: any valid JWT + known product ID = active.
+    # Wire real Google Play Developer API verification post-launch.
+    return {"active": True}

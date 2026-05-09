@@ -9,9 +9,8 @@ import javax.inject.Singleton
 
 @Singleton
 class PricingService @Inject constructor(private val api: ApiService) {
-    val isPro: Boolean = false
 
-    suspend fun fetchPrice(identified: CardIdentificationService.IdentifiedCard): Card {
+    suspend fun fetchPrice(identified: CardIdentificationService.IdentifiedCard, isPro: Boolean): Card {
         val cardSku = "${identified.setCode}-${identified.setNumber.replace("/", "-")}"
         val tier = if (isPro) "pro" else "free"
         val dto = api.getPrice(cardSku, tier)

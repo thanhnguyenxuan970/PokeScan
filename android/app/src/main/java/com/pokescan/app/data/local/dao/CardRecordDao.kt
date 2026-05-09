@@ -22,4 +22,7 @@ interface CardRecordDao {
 
     @Query("SELECT * FROM card_records WHERE syncedAt IS NULL")
     suspend fun getPendingSync(): List<CardRecordEntity>
+
+    @Query("SELECT * FROM card_records WHERE serverID = :serverId LIMIT 1")
+    suspend fun getByServerId(serverId: String): CardRecordEntity?
 }
