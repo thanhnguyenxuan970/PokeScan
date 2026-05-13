@@ -48,6 +48,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Android local config (machine-specific, contains LAN IPs and keystore paths)
+android/local.properties
+
 # Secrets
 *.p12
 *.mobileprovision

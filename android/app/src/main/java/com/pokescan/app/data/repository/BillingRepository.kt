@@ -22,6 +22,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -54,20 +56,32 @@ class BillingRepository @Inject constructor(
             }
 
             override fun onBillingServiceDisconnected() {
-                // no-op; reconnect on next purchase attempt
+                Log.w(TAG, "Billing service disconnected — reconnecting")
+                billingClient.startConnection(this)
             }
         })
     }
 
     private fun queryAndVerifyEntitlements() {
         scope.launch {
-            val params = QueryPurchasesParams.newBuilder()
-                .setProductType(BillingClient.ProductType.SUBS).build()
-            val result = billingClient.queryPurchasesAsync(params)
-            val active = result.purchasesList.any { p ->
-                p.purchaseState == Purchase.PurchaseState.PURCHASED
+            val purchases = queryPurchasesAsync().filter {
+                it.purchaseState == Purchase.PurchaseState.PURCHASED
             }
-            if (active) _isPro.value = true
+            for (purchase in purchases) {
+                val productId = purchase.products.firstOrNull() ?: continue
+                try {
+                    val response = apiService.verifyAndroidReceipt(
+                        AndroidVerifyReceiptRequest(productId, purchase.purchaseToken)
+                    )
+                    if (response.active) {
+                        _isPro.value = true
+                        acknowledgePurchaseIfNeeded(purchase)
+                        break
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "queryAndVerifyEntitlements verify failed: ${e.message}")
+                }
+            }
         }
     }
 
@@ -105,10 +119,7 @@ class BillingRepository @Inject constructor(
 
     fun restorePurchases() {
         scope.launch {
-            val params = QueryPurchasesParams.newBuilder()
-                .setProductType(BillingClient.ProductType.SUBS).build()
-            val result = billingClient.queryPurchasesAsync(params)
-            val purchased = result.purchasesList.filter {
+            val purchased = queryPurchasesAsync().filter {
                 it.purchaseState == Purchase.PurchaseState.PURCHASED
             }
             for (purchase in purchased) {
@@ -155,12 +166,27 @@ class BillingRepository @Inject constructor(
         }
     }
 
+    private suspend fun queryPurchasesAsync(): List<Purchase> = suspendCancellableCoroutine { cont ->
+        val params = QueryPurchasesParams.newBuilder()
+            .setProductType(BillingClient.ProductType.SUBS).build()
+        billingClient.queryPurchasesAsync(params) { _, purchases ->
+            cont.resume(purchases)
+        }
+    }
+
     private suspend fun acknowledgePurchaseIfNeeded(purchase: Purchase) {
         if (!purchase.isAcknowledged) {
             val params = AcknowledgePurchaseParams.newBuilder()
                 .setPurchaseToken(purchase.purchaseToken)
                 .build()
-            billingClient.acknowledgePurchase(params)
+            suspendCancellableCoroutine { cont ->
+                billingClient.acknowledgePurchase(params) { result ->
+                    if (result.responseCode != BillingClient.BillingResponseCode.OK) {
+                        Log.w(TAG, "acknowledgePurchase failed: ${result.responseCode} ${result.debugMessage}")
+                    }
+                    cont.resume(Unit)
+                }
+            }
         }
     }
 

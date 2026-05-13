@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="PokeScan icon">
+  <defs>
+    <!-- Soft squircle vignette -->
+    <radialGradient id="bgVig" cx="0.5" cy="0.42" r="0.85">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="60%" stop-color="#FBFBFD"/>
+      <stop offset="100%" stop-color="#EFEFF4"/>
+    </radialGradient>
+
+    <!-- Lens body radial: subtle depth on the outer ring -->
+    <linearGradient id="lensRing" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2A2F3D"/>
+      <stop offset="100%" stop-color="#0F1117"/>
+    </linearGradient>
+
+    <!-- Red hemisphere: subtle top-light shading -->
+    <linearGradient id="redHemi" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#FF3B3B"/>
+      <stop offset="55%" stop-color="#EE1515"/>
+      <stop offset="100%" stop-color="#C40D0D"/>
+    </linearGradient>
+
+    <!-- White hemisphere: lens-glass feel -->
+    <linearGradient id="whiteHemi" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E8ECF2"/>
+    </linearGradient>
+
+    <!-- Aperture iris: small radial -->
+    <radialGradient id="iris" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#1F2937"/>
+      <stop offset="80%" stop-color="#0A0F1A"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+
+    <!-- Scan beam gradient -->
+    <linearGradient id="scanBeam" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#2563EB" stop-opacity="0"/>
+      <stop offset="20%"  stop-color="#2563EB" stop-opacity="0.85"/>
+      <stop offset="50%"  stop-color="#2563EB" stop-opacity="1"/>
+      <stop offset="80%"  stop-color="#2563EB" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#2563EB" stop-opacity="0"/>
+    </linearGradient>
+
+    <linearGradient id="scanGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#2563EB" stop-opacity="0"/>
+      <stop offset="50%"  stop-color="#2563EB" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#2563EB" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Drop shadow for the lens body -->
+    <filter id="lensShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="14"/>
+      <feOffset dx="0" dy="12"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.20"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Specular highlight on red half -->
+    <radialGradient id="redShine" cx="0.32" cy="0.30" r="0.35">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+
+    <clipPath id="squircle">
+      <rect x="0" y="0" width="1024" height="1024" rx="228" ry="228"/>
+    </clipPath>
+
+    <clipPath id="lensCircle">
+      <circle cx="512" cy="512" r="320"/>
+    </clipPath>
+  </defs>
+
+  <!-- Squircle background -->
+  <rect x="0" y="0" width="1024" height="1024" rx="228" ry="228" fill="url(#bgVig)"/>
+
+  <g clip-path="url(#squircle)">
+
+    <!-- Corner brackets (scan target affordance) -->
+    <g fill="#2563EB" opacity="0.55">
+      <rect x="96" y="96" width="88" height="8" rx="4"/>
+      <rect x="96" y="96" width="8" height="88" rx="4"/>
+      <rect x="840" y="96" width="88" height="8" rx="4"/>
+      <rect x="920" y="96" width="8" height="88" rx="4"/>
+      <rect x="96" y="920" width="88" height="8" rx="4"/>
+      <rect x="96" y="840" width="8" height="88" rx="4"/>
+      <rect x="840" y="920" width="88" height="8" rx="4"/>
+      <rect x="920" y="840" width="8" height="88" rx="4"/>
+    </g>
+
+    <!-- ===== LENS / POKÉBALL ===== -->
+    <g filter="url(#lensShadow)">
+
+      <!-- Outermost lens barrel ring (dark) -->
+      <circle cx="512" cy="512" r="354" fill="url(#lensRing)"/>
+
+      <!-- Pokéball halves (clipped to circle r=320) -->
+      <g clip-path="url(#lensCircle)">
+        <!-- Top red hemisphere -->
+        <rect x="192" y="192" width="640" height="320" fill="url(#redHemi)"/>
+        <!-- Bottom white hemisphere -->
+        <rect x="192" y="512" width="640" height="320" fill="url(#whiteHemi)"/>
+        <!-- Specular shine on top-left -->
+        <rect x="192" y="192" width="640" height="320" fill="url(#redShine)"/>
+        <!-- Subtle lens element ring (suggests glass element) -->
+        <circle cx="512" cy="512" r="290" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-opacity="0.18"/>
+        <circle cx="512" cy="512" r="260" fill="none" stroke="#000000" stroke-width="1.5" stroke-opacity="0.10"/>
+      </g>
+
+      <!-- Equator band -->
+      <rect x="192" y="492" width="640" height="40" fill="#0F1117"/>
+
+      <!-- Crisp outer ring stroke -->
+      <circle cx="512" cy="512" r="320" fill="none" stroke="#0F1117" stroke-width="6"/>
+
+      <!-- Center "lens" (= Pokéball center button + camera aperture) -->
+      <!-- Outer black ring -->
+      <circle cx="512" cy="512" r="92" fill="#0F1117"/>
+      <!-- White face -->
+      <circle cx="512" cy="512" r="72" fill="#FFFFFF"/>
+      <!-- Inner ring (lens element) -->
+      <circle cx="512" cy="512" r="72" fill="none" stroke="#0F1117" stroke-width="4"/>
+      <!-- Aperture iris (dark) -->
+      <circle cx="512" cy="512" r="42" fill="url(#iris)"/>
+      <!-- Center catch-light (lens reflection) -->
+      <circle cx="498" cy="498" r="10" fill="#FFFFFF" opacity="0.85"/>
+      <!-- Tiny secondary catch-light -->
+      <circle cx="528" cy="525" r="4" fill="#FFFFFF" opacity="0.50"/>
+
+    </g>
+
+    <!-- ===== SCAN BEAM ===== -->
+    <!-- Glow halo -->
+    <rect x="80" y="490" width="864" height="80" fill="url(#scanGlow)"/>
+    <!-- Beam line (overlays the equator band, extends past the lens) -->
+    <rect x="80" y="522" width="864" height="6" rx="3" fill="url(#scanBeam)"/>
+    <rect x="80" y="496" width="864" height="6" rx="3" fill="url(#scanBeam)" opacity="0.55"/>
+
+  </g>
+
+  <!-- Hairline outer border for visual definition on white surfaces -->
+  <rect x="0.5" y="0.5" width="1023" height="1023" rx="228" ry="228" fill="none" stroke="#E5E5EA" stroke-width="1"/>
+</svg>

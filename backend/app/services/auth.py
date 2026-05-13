@@ -1,10 +1,15 @@
 import asyncio
-import jwt
-from jwt import PyJWKClient
-from google.oauth2 import id_token as google_id_token
-from google.auth.transport import requests as google_requests
 from datetime import datetime, timezone, timedelta
+
+import jwt
+import urllib3 as _urllib3
+from google.auth.transport import urllib3 as google_transport
+from google.oauth2 import id_token as google_id_token
+from jwt import PyJWKClient
+
 from app.config import settings
+
+_http = _urllib3.PoolManager()
 
 APPLE_JWKS_URL = "https://appleid.apple.com/auth/keys"
 APPLE_ISS = "https://appleid.apple.com"
@@ -40,7 +45,7 @@ async def verify_google_token(id_token: str) -> str:
         info = await asyncio.to_thread(
             google_id_token.verify_oauth2_token,
             id_token,
-            google_requests.Request(),
+            google_transport.Request(_http),
             settings.google_client_id,
         )
         return info["sub"]
@@ -50,10 +55,11 @@ async def verify_google_token(id_token: str) -> str:
 
 def create_server_token(apple_user_id: str) -> str:
     """Issues a server JWT for the given user ID (Apple sub or Google sub)."""
+    now = datetime.now(timezone.utc)
     payload = {
         "sub": apple_user_id,
-        "iat": datetime.now(timezone.utc),
-        "exp": datetime.now(timezone.utc) + timedelta(days=365),
+        "iat": now,
+        "exp": now + timedelta(days=365),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
 

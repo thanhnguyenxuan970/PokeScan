@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-09, A5 complete)
+## Android Migration Status (updated 2026-05-13, pre-launch hardening complete)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -26,15 +26,53 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 | A4 | Full features — networking, collection, billing, paywall | `android/` (10 new + 8 modified), `backend/app/routers/auth.py` | ✅ Done |
 | A5 | Polish — ProGuard, navigation gating, permission rationale | `android/` (1 new + 9 modified) | ✅ Done |
 
-### Next Session — Android
-1. Get real `google-services.json` from Firebase Console — required before any Gradle build (`android/app/google-services.json`, replace `REPLACE_WITH_*` sentinels)
-2. After real `google-services.json` in place: run `./gradlew assembleDebug` — must compile with no errors
-3. Verify A4 nav flow on device: first launch → Onboarding → SignIn → after auth → MainScreen (Scanner tab + Collection tab in bottom nav)
-4. Verify scan flow: tap "Tap to Scan" → card detected → price result → card appears in Collection tab immediately
-5. Verify paywall: after 20 scans, 21st tap → PaywallScreen (full-screen, no bottom nav) → test purchase → auto-dismiss
-6. Verify collection sync: kill + relaunch → card persists; second device → GET /collection populates local DB
-7. Verify A5 features: (a) `./gradlew assembleRelease` completes with no R8 errors; (b) Collection tab → tap logout → navigates to SignIn, collection empty on relaunch; (c) simulate 401 from backend → app navigates to SignIn automatically
-8. After all verifications pass: submit to Google Play Console (release build, real `google-services.json`, real signing keystore)
+### Next Session — Android (updated 2026-05-13, ready for E2E test)
+
+**Status note:** Security hardening + billing fixes applied. `google-services.json` is real (Firebase project pokescan-7f2a6). Remaining blocker before E2E: `REPLACE_WITH_WEB_CLIENT_ID` in `strings.xml`.
+
+**Step 1 — Unblock OAuth** (user action, 30 min)
+- Firebase Console → pokescan-7f2a6 → Authentication → Sign-in method → Google → copy Web Client ID
+- Replace `REPLACE_WITH_WEB_CLIENT_ID` in `android/app/src/main/res/values/strings.xml`
+
+**Step 1b — local.properties** (if testing on physical device via WSL)
+- Add `DEBUG_BASE_URL=http://<your-LAN-IP>:8000/` to `android/local.properties` (gitignored)
+- Emulator default `10.0.2.2:8000` works without this
+
+**Step 2 — Rebuild APK with hardening fixes**
+```bash
+cd android && ./gradlew assembleDebug
+adb install app\build\outputs\apk\debug\app-debug.apk
+```
+
+**Step 3 — Device E2E test** (run local backend first)
+```bash
+# PowerShell: $env:POKESCAN_USE_MOCK=1; uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# bash: POKESCAN_USE_MOCK=1 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+- First launch → Onboarding → SignIn (Google) → MainScreen
+- Scan → price result → card in Collection
+- 21st scan → PaywallScreen → test purchase → auto-dismiss
+- Kill + relaunch → cards persist; swipe-to-delete works
+- Simulate 401 → auto-navigate to SignIn; logout → collection empty
+
+**Step 4 — Fix all bugs** — no bypasses
+
+**Step 5 — App Icon** (user action, 30 min)
+- Canva → 1024×1024 PNG, no transparent background
+- Add via Android Studio Image Asset wizard
+
+**Step 6 — Deploy backend** (must precede release build)
+- Deploy to Railway or Fly.io; run `alembic upgrade head`
+- Update base URL in `NetworkModule.kt` to prod URL
+
+**Step 7 — Release build + signing keystore**
+- Generate keystore (store outside repo): `keytool -genkey -v -keystore ~/pokescan-release.jks ...`
+- Set env vars `KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` (signingConfigs already wired in build.gradle.kts)
+- `./gradlew assembleRelease` — verify R8 clean, no `REPLACE_WITH_*` in APK
+
+**Step 8 — Google Play Console submission** (play.google.com/console)
+- Upload signed AAB; fill store listing + content rating
+- Set up IAPs: `com.pokescan.app.pro.monthly` ($4.99) + `com.pokescan.app.pro.annual` ($39.99)
 
 ### Key Decisions — Android Migration
 
@@ -80,6 +118,14 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 | `AuthEventBus` injected into `AuthInterceptor` (not `NavGraph`) | `AuthInterceptor` is OkHttp-layer; `NavGraph` is Compose-layer. Injecting the bus into the interceptor keeps the flow direction clean: OkHttp → bus → NavGraph. Reverse injection would create circular Hilt dependency (NetworkModule → NavGraph). |
 | `signOut()` purges `card_records` but NOT `set_entries` | `card_records` is user PII (scanned collection). `set_entries` is reference data (Pokémon set catalog, no user linkage). Purging reference data on sign-out would cause a blank set database for the next user — unnecessary. |
 | `isShrinkResources = true` requires `isMinifyEnabled = true` | Android build system enforces this constraint. R8 must run first to shrink code; resource shrinker then removes resources referenced only by removed code. Both flags set in release block. |
+| `tier=pro` validated server-side via optional Bearer JWT | `?tier=pro` query param was unauthenticated — any client could receive Pro pricing for free. `HTTPBearer(auto_error=False)` allows the param but forces `tier=free` if JWT is missing or invalid. No breaking change to free-tier clients. |
+| JP SKU detection uses delimiter-aware check (`endswith("-jp")` or `"-jp-" in sku`) | `"jp" in sku.lower()` matched unrelated SKUs (e.g. "jumper-001-150"). Delimiter-aware check eliminates false positives without regex overhead. |
+| `queryAndVerifyEntitlements()` now server-verifies receipt on cold start | Previously trusted Play Billing cache only — refunded subscriptions persisted `isPro=true` for hours. Now mirrors `restorePurchases()` logic: server receipt verify required before granting Pro. |
+| `onBillingServiceDisconnected` reconnects immediately | Was a no-op comment. Without reconnect, any billing service disruption (OS kill, GC) permanently breaks purchase + entitlement flows until app restart. |
+| `acknowledgePurchase` result logged on non-OK codes | `BillingResult` was silently discarded. Non-OK results now emit `Log.w` — surfaced in Logcat for debugging without crashing (Play auto-acknowledges eventually). |
+| `DEBUG_BASE_URL` read from `local.properties` (not hardcoded) | WSL LAN IP (`172.19.208.x`) is machine-specific — hardcoding breaks every other dev machine. `local.properties` is gitignored; emulator fallback `10.0.2.2:8000` used when file absent. |
+| `signingConfigs` reads keystore from env vars (not `gradle.properties`) | Keystore path + passwords in `gradle.properties` = plaintext secrets in version control. Env vars keep secrets out of repo, compatible with CI/CD. |
+| `android/local.properties` added to root `.gitignore` | Was untracked but not ignored — would have been accidentally committed with machine-specific LAN IP. File contains no secrets but is not portable across machines. |
 
 ---
 

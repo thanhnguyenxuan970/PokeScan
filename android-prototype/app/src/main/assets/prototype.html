@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>PokeScan</title>
+<style>
+  :root {
+    --bg-canvas: #FFFFFF;
+    --bg-elevated: #FAFAFA;
+    --bg-sunken: #F2F2F7;
+    --bg-translucent: rgba(255,255,255,0.78);
+    --border-hairline: #E5E5EA;
+    --border-default: #D1D1D6;
+    --text-primary: #0A0A0A;
+    --text-secondary: #6E6E73;
+    --text-tertiary: #AEAEB2;
+    --accent: #2563EB;
+    --accent-pressed: #1D4ED8;
+    --accent-tint: #EFF4FE;
+    --pokeball-red: #EE1515;
+    --pokeball-red-dark: #B81111;
+    --success: #16A34A;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --gold: #F59E0B;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --r-control: 10px;
+    --r-card: 12px;
+    --r-sheet: 20px;
+    --r-pill: 999px;
+    --e1: 0 1px 2px rgba(0,0,0,0.04);
+    --e2: 0 4px 12px rgba(0,0,0,0.06);
+    --e3: 0 12px 32px rgba(0,0,0,0.10);
+    --ease-std: cubic-bezier(0.2, 0, 0, 1);
+    --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%;
+    font-family: var(--font);
+    color: var(--text-primary);
+    background: var(--bg-canvas);
+    overflow: hidden;
+  }
+
+  /* Root app container */
+  #app {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Status bar placeholder */
+  .status-bar {
+    height: 44px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 24px;
+    font-size: 14px; font-weight: 600;
+    color: var(--text-primary);
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .status-bar .icons { display: flex; gap: 4px; opacity: 0.85; font-size: 11px; }
+
+  .body {
+    flex: 1; overflow-y: auto; overflow-x: hidden; position: relative;
+    -webkit-overflow-scrolling: touch;
+  }
+  .body::-webkit-scrollbar { width: 0; height: 0; }
+
+  .view { display: none; height: 100%; flex-direction: column; }
+  .view.active { display: flex; }
+
+  /* Buttons */
+  .btn-primary {
+    width: 100%;
+    background: var(--accent); color: #FFFFFF;
+    border: none; padding: 14px 20px;
+    border-radius: var(--r-control);
+    font-size: 16px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    transition: background 200ms var(--ease-std);
+    letter-spacing: -0.2px;
+  }
+  .btn-primary:active { background: var(--accent-pressed); transform: scale(0.99); }
+  .btn-secondary {
+    width: 100%;
+    background: var(--bg-canvas); color: var(--text-primary);
+    border: 1px solid var(--border-default); padding: 13px 20px;
+    border-radius: var(--r-control);
+    font-size: 15px; font-weight: 500;
+    cursor: pointer; font-family: inherit; margin-top: 10px;
+  }
+  .btn-secondary:active { background: var(--bg-sunken); }
+  .btn-link {
+    background: none; color: var(--accent);
+    border: none; padding: 8px;
+    cursor: pointer; font-family: inherit;
+    font-size: 14px; font-weight: 500;
+  }
+
+  /* Logo mark */
+  .logo-mark {
+    width: 64px; height: 64px;
+    border-radius: 14px; overflow: hidden;
+    flex-shrink: 0; box-shadow: var(--e2);
+  }
+  .logo-mark.lg { width: 88px; height: 88px; border-radius: 20px; }
+
+  /* ONBOARDING */
+  .onb {
+    padding: 48px 28px 32px;
+    height: 100%;
+    display: flex; flex-direction: column;
+  }
+  .onb-hero { text-align: center; margin-bottom: 32px; }
+  .onb-hero .logo-mark { margin: 16px auto 24px; }
+  .onb h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.6px; margin-bottom: 8px; }
+  .onb-tagline { color: var(--text-secondary); font-size: 15px; line-height: 1.4; padding: 0 16px; }
+  .feature-list { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .feature-row {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 14px 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--r-card);
+  }
+  .feat-icon {
+    flex-shrink: 0; width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--accent-tint); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700;
+  }
+  .feat-icon.gold { background: rgba(245,158,11,0.10); color: var(--gold); }
+  .feature-row h3 { font-size: 15px; font-weight: 600; line-height: 1.3; margin-bottom: 2px; }
+  .feature-row p { font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
+  .onb-foot { margin-top: 16px; }
+  .onb-foot .pp { display: block; text-align: center; margin-bottom: 14px; font-size: 12px; color: var(--text-tertiary); }
+  .onb-foot .pp a { color: var(--accent); text-decoration: none; }
+
+  /* SIGN IN */
+  .signin {
+    padding: 48px 28px;
+    height: 100%;
+    display: flex; flex-direction: column;
+    justify-content: center; text-align: center;
+  }
+  .signin .logo-mark { margin: 0 auto 24px; }
+  .signin h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 8px; }
+  .signin .lead { color: var(--text-secondary); font-size: 15px; margin-bottom: 36px; }
+  .google-btn {
+    width: 100%; background: var(--bg-canvas); color: var(--text-primary);
+    border: 1px solid var(--border-default); padding: 12px 16px;
+    border-radius: var(--r-control); font-size: 15px; font-weight: 500;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    gap: 12px; font-family: inherit; margin-bottom: 12px; box-shadow: var(--e1);
+  }
+  .google-g {
+    width: 18px; height: 18px;
+    background: conic-gradient(from -45deg, #4285F4 0% 25%, #34A853 25% 50%, #FBBC05 50% 75%, #EA4335 75% 100%);
+    border-radius: 50%; position: relative;
+  }
+  .google-g::after { content:''; position: absolute; inset: 5px; background: #fff; border-radius: 50%; }
+  .signin-foot { margin-top: 28px; color: var(--text-tertiary); font-size: 12px; line-height: 1.6; }
+  .signin-foot a { color: var(--accent); text-decoration: none; }
+
+  /* SCANNER */
+  .scanner {
+    height: 100%;
+    background: linear-gradient(180deg, #1A1F2E 0%, #0A0F1A 100%);
+    position: relative; overflow: hidden;
+  }
+  .camera-feed {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 30%, #2A3445 0%, transparent 55%),
+      radial-gradient(ellipse at 70% 70%, #1F2737 0%, transparent 60%),
+      #0A0F1A;
+  }
+  .camera-feed::after {
+    content: '';
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-2deg);
+    width: 220px; height: 308px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(37,99,235,0.06) 50%, rgba(0,0,0,0.4));
+    border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);
+  }
+  .scanner-overlay {
+    position: absolute; inset: 0; z-index: 2;
+    display: flex; flex-direction: column; pointer-events: none;
+  }
+  .scanner-top {
+    padding: 14px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    pointer-events: auto;
+  }
+  .scan-counter {
+    background: var(--bg-translucent);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    padding: 6px 14px; border-radius: var(--r-pill);
+    font-size: 13px; font-weight: 500; color: var(--text-primary);
+    border: 1px solid rgba(255,255,255,0.4);
+    font-variant-numeric: tabular-nums;
+  }
+  .scan-counter.warn { color: var(--warning); }
+  .icon-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--bg-translucent);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.4); color: var(--text-primary);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; pointer-events: auto; font-size: 16px; font-weight: 600;
+  }
+  .reticle-wrap {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center; position: relative;
+  }
+  .reticle { width: 280px; height: 380px; border-radius: 16px; position: relative; }
+  .reticle::before, .reticle::after, .reticle .br, .reticle .bl {
+    content: ''; position: absolute;
+    width: 32px; height: 32px;
+    border: 3px solid var(--accent); border-radius: 4px;
+  }
+  .reticle::before { top: 0; left: 0; border-right: none; border-bottom: none; }
+  .reticle::after  { top: 0; right: 0; border-left: none; border-bottom: none; }
+  .reticle .bl { bottom: 0; left: 0; border-right: none; border-top: none; }
+  .reticle .br { bottom: 0; right: 0; border-left: none; border-top: none; }
+  .scan-line {
+    position: absolute; left: 4px; right: 4px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    box-shadow: 0 0 16px rgba(37,99,235,0.7); top: 50%; opacity: 0;
+  }
+  .scanner.is-scanning .scan-line { opacity: 1; animation: scanline 1.4s ease-in-out infinite; }
+  @keyframes scanline { 0% { top: 4%; } 50% { top: 92%; } 100% { top: 4%; } }
+  .scan-state {
+    position: absolute; bottom: -40px; left: 50%;
+    transform: translateX(-50%);
+    color: #FFFFFF; font-size: 13px; font-weight: 500;
+    background: rgba(0,0,0,0.55); backdrop-filter: blur(20px);
+    padding: 6px 14px; border-radius: var(--r-pill); white-space: nowrap;
+  }
+  .scanner-bottom {
+    padding: 24px 24px 96px; pointer-events: auto;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .scan-cta {
+    background: var(--accent); color: #FFFFFF; border: none;
+    padding: 16px 48px; border-radius: var(--r-pill);
+    font-size: 17px; font-weight: 600; cursor: pointer; font-family: inherit;
+    box-shadow: 0 8px 24px rgba(37,99,235,0.40), 0 2px 6px rgba(0,0,0,0.20);
+    transition: background 200ms var(--ease-std); letter-spacing: -0.2px;
+  }
+  .scan-cta:active { background: var(--accent-pressed); transform: scale(0.97); }
+  .scan-cta:disabled { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.5); box-shadow: none; }
+  .scan-hint { color: rgba(255,255,255,0.7); font-size: 12px; }
+
+  /* Result sheet */
+  .result-sheet {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: var(--bg-canvas);
+    border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+    padding: 8px 20px 24px;
+    transform: translateY(100%);
+    transition: transform 320ms var(--ease-sheet);
+    z-index: 10; box-shadow: var(--e3); max-height: 78%; overflow-y: auto;
+  }
+  .result-sheet.show { transform: translateY(0); }
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--border-default); border-radius: 2px;
+    margin: 6px auto 16px;
+  }
+  .card-row { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 18px; }
+  .card-thumb {
+    width: 64px; height: 90px; border-radius: 6px; flex-shrink: 0;
+    background: var(--bg-canvas); border: 1px solid var(--border-default);
+    overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--e1);
+  }
+  .card-thumb-art {
+    flex: 1;
+    background: linear-gradient(135deg, var(--pokeball-red), var(--pokeball-red-dark));
+    margin: 4px; border-radius: 3px; position: relative;
+  }
+  .card-thumb-art::after {
+    content: '🔥'; position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+  }
+  .card-thumb-foot { height: 18px; background: var(--bg-sunken); margin: 0 4px 4px; border-radius: 2px; }
+  .card-thumb.lg { width: 88px; height: 124px; border-radius: 8px; }
+  .card-thumb.lg .card-thumb-art::after { font-size: 32px; }
+  .card-thumb.lg .card-thumb-foot { height: 24px; }
+  .card-meta { flex: 1; min-width: 0; }
+  .card-name { font-size: 17px; font-weight: 600; letter-spacing: -0.2px; margin-bottom: 2px; }
+  .card-set { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+  .badge-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge { font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: var(--r-pill); background: var(--bg-sunken); color: var(--text-secondary); }
+  .badge.holo { background: var(--accent-tint); color: var(--accent); }
+  .badge.authentic { background: rgba(22,163,74,0.10); color: var(--success); }
+
+  .price-block {
+    background: var(--bg-elevated); border: 1px solid var(--border-hairline);
+    border-radius: var(--r-card); padding: 16px; margin-bottom: 12px;
+  }
+  .price-block.featured { background: var(--accent-tint); border-color: rgba(37,99,235,0.20); }
+  .price-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+  .price-value { font-size: 28px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; letter-spacing: -0.6px; }
+  .price-block.featured .price-value { color: var(--accent); }
+  .price-sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+  .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .price-grid .price-block { margin: 0; padding: 12px; }
+  .price-grid .price-value { font-size: 18px; }
+
+  .roi-block {
+    background: var(--bg-elevated); border: 1px solid var(--border-hairline);
+    border-radius: var(--r-card); padding: 14px; margin-bottom: 12px;
+  }
+  .roi-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .roi-head h3 { font-size: 15px; font-weight: 600; }
+  .pro-tag { background: var(--gold); color: #FFFFFF; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; letter-spacing: 0.4px; }
+  .roi-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+  .roi-stat { text-align: center; }
+  .roi-stat .v { font-size: 17px; font-weight: 700; color: var(--success); font-variant-numeric: tabular-nums; }
+  .roi-stat .l { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* Top bar */
+  .top-bar {
+    padding: 12px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--border-hairline);
+    background: var(--bg-translucent);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    position: sticky; top: 0; z-index: 5;
+  }
+  .top-bar h2 { font-size: 17px; font-weight: 600; letter-spacing: -0.2px; }
+
+  /* COLLECTION */
+  .collection { background: var(--bg-canvas); height: 100%; }
+  .stat-row {
+    display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px;
+    padding: 12px 16px 16px; background: var(--bg-canvas);
+    border-bottom: 1px solid var(--border-hairline);
+  }
+  .stat-card { background: var(--bg-elevated); border: 1px solid var(--border-hairline); border-radius: var(--r-card); padding: 12px; }
+  .stat-card .l { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+  .stat-card .v { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.4px; }
+  .stat-card.featured .v { color: var(--accent); font-size: 22px; }
+  .stat-card .v.up { color: var(--success); font-size: 16px; }
+  .card-list { padding: 4px 0 100px; }
+  .list-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border-bottom: 1px solid var(--border-hairline); cursor: pointer;
+  }
+  .list-item:active { background: var(--bg-elevated); }
+  .list-item .card-thumb { width: 40px; height: 56px; }
+  .list-item .card-thumb-art::after { font-size: 14px; }
+  .list-item .card-thumb-foot { height: 11px; }
+  .list-meta { flex: 1; min-width: 0; }
+  .list-meta .n { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
+  .list-meta .s { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .list-price { text-align: right; }
+  .list-price .p { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .list-price .d { font-size: 11px; color: var(--success); margin-top: 2px; }
+  .list-price .d.dn { color: var(--danger); }
+
+  /* PAYWALL */
+  .paywall {
+    height: 100%; padding: 24px;
+    display: flex; flex-direction: column; overflow-y: auto;
+    background: var(--bg-canvas);
+  }
+  .paywall-close {
+    align-self: flex-end; background: var(--bg-sunken); border: none;
+    color: var(--text-secondary); width: 32px; height: 32px;
+    border-radius: 50%; cursor: pointer; font-size: 16px; font-weight: 500;
+  }
+  .paywall .logo-mark { margin: 8px auto 16px; }
+  .paywall h2 { text-align: center; font-size: 26px; font-weight: 700; letter-spacing: -0.6px; margin-bottom: 6px; }
+  .paywall-tagline { text-align: center; color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; }
+  .pro-feature { display: flex; align-items: center; gap: 12px; padding: 10px 0; color: var(--text-primary); font-size: 14px; }
+  .pro-feature .chk {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent-tint); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .pro-feature strong { font-weight: 600; }
+  .plan-row { display: flex; gap: 10px; margin: 20px 0 14px; }
+  .plan {
+    flex: 1; background: var(--bg-canvas);
+    border: 2px solid var(--border-hairline); padding: 14px 12px;
+    border-radius: var(--r-card); cursor: pointer; text-align: center; position: relative;
+    transition: border-color 200ms var(--ease-std), background 200ms var(--ease-std);
+  }
+  .plan.selected { border-color: var(--accent); background: var(--accent-tint); }
+  .plan .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 500; }
+  .plan .price { font-size: 20px; font-weight: 700; letter-spacing: -0.4px; }
+  .plan.selected .price { color: var(--accent); }
+  .plan .per { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+  .plan .save { position: absolute; top: -8px; right: -4px; background: var(--gold); color: #FFFFFF; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.4px; }
+  .paywall-foot { text-align: center; color: var(--text-tertiary); font-size: 11px; line-height: 1.6; margin-top: 12px; }
+  .paywall-foot a { color: var(--accent); text-decoration: none; margin: 0 4px; }
+
+  /* Bottom tab bar */
+  .bottom-nav {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 68px;
+    background: var(--bg-translucent);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border-hairline);
+    display: flex; z-index: 5;
+  }
+  .nav-tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; color: var(--text-tertiary); cursor: pointer;
+    background: none; border: none; font-family: inherit; font-size: 10px; font-weight: 500; padding: 8px;
+  }
+  .nav-tab .ico { font-size: 20px; line-height: 1; }
+  .nav-tab.active { color: var(--accent); }
+
+  /* Toast */
+  .toast {
+    position: fixed; top: 60px; left: 50%;
+    transform: translate(-50%, -120%);
+    background: rgba(0,0,0,0.85); color: #FFFFFF;
+    padding: 10px 20px; border-radius: var(--r-pill);
+    font-size: 13px; font-weight: 500; box-shadow: var(--e3);
+    transition: transform 280ms var(--ease-sheet);
+    z-index: 999; pointer-events: none; backdrop-filter: blur(20px);
+  }
+  .toast.show { transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Logo SVG symbol -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="logo-pokelens" viewBox="0 0 1024 1024">
+        <defs>
+          <radialGradient id="ai-bgVig" cx="0.5" cy="0.42" r="0.85">
+            <stop offset="0%" stop-color="#FFFFFF"/>
+            <stop offset="60%" stop-color="#FBFBFD"/>
+            <stop offset="100%" stop-color="#EFEFF4"/>
+          </radialGradient>
+          <linearGradient id="ai-lensRing" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#2A2F3D"/>
+            <stop offset="100%" stop-color="#0F1117"/>
+          </linearGradient>
+          <linearGradient id="ai-redHemi" x1="0.3" y1="0" x2="0.7" y2="1">
+            <stop offset="0%" stop-color="#FF3B3B"/>
+            <stop offset="55%" stop-color="#EE1515"/>
+            <stop offset="100%" stop-color="#C40D0D"/>
+          </linearGradient>
+          <linearGradient id="ai-whiteHemi" x1="0.3" y1="0" x2="0.7" y2="1">
+            <stop offset="0%" stop-color="#FFFFFF"/>
+            <stop offset="100%" stop-color="#E8ECF2"/>
+          </linearGradient>
+          <radialGradient id="ai-iris" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0%" stop-color="#1F2937"/>
+            <stop offset="80%" stop-color="#0A0F1A"/>
+            <stop offset="100%" stop-color="#000000"/>
+          </radialGradient>
+          <linearGradient id="ai-scanBeam" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stop-color="#2563EB" stop-opacity="0"/>
+            <stop offset="20%"  stop-color="#2563EB" stop-opacity="0.85"/>
+            <stop offset="50%"  stop-color="#2563EB" stop-opacity="1"/>
+            <stop offset="80%"  stop-color="#2563EB" stop-opacity="0.85"/>
+            <stop offset="100%" stop-color="#2563EB" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="ai-scanGlow" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="#2563EB" stop-opacity="0"/>
+            <stop offset="50%"  stop-color="#2563EB" stop-opacity="0.20"/>
+            <stop offset="100%" stop-color="#2563EB" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="ai-lensShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="14"/>
+            <feOffset dx="0" dy="12"/>
+            <feComponentTransfer><feFuncA type="linear" slope="0.20"/></feComponentTransfer>
+            <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <radialGradient id="ai-redShine" cx="0.32" cy="0.30" r="0.35">
+            <stop offset="0%"   stop-color="#FFFFFF" stop-opacity="0.55"/>
+            <stop offset="60%"  stop-color="#FFFFFF" stop-opacity="0.10"/>
+            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+          </radialGradient>
+          <clipPath id="ai-squircle"><rect x="0" y="0" width="1024" height="1024" rx="228" ry="228"/></clipPath>
+          <clipPath id="ai-lensCircle"><circle cx="512" cy="512" r="320"/></clipPath>
+        </defs>
+        <rect x="0" y="0" width="1024" height="1024" rx="228" ry="228" fill="url(#ai-bgVig)"/>
+        <g clip-path="url(#ai-squircle)">
+          <g fill="#2563EB" opacity="0.55">
+            <rect x="96"  y="96"  width="88" height="8" rx="4"/>
+            <rect x="96"  y="96"  width="8" height="88" rx="4"/>
+            <rect x="840" y="96"  width="88" height="8" rx="4"/>
+            <rect x="920" y="96"  width="8" height="88" rx="4"/>
+            <rect x="96"  y="920" width="88" height="8" rx="4"/>
+            <rect x="96"  y="840" width="8" height="88" rx="4"/>
+            <rect x="840" y="920" width="88" height="8" rx="4"/>
+            <rect x="920" y="840" width="8" height="88" rx="4"/>
+          </g>
+          <g filter="url(#ai-lensShadow)">
+            <circle cx="512" cy="512" r="354" fill="url(#ai-lensRing)"/>
+            <g clip-path="url(#ai-lensCircle)">
+              <rect x="192" y="192" width="640" height="320" fill="url(#ai-redHemi)"/>
+              <rect x="192" y="512" width="640" height="320" fill="url(#ai-whiteHemi)"/>
+              <rect x="192" y="192" width="640" height="320" fill="url(#ai-redShine)"/>
+              <circle cx="512" cy="512" r="290" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-opacity="0.18"/>
+              <circle cx="512" cy="512" r="260" fill="none" stroke="#000000" stroke-width="1.5" stroke-opacity="0.10"/>
+            </g>
+            <rect x="192" y="492" width="640" height="40" fill="#0F1117"/>
+            <circle cx="512" cy="512" r="320" fill="none" stroke="#0F1117" stroke-width="6"/>
+            <circle cx="512" cy="512" r="92" fill="#0F1117"/>
+            <circle cx="512" cy="512" r="72" fill="#FFFFFF"/>
+            <circle cx="512" cy="512" r="72" fill="none" stroke="#0F1117" stroke-width="4"/>
+            <circle cx="512" cy="512" r="42" fill="url(#ai-iris)"/>
+            <circle cx="498" cy="498" r="10" fill="#FFFFFF" opacity="0.85"/>
+            <circle cx="528" cy="525" r="4"  fill="#FFFFFF" opacity="0.50"/>
+          </g>
+          <rect x="80" y="490" width="864" height="80" fill="url(#ai-scanGlow)"/>
+          <rect x="80" y="522" width="864" height="6" rx="3" fill="url(#ai-scanBeam)"/>
+          <rect x="80" y="496" width="864" height="6" rx="3" fill="url(#ai-scanBeam)" opacity="0.55"/>
+        </g>
+        <rect x="0.5" y="0.5" width="1023" height="1023" rx="228" ry="228" fill="none" stroke="#E5E5EA" stroke-width="1"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- 1. ONBOARDING -->
+  <section class="view active" id="view-onboarding">
+    <div class="status-bar"><span>9:41</span><span class="icons">●●● ▮</span></div>
+    <div class="body">
+      <div class="onb">
+        <div class="onb-hero">
+          <div class="logo-mark lg"><svg width="88" height="88"><use href="#logo-pokelens"/></svg></div>
+          <h1>Poke<span style="color:var(--accent)">Scan</span></h1>
+          <p class="onb-tagline">Scan any Pokémon card. Know its real value. Instantly.</p>
+        </div>
+        <div class="feature-list">
+          <div class="feature-row">
+            <div class="feat-icon">⚡</div>
+            <div><h3>Sub-second scans</h3><p>97% accuracy on reprints &amp; variants</p></div>
+          </div>
+          <div class="feature-row">
+            <div class="feat-icon">$</div>
+            <div><h3>Real market price</h3><p>TCGPlayer + eBay 30-day completed sales</p></div>
+          </div>
+          <div class="feature-row">
+            <div class="feat-icon gold">★</div>
+            <div><h3>Grade ROI built-in</h3><p>Should you grade it? See net profit instantly.</p></div>
+          </div>
+        </div>
+        <div class="onb-foot">
+          <span class="pp"><a href="#" onclick="event.preventDefault();toast('Privacy Policy')">Privacy Policy</a></span>
+          <button class="btn-primary" onclick="go('signin')">Get Started</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. SIGN IN -->
+  <section class="view" id="view-signin">
+    <div class="status-bar"><span>9:41</span><span class="icons">●●● ▮</span></div>
+    <div class="body">
+      <div class="signin">
+        <div class="logo-mark"><svg width="64" height="64"><use href="#logo-pokelens"/></svg></div>
+        <h2>Sign in to PokeScan</h2>
+        <p class="lead">Sync your collection across devices.</p>
+        <button class="google-btn" onclick="signIn()">
+          <span class="google-g"></span>
+          Continue with Google
+        </button>
+        <button class="btn-secondary" onclick="signIn()">Continue as Guest</button>
+        <div class="signin-foot">
+          By continuing you agree to our<br>
+          <a href="#" onclick="event.preventDefault()">Terms of Service</a> and <a href="#" onclick="event.preventDefault()">Privacy Policy</a>.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. SCANNER -->
+  <section class="view" id="view-scanner">
+    <div class="status-bar" style="background:transparent;color:#fff;position:absolute;top:0;left:0;right:0;z-index:3"><span>9:41</span><span class="icons">●●● ▮</span></div>
+    <div class="body" style="background:#000">
+      <div class="scanner" id="scanner-root">
+        <div class="camera-feed"></div>
+        <div class="scanner-overlay" style="top:44px">
+          <div class="scanner-top">
+            <div class="scan-counter" id="scan-counter-pill"><span id="scan-num">19</span>/20 scans</div>
+            <button class="icon-btn" onclick="toast('Settings')">⚙</button>
+          </div>
+          <div class="reticle-wrap">
+            <div class="reticle">
+              <div class="bl"></div><div class="br"></div>
+              <div class="scan-line"></div>
+              <div class="scan-state" id="scan-state-label">Place card flat in good light</div>
+            </div>
+          </div>
+          <div class="scanner-bottom">
+            <button class="scan-cta" id="scan-btn" onclick="startScan()">Scan</button>
+            <span class="scan-hint" id="scan-hint">Free tier · 1 scan left this month</span>
+          </div>
+        </div>
+        <div class="result-sheet" id="result-sheet">
+          <div class="sheet-handle"></div>
+          <div class="card-row">
+            <div class="card-thumb"><div class="card-thumb-art"></div><div class="card-thumb-foot"></div></div>
+            <div class="card-meta">
+              <div class="card-name">Charizard</div>
+              <div class="card-set">Base Set · #4 / 102 · 1999</div>
+              <div class="badge-row">
+                <span class="badge holo">Holo</span>
+                <span class="badge">Near Mint</span>
+                <span class="badge authentic">✓ Authentic</span>
+              </div>
+            </div>
+          </div>
+          <div class="price-block featured">
+            <div class="price-label">Market price · 30-day</div>
+            <div class="price-value">$450.00</div>
+            <div class="price-sub">TCGPlayer + eBay weighted · updated 2h ago</div>
+          </div>
+          <div class="price-grid">
+            <div class="price-block"><div class="price-label">TCGPlayer</div><div class="price-value">$425</div></div>
+            <div class="price-block"><div class="price-label">eBay sold</div><div class="price-value">$472</div></div>
+          </div>
+          <div class="roi-block">
+            <div class="roi-head"><h3>Grade ROI</h3><span class="pro-tag">PRO</span></div>
+            <div class="roi-stats">
+              <div class="roi-stat"><div class="v">PSA 9</div><div class="l">Predicted</div></div>
+              <div class="roi-stat"><div class="v">$1,200</div><div class="l">Sell value</div></div>
+              <div class="roi-stat"><div class="v">+$725</div><div class="l">Net profit</div></div>
+            </div>
+          </div>
+          <button class="btn-primary" onclick="addToCollection()">Save to Collection</button>
+          <button class="btn-secondary" onclick="closeSheet()">Scan another</button>
+        </div>
+      </div>
+    </div>
+    <nav class="bottom-nav">
+      <button class="nav-tab active" onclick="go('scanner')"><span class="ico">▣</span><span>Scan</span></button>
+      <button class="nav-tab" onclick="go('collection')"><span class="ico">☰</span><span>Collection</span></button>
+    </nav>
+  </section>
+
+  <!-- 4. COLLECTION -->
+  <section class="view" id="view-collection">
+    <div class="status-bar"><span>9:41</span><span class="icons">●●● ▮</span></div>
+    <div class="body">
+      <div class="collection">
+        <div class="top-bar">
+          <h2>Collection</h2>
+          <button class="btn-link" onclick="toast('Sort: by value')">Sort</button>
+        </div>
+        <div class="stat-row">
+          <div class="stat-card featured"><div class="l">Total value</div><div class="v">$<span id="total-value">658</span>.50</div></div>
+          <div class="stat-card"><div class="l">Cards</div><div class="v"><span id="card-count">3</span></div></div>
+          <div class="stat-card"><div class="l">30d</div><div class="v up">+5.2%</div></div>
+        </div>
+        <div class="card-list">
+          <div class="list-item">
+            <div class="card-thumb"><div class="card-thumb-art"></div><div class="card-thumb-foot"></div></div>
+            <div class="list-meta"><div class="n">Charizard</div><div class="s">Base Set · #4 · Holo NM</div></div>
+            <div class="list-price"><div class="p">$450.00</div><div class="d">+4.2%</div></div>
+          </div>
+          <div class="list-item">
+            <div class="card-thumb"><div class="card-thumb-art" style="background:linear-gradient(135deg,#FCD34D,#D97706)"></div><div class="card-thumb-foot"></div></div>
+            <div class="list-meta"><div class="n">Pikachu</div><div class="s">Celebrations · 25th Promo</div></div>
+            <div class="list-price"><div class="p">$8.50</div><div class="d">+1.1%</div></div>
+          </div>
+          <div class="list-item">
+            <div class="card-thumb"><div class="card-thumb-art" style="background:linear-gradient(135deg,#5DADE2,#2874A6)"></div><div class="card-thumb-foot"></div></div>
+            <div class="list-meta"><div class="n">Lugia</div><div class="s">Neo Genesis · #9 · Holo</div></div>
+            <div class="list-price"><div class="p">$200.00</div><div class="d dn">−2.4%</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <nav class="bottom-nav">
+      <button class="nav-tab" onclick="go('scanner')"><span class="ico">▣</span><span>Scan</span></button>
+      <button class="nav-tab active" onclick="go('collection')"><span class="ico">☰</span><span>Collection</span></button>
+    </nav>
+  </section>
+
+  <!-- 5. PAYWALL -->
+  <section class="view" id="view-paywall">
+    <div class="status-bar"><span>9:41</span><span class="icons">●●● ▮</span></div>
+    <div class="body">
+      <div class="paywall">
+        <button class="paywall-close" onclick="go('scanner')">✕</button>
+        <div class="logo-mark lg"><svg width="88" height="88"><use href="#logo-pokelens"/></svg></div>
+        <h2>Unlock <span style="color:var(--accent)">Pro</span></h2>
+        <p class="paywall-tagline">You've used all 20 free scans this month.</p>
+        <div class="pro-feature"><span class="chk">✓</span><span><strong>Unlimited scans</strong> — every day, every card</span></div>
+        <div class="pro-feature"><span class="chk">✓</span><span><strong>Grade ROI</strong> — should you grade it?</span></div>
+        <div class="pro-feature"><span class="chk">✓</span><span><strong>Fake detection</strong> — risk score every scan</span></div>
+        <div class="pro-feature"><span class="chk">✓</span><span><strong>Price alerts</strong> — track up to 50 cards</span></div>
+        <div class="pro-feature"><span class="chk">✓</span><span><strong>Unlimited collection</strong> (free: 50 cards)</span></div>
+        <div class="plan-row">
+          <div class="plan" id="plan-monthly" onclick="selectPlan('monthly')">
+            <div class="label">Monthly</div>
+            <div class="price">$4.99</div>
+            <div class="per">per month</div>
+          </div>
+          <div class="plan selected" id="plan-annual" onclick="selectPlan('annual')">
+            <div class="save">SAVE 33%</div>
+            <div class="label">Annual</div>
+            <div class="price">$39.99</div>
+            <div class="per">$3.33 / month</div>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="purchasePro()">Start 7-Day Free Trial</button>
+        <button class="btn-link" style="margin-top:6px;width:100%" onclick="toast('Restored')">Restore Purchases</button>
+        <div class="paywall-foot">
+          Cancel anytime. Auto-renews unless cancelled 24h before period ends.<br>
+          <a href="#" onclick="event.preventDefault()">Terms</a>·<a href="#" onclick="event.preventDefault()">Privacy</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const state = { current: 'onboarding', scanCount: 19, isPro: false, selectedPlan: 'annual', isScanning: false };
+  const SCAN_LIMIT = 20;
+
+  function go(view) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + view).classList.add('active');
+    state.current = view;
+    closeSheet();
+    if (view !== 'scanner') {
+      const sr = document.getElementById('scanner-root');
+      if (sr) sr.classList.remove('is-scanning');
+      state.isScanning = false;
+    }
+  }
+
+  function signIn() {
+    toast('Signing in...');
+    setTimeout(() => { toast('Welcome'); go('scanner'); }, 700);
+  }
+
+  function startScan() {
+    if (state.isScanning) return;
+    if (!state.isPro && state.scanCount >= SCAN_LIMIT) { go('paywall'); return; }
+    const root = document.getElementById('scanner-root');
+    const btn  = document.getElementById('scan-btn');
+    const label = document.getElementById('scan-state-label');
+    state.isScanning = true;
+    root.classList.add('is-scanning');
+    btn.disabled = true; btn.textContent = 'Scanning...';
+    label.textContent = 'Detecting card...';
+    setTimeout(() => { label.textContent = 'Reading set number...'; }, 600);
+    setTimeout(() => { label.textContent = 'Fetching market price...'; }, 1200);
+    setTimeout(() => {
+      state.scanCount++;
+      updateCounter();
+      root.classList.remove('is-scanning');
+      btn.disabled = false; btn.textContent = 'Scan';
+      label.textContent = 'Place card flat in good light';
+      state.isScanning = false;
+      openSheet();
+    }, 1800);
+  }
+
+  function updateCounter() {
+    const num = document.getElementById('scan-num');
+    const pill = document.getElementById('scan-counter-pill');
+    const hint = document.getElementById('scan-hint');
+    if (num) num.textContent = state.scanCount;
+    const left = SCAN_LIMIT - state.scanCount;
+    if (pill) {
+      if (left <= 1) pill.classList.add('warn'); else pill.classList.remove('warn');
+      if (state.isPro) pill.innerHTML = '<span style="color:var(--accent);font-weight:700">PRO</span> · unlimited';
+    }
+    if (hint) {
+      if (state.isPro) hint.textContent = 'Pro · unlimited scans';
+      else if (left <= 0) hint.textContent = 'Free tier limit reached';
+      else if (left === 1) hint.textContent = '1 scan left this month';
+      else hint.textContent = 'Free tier · ' + left + ' scans left this month';
+    }
+  }
+
+  function openSheet()  { document.getElementById('result-sheet').classList.add('show'); }
+  function closeSheet() { const s = document.getElementById('result-sheet'); if (s) s.classList.remove('show'); }
+  function addToCollection() {
+    closeSheet(); toast('Saved to Collection');
+    setTimeout(() => go('collection'), 400);
+  }
+
+  function selectPlan(p) {
+    state.selectedPlan = p;
+    document.getElementById('plan-monthly').classList.toggle('selected', p === 'monthly');
+    document.getElementById('plan-annual').classList.toggle('selected', p === 'annual');
+  }
+
+  function purchasePro() {
+    toast('Processing...');
+    setTimeout(() => { state.isPro = true; toast('Pro unlocked'); updateCounter(); go('scanner'); }, 900);
+  }
+
+  let toastTimer;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  updateCounter();
+</script>
+</body>
+</html>

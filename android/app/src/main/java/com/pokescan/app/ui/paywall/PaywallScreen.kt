@@ -1,5 +1,7 @@
 package com.pokescan.app.ui.paywall
 
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pokescan.app.config.AppConfig
 
 @Composable
 fun PaywallScreen(
@@ -31,7 +34,7 @@ fun PaywallScreen(
 ) {
     val isPro by viewModel.isPro.collectAsState()
     val products by viewModel.products.collectAsState()
-    val activity = LocalContext.current as ComponentActivity
+    val activity = LocalContext.current as? ComponentActivity ?: return
 
     LaunchedEffect(isPro) {
         if (isPro) onDismiss()
@@ -96,6 +99,16 @@ fun PaywallScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+
+        TextButton(onClick = {
+            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AppConfig.PRIVACY_POLICY_URL)))
+        }) {
+            Text(
+                text = "Privacy Policy",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
         TextButton(onClick = { viewModel.restorePurchases() }) {
             Text("Restore Purchases")
