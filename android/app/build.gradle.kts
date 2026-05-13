@@ -57,6 +57,10 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 ksp {
@@ -118,4 +122,9 @@ dependencies {
 
     // Billing
     implementation(libs.billing)
+
+    // Testing
+    testImplementation(libs.test.junit)
+    testImplementation(libs.test.mockk)
+    testImplementation(libs.test.coroutines)
 }
