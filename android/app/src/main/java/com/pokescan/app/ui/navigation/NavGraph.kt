@@ -53,6 +53,7 @@ fun NavGraph(
     val startDestination = remember {
         when {
             secureStorage.getToken() != null -> Routes.MAIN
+            prefs.getBoolean("isGuest", false) -> Routes.MAIN
             !prefs.getBoolean("hasSeenOnboarding", false) -> Routes.ONBOARDING
             else -> Routes.SIGN_IN
         }
@@ -62,8 +63,11 @@ fun NavGraph(
 
     LaunchedEffect(Unit) {
         authEventBus.unauthorizedEvents.collect {
-            navController.navigate(Routes.SIGN_IN) {
-                popUpTo(0) { inclusive = true }
+            val current = navController.currentDestination?.route
+            if (current != Routes.SIGN_IN && current != Routes.ONBOARDING) {
+                navController.navigate(Routes.SIGN_IN) {
+                    popUpTo(0) { inclusive = true }
+                }
             }
         }
     }
@@ -71,6 +75,7 @@ fun NavGraph(
     val handleSignOut: () -> Unit = {
         scope.launch {
             authRepository.signOut()
+            prefs.edit().putBoolean("isGuest", false).apply()
             navController.navigate(Routes.SIGN_IN) {
                 popUpTo(0) { inclusive = true }
             }
@@ -91,11 +96,20 @@ fun NavGraph(
         }
 
         composable(Routes.SIGN_IN) {
-            SignInScreen(onAuthSuccess = {
-                navController.navigate(Routes.MAIN) {
-                    popUpTo(0) { inclusive = true }
-                }
-            })
+            SignInScreen(
+                onAuthSuccess = {
+                    prefs.edit().putBoolean("isGuest", false).apply()
+                    navController.navigate(Routes.MAIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onGuestMode = {
+                    prefs.edit().putBoolean("isGuest", true).apply()
+                    navController.navigate(Routes.MAIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+            )
         }
 
         composable(Routes.MAIN) {

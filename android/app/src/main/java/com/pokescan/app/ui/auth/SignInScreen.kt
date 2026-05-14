@@ -16,11 +16,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,6 +31,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 @Composable
 fun SignInScreen(
     onAuthSuccess: () -> Unit,
+    onGuestMode: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -61,7 +64,8 @@ fun SignInScreen(
         ) {
             Text(
                 text = "PokeScan",
-                style = MaterialTheme.typography.headlineLarge
+                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Black),
+                color = MaterialTheme.colorScheme.primary,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -85,9 +89,19 @@ fun SignInScreen(
                         launcher.launch(viewModel.googleSignInClient.signInIntent)
                     })
                 }
-                else -> SignInButton(onClick = {
-                    launcher.launch(viewModel.googleSignInClient.signInIntent)
-                })
+                else -> {
+                    SignInButton(onClick = {
+                        launcher.launch(viewModel.googleSignInClient.signInIntent)
+                    })
+                    Spacer(modifier = Modifier.height(12.dp))
+                    TextButton(onClick = onGuestMode) {
+                        Text(
+                            text = "Continue as Guest",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         }
     }

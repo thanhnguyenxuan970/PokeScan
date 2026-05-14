@@ -1,3 +1,9 @@
+# JVM crash dumps
+hs_err_pid*.log
+
+# Windows reserved device name (created by accident, can't be read by Git)
+nul
+
 # Xcode
 *.xcodeproj/xcuserdata/
 *.xcworkspace/xcuserdata/

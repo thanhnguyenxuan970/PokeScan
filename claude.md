@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-14, test suite + pre-launch fixes complete)
+## Android Migration Status (updated 2026-05-14, UI/auth polish complete)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -28,9 +28,15 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 
 ### Next Session — Android (updated 2026-05-14, ready for E2E test)
 
-**Status note:** Security hardening + billing fixes + test suite + pre-launch polish all applied. Full `check_code` pass complete — zero issues remaining. `google-services.json` is real (Firebase project pokescan-7f2a6). App icon adaptive XML done. Remaining blocker before E2E: `REPLACE_WITH_WEB_CLIENT_ID` in `strings.xml`.
+**Status note:** Security hardening + billing fixes + test suite + pre-launch polish + UI/auth polish all applied. Build clean (`assembleDebug` zero errors). Remaining blocker before E2E: `REPLACE_WITH_WEB_CLIENT_ID` in `strings.xml`.
 
-**Completed this session (2026-05-14):**
+**Completed this session (2026-05-14) — UI/auth polish:**
+- ✅ Onboarding contrast fix — `ValuePropRow` removed `Surface(surfaceVariant)` wrapper; now plain `Row` with `Modifier.border()` + `clip()`; description text color `onSurfaceVariant` → `onSurface` (dark, high contrast on white bg)
+- ✅ Branding — "PokeScan" title in `OnboardingScreen` + `SignInScreen` now `FontWeight.Black` + `MaterialTheme.colorScheme.primary` (brand blue `#2563EB`), matching icon visual weight
+- ✅ Auth loop fix (Issue 3B) — `NavGraph` unauthorized-event collector now guards: skips navigate-to-SIGN_IN if already on `SIGN_IN` or `ONBOARDING`; `CollectionViewModel.syncAll()` guarded behind `secureStorage.getToken() != null` — no 401 storm on guest/unauthenticated launch
+- ✅ Guest mode — "Continue as Guest" `TextButton` added to `SignInScreen`; `isGuest` SharedPreferences flag wired into `NavGraph` startDestination + `handleSignOut`; guest → MAIN with no sync; sign-out clears flag
+
+**Completed previous session (2026-05-14):**
 - ✅ Agent test suite: 9 Android + 2 Python backend test files, all passing
   - `libs.versions.toml` — added missing `test-junit`, `test-mockk`, `test-coroutines` entries (build was failing with unresolved reference)
   - `build.gradle.kts` — added `testOptions { unitTests.isReturnDefaultValues = true }` (fixes `android.util.Log` stubs throwing in JVM tests)
@@ -65,6 +71,9 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 - 21st scan → PaywallScreen → test purchase → auto-dismiss
 - Kill + relaunch → cards persist; swipe-to-delete works
 - Simulate 401 → auto-navigate to SignIn; logout → collection empty
+- Guest mode: tap "Continue as Guest" → MainScreen, Collection empty (no sync error)
+- Guest persistence: kill + relaunch → stays in MainScreen (isGuest=true), no re-prompt
+- Guest sign-out: clears isGuest flag → lands on SignIn
 
 **Step 4 — Fix all bugs** — no bypasses
 
@@ -330,6 +339,11 @@ Env flags:
 | Onboarding gate via `@AppStorage` on `App` struct, not `UserDefaults` directly | `@AppStorage` is reactive — `PokeScanApp` body re-evaluates automatically when `hasSeenOnboarding` flips in `OnboardingView`. Direct `UserDefaults` read in `WindowGroup` would be non-reactive and require manual state bridging. |
 | PP `Link` placed above "Restore Purchases" in `PaywallView` | Apple App Review guideline: legal links must be visible before any purchase action. Below "Restore" = after purchase UI = potential rejection. |
 | Single `OnboardingView` (not multi-screen flow) | 3-screen carousel adds navigation state, page indicators, and gesture handling — week of work. Single screen with 3 feature rows conveys same value props in 30min. Revisit post-launch if retention data suggests onboarding drop-off. |
+| `ValuePropRow` uses `Modifier.border()` + `clip()` on plain `Row`, no `Surface(surfaceVariant)` | `surfaceVariant` on `#FAFAFA` white produces near-invisible cards (low contrast). Border-only approach gives card shape with zero background fill. `onSurface` for description text ensures WCAG contrast. |
+| "PokeScan" title uses `FontWeight.Black` + `colorScheme.primary` in both Onboarding and SignIn | SVG icon uses bold geometry + brand blue `#2563EB` as visual identity. System-default weight at theme color didn't read as brand mark — Black weight matches icon's visual mass. |
+| `NavGraph` unauthorized-event collector guards current route before navigating to SIGN_IN | Without guard, 401 from `CollectionViewModel.syncAll()` (fires on MAIN entry) re-navigated to SIGN_IN immediately after successful sign-in — appeared as an auth loop. Guard: skip if already on SIGN_IN or ONBOARDING. |
+| `CollectionViewModel.syncAll()` guarded by `secureStorage.getToken() != null` | Guests and unauthenticated restarts have no token — calling `syncAll()` would hit backend unauthenticated, get 401, trigger `unauthorizedEvents`, loop. Guard skips sync entirely when no token; Room local data still observed via `observeAll()`. |
+| Guest mode uses `SharedPreferences("isGuest")` flag, not a separate auth state | Guest is a UI-layer concept only — no server session, no token. Reuses existing MAIN route; `isGuest=true` in startDestination check bypasses SIGN_IN on relaunch. Cleared on sign-out and on successful Google sign-in. |
 
 ---
 

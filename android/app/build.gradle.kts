@@ -12,16 +12,17 @@ plugins {
 val localProps = Properties()
 val localPropsFile = rootProject.file("local.properties")
 if (localPropsFile.exists()) localProps.load(localPropsFile.inputStream())
-val debugBaseUrl = localProps.getProperty("DEBUG_BASE_URL", "http://10.0.2.2:8000/")
+val debugBaseUrl: String = localProps.getProperty("DEBUG_BASE_URL", "http://10.0.2.2:8000/")
 
-android {
+extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
     namespace = "com.pokescan.app"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.pokescan.app"
         minSdk = 26
-        targetSdk = 35
+        //noinspection EditedTargetSdkVersion
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
         buildConfigField("String", "BASE_URL", "\"$debugBaseUrl\"")
@@ -56,13 +57,13 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 ksp {
@@ -78,7 +79,7 @@ dependencies {
     implementation(libs.compose.material.icons)
     implementation(libs.compose.activity)
     implementation(libs.compose.viewmodel)
-    implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     debugImplementation(libs.compose.ui.tooling)
 
     // Navigation
@@ -127,7 +128,7 @@ dependencies {
     implementation(libs.billing)
 
     // Testing
-    testImplementation(libs.test.junit)
-    testImplementation(libs.test.mockk)
-    testImplementation(libs.test.coroutines)
+    testImplementation(libs.testing.junit)
+    testImplementation(libs.testing.mockk)
+    testImplementation(libs.testing.coroutines)
 }

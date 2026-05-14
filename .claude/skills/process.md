@@ -45,7 +45,6 @@ When all steps are done (or blocked with reason), state:
 
 1. Run `/review` then `/caveman-review` on all files created or modified during Phase 2.
    - Fix every issue surfaced before proceeding.
-   - Re-run `/caveman-review` after fixes until no issues remain.
    - Do not proceed to Phase 5 until review is clean.
 2. **Auto: run `/compact`** — execute immediately, no user prompt needed.
 
