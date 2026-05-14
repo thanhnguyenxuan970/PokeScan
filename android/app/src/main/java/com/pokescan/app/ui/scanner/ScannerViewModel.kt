@@ -172,6 +172,7 @@ class ScannerViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = ScanState.Scanning
             delay(800)
+            if (_state.value !is ScanState.Scanning) return@launch
             val mockCard = Card(
                 id = UUID.randomUUID().toString(),
                 name = "Charizard ex",

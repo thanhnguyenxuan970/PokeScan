@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-14, UI/auth polish complete)
+## Android Migration Status (updated 2026-05-14, fixes & enhancements applied)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -28,7 +28,13 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 
 ### Next Session — Android (updated 2026-05-14, ready for E2E test)
 
-**Status note:** Security hardening + billing fixes + test suite + pre-launch polish + UI/auth polish all applied. Build clean (`assembleDebug` zero errors). Remaining blocker before E2E: `REPLACE_WITH_WEB_CLIENT_ID` in `strings.xml`.
+**Status note:** Security hardening + billing fixes + test suite + pre-launch polish + UI/auth polish + fixes & enhancements all applied. Build clean (`assembleDebug` zero errors). Remaining blocker before real Google Sign-in: `REPLACE_WITH_WEB_CLIENT_ID` in `strings.xml`. Dev bypass available: "Skip Auth (Dev)" button on SignInScreen.
+
+**Completed this session (2026-05-14) — Fixes & enhancements:**
+- ✅ Google Sign-in dev bypass — `BuildConfig.DEBUG` "Skip Auth (Dev)" `TextButton` in `SignInScreen`; calls `onAuthSuccess()` directly so full post-login flow testable without Firebase config
+- ✅ Onboarding first-launch fix — `hasSeenOnboarding = true` moved from button-tap lambda to `LaunchedEffect(Unit)` in NavGraph ONBOARDING composable; force-close before tapping no longer re-shows onboarding
+- ✅ Mock scan result — `triggerMockScan()` in `ScannerViewModel` + DEBUG bug-icon `IconButton` (top-right, camera view) in `ScannerScreen`; tapping shows Charizard ex/$45.99 CardDetailSheet after 800ms
+- ✅ Guest sign-out warning — `AlertDialog` in `CollectionScreen` when `isGuest=true`; tapping Logout shows "Your scanned cards will be lost" with "Sign Out" + "Create Account" options; `isGuest` threaded NavGraph → `MainScreen` → `CollectionScreen`
 
 **Completed this session (2026-05-14) — UI/auth polish:**
 - ✅ Onboarding contrast fix — `ValuePropRow` removed `Surface(surfaceVariant)` wrapper; now plain `Row` with `Modifier.border()` + `clip()`; description text color `onSurfaceVariant` → `onSurface` (dark, high contrast on white bg)
@@ -73,7 +79,9 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 - Simulate 401 → auto-navigate to SignIn; logout → collection empty
 - Guest mode: tap "Continue as Guest" → MainScreen, Collection empty (no sync error)
 - Guest persistence: kill + relaunch → stays in MainScreen (isGuest=true), no re-prompt
-- Guest sign-out: clears isGuest flag → lands on SignIn
+- Guest sign-out: tap Logout → AlertDialog with warning → "Sign Out" clears isGuest + lands on SignIn; "Create Account" navigates to SignIn without clearing Room data
+- DEBUG mock scan: tap bug icon (top-right, camera view) → yellow reticle → CardDetailSheet "Charizard ex / $45.99" after 800ms
+- DEBUG skip auth: tap "Skip Auth (Dev)" → lands directly on MainScreen (no Firebase needed)
 
 **Step 4 — Fix all bugs** — no bypasses
 
@@ -344,6 +352,11 @@ Env flags:
 | `NavGraph` unauthorized-event collector guards current route before navigating to SIGN_IN | Without guard, 401 from `CollectionViewModel.syncAll()` (fires on MAIN entry) re-navigated to SIGN_IN immediately after successful sign-in — appeared as an auth loop. Guard: skip if already on SIGN_IN or ONBOARDING. |
 | `CollectionViewModel.syncAll()` guarded by `secureStorage.getToken() != null` | Guests and unauthenticated restarts have no token — calling `syncAll()` would hit backend unauthenticated, get 401, trigger `unauthorizedEvents`, loop. Guard skips sync entirely when no token; Room local data still observed via `observeAll()`. |
 | Guest mode uses `SharedPreferences("isGuest")` flag, not a separate auth state | Guest is a UI-layer concept only — no server session, no token. Reuses existing MAIN route; `isGuest=true` in startDestination check bypasses SIGN_IN on relaunch. Cleared on sign-out and on successful Google sign-in. |
+| `BuildConfig.DEBUG` "Skip Auth (Dev)" button calls `onAuthSuccess()` directly | Placeholder `REPLACE_WITH_WEB_CLIENT_ID` → `idToken == null` → real Google Sign-In never completes. DEBUG bypass lets the full post-login flow be tested without Firebase config. Stripped from release builds by R8. |
+| `hasSeenOnboarding = true` written in `LaunchedEffect(Unit)`, not button-tap lambda | Writing on button tap → force-close before tapping → flag never written → onboarding shown again next launch. Writing on screen entry (LaunchedEffect fires on first composition) is idempotent and survives force-close. |
+| `triggerMockScan()` uses `UUID.randomUUID()` for mock card `id` | Hardcoded `"mock-001"` → second mock scan same session upserts same Room record, which is fine, but a unique id makes each mock scan traceable in the collection list during dev. |
+| `triggerMockScan()` guards `_state.value !is ScanState.Scanning` after `delay(800)` | Without guard, calling `resetScan()` during delay brings state back to Idle; after delay, `ScanState.Result` would override Idle and show the mock sheet unexpectedly. Guard mirrors pattern in `handleOcrResult()`. |
+| Guest sign-out `AlertDialog` threaded via `isGuest: Boolean` param (not read inside CollectionScreen) | Reading `prefs` directly inside `CollectionScreen` would couple the UI layer to `SharedPreferences`. Param injection keeps CollectionScreen testable and consistent with the existing NavGraph → MainScreen → CollectionScreen prop-passing pattern. |
 
 ---
 
