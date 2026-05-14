@@ -9,7 +9,7 @@ class CardIdentificationService @Inject constructor(
     private val setDatabaseService: SetDatabaseService,
     private val setResolver: SetResolver,
 ) {
-    private val setNumberRegex = Regex("""\b\d{1,3}/\d{1,3}\b""")
+    private val setNumberRegex = Regex("""(?<![.])\b\d{1,3}/\d{1,3}\b""")
 
     data class IdentifiedCard(
         val cardName: String,

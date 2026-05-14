@@ -18,7 +18,10 @@ import com.pokescan.app.data.repository.CollectionRepository
 import com.pokescan.app.data.service.CardIdentificationService
 import com.pokescan.app.data.service.PricingService
 import com.pokescan.app.data.service.ScanCounterService
+import com.pokescan.app.BuildConfig
 import com.pokescan.app.domain.model.Card
+import com.pokescan.app.domain.model.CardLanguage
+import com.pokescan.app.domain.model.PriceSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
@@ -28,6 +31,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 import java.util.concurrent.Executors
 import javax.inject.Inject
 
@@ -160,6 +164,27 @@ class ScannerViewModel @Inject constructor(
 
     fun resetScan() {
         _state.value = ScanState.Idle
+    }
+
+    fun triggerMockScan() {
+        if (!BuildConfig.DEBUG) return
+        if (_state.value !is ScanState.Idle) return
+        viewModelScope.launch {
+            _state.value = ScanState.Scanning
+            delay(800)
+            val mockCard = Card(
+                id = UUID.randomUUID().toString(),
+                name = "Charizard ex",
+                setNumber = "199",
+                setCode = "sv3",
+                language = CardLanguage.ENGLISH,
+                marketPrice = 45.99,
+                priceSource = PriceSource.EBAY,
+                scannedAt = System.currentTimeMillis(),
+            )
+            _state.value = ScanState.Result(mockCard)
+            viewModelScope.launch { collectionRepository.saveLocal(mockCard) }
+        }
     }
 
     override fun onCleared() {

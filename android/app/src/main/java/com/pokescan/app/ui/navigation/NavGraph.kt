@@ -87,8 +87,10 @@ fun NavGraph(
         startDestination = startDestination,
     ) {
         composable(Routes.ONBOARDING) {
-            OnboardingScreen(onGetStarted = {
+            LaunchedEffect(Unit) {
                 prefs.edit().putBoolean("hasSeenOnboarding", true).apply()
+            }
+            OnboardingScreen(onGetStarted = {
                 navController.navigate(Routes.SIGN_IN) {
                     popUpTo(Routes.ONBOARDING) { inclusive = true }
                 }
@@ -116,6 +118,12 @@ fun NavGraph(
             MainScreen(
                 onPaywall = { navController.navigate(Routes.PAYWALL) },
                 onSignOut = handleSignOut,
+                onNavigateToSignIn = {
+                    navController.navigate(Routes.SIGN_IN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                isGuest = prefs.getBoolean("isGuest", false),
             )
         }
 
@@ -126,7 +134,12 @@ fun NavGraph(
 }
 
 @Composable
-private fun MainScreen(onPaywall: () -> Unit, onSignOut: () -> Unit) {
+private fun MainScreen(
+    onPaywall: () -> Unit,
+    onSignOut: () -> Unit,
+    onNavigateToSignIn: () -> Unit,
+    isGuest: Boolean,
+) {
     val innerNav = rememberNavController()
     val backStack by innerNav.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
@@ -171,7 +184,11 @@ private fun MainScreen(onPaywall: () -> Unit, onSignOut: () -> Unit) {
                 )
             }
             composable(Routes.COLLECTION) {
-                CollectionScreen(onSignOut = onSignOut)
+                CollectionScreen(
+                    onSignOut = onSignOut,
+                    isGuest = isGuest,
+                    onCreateAccount = onNavigateToSignIn,
+                )
             }
         }
     }

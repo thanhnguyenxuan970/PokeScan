@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,10 +27,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,15 +49,36 @@ import com.pokescan.app.data.local.entity.CardRecordEntity
 @Composable
 fun CollectionScreen(
     onSignOut: () -> Unit = {},
+    isGuest: Boolean = false,
+    onCreateAccount: () -> Unit = {},
     viewModel: CollectionViewModel = hiltViewModel(),
 ) {
     val cards by viewModel.cards.collectAsStateWithLifecycle()
+    var showSignOutDialog by remember { mutableStateOf(false) }
+
+    if (showSignOutDialog) {
+        AlertDialog(
+            onDismissRequest = { showSignOutDialog = false },
+            title = { Text("Sign out?") },
+            text = { Text("You're browsing as a guest. Your scanned cards will be lost when you sign out.") },
+            confirmButton = {
+                TextButton(onClick = { showSignOutDialog = false; onSignOut() }) {
+                    Text("Sign Out", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSignOutDialog = false; onCreateAccount() }) {
+                    Text("Create Account")
+                }
+            },
+        )
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text("Collection") },
             actions = {
-                IconButton(onClick = onSignOut) {
+                IconButton(onClick = { if (isGuest) showSignOutDialog = true else onSignOut() }) {
                     Icon(Icons.Default.Logout, contentDescription = "Sign out")
                 }
             },

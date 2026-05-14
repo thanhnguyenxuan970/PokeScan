@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.pokescan.app.BuildConfig
 
 @Composable
 fun SignInScreen(
@@ -100,6 +101,15 @@ fun SignInScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    if (BuildConfig.DEBUG) {
+                        TextButton(onClick = onAuthSuccess) {
+                            Text(
+                                text = "Skip Auth (Dev)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                        }
                     }
                 }
             }

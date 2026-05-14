@@ -14,7 +14,7 @@ class SetResolver @Inject constructor() {
 
         val candidates = entries.filter { it.total == total && it.language == language.raw }
         if (candidates.isEmpty()) return "unknown"
-        if (candidates.size == 1) return candidates[0].setCode
+        if (candidates.size == 1) return if (cardNum in 1..(total * 2)) candidates[0].setCode else "unknown"
 
         // printedTotal disambiguation — base1 (printedTotal=102) vs ex5 (printedTotal=101)
         // Only applies when ALL candidates have printedTotal, to avoid partial data skewing result
