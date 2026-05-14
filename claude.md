@@ -26,9 +26,17 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 | A4 | Full features — networking, collection, billing, paywall | `android/` (10 new + 8 modified), `backend/app/routers/auth.py` | ✅ Done |
 | A5 | Polish — ProGuard, navigation gating, permission rationale | `android/` (1 new + 9 modified) | ✅ Done |
 
-### Next Session — Android (updated 2026-05-14, ready for E2E test)
+### Next Session — Android (updated 2026-05-14, UI/UX synced to prototype)
 
-**Status note:** Security hardening + billing fixes + test suite + pre-launch polish + UI/auth polish + fixes & enhancements all applied. Build clean (`assembleDebug` zero errors). Remaining blocker before real Google Sign-in: `REPLACE_WITH_WEB_CLIENT_ID` in `strings.xml`. Dev bypass available: "Skip Auth (Dev)" button on SignInScreen.
+**Status note:** UI/UX sync + bug fixes applied. Build clean (`assembleDebug` zero errors). Remaining blocker before real Google Sign-in: Firebase OAuth not configured. **"Skip Auth (Dev)" removed** — use DEBUG mock scan (bug icon) to test scanner without auth.
+
+**Completed this session (2026-05-14) — UI/UX Sync & Bug Fixes:**
+- ✅ Prototype alignment — `OnboardingScreen`: tagline → "Scan any Pokémon card. Know its real value. Instantly.", feature icons → emoji (⚡ $ ★), titles/descriptions match prototype, CTA → "Get Started", Privacy Policy link moved before CTA
+- ✅ Prototype alignment — `SignInScreen`: heading → "Sign in to PokeScan", subtitle → "Sync your collection across devices.", Google button styled as `OutlinedButton` with Google G circle + "Continue with Google", Guest → `OutlinedButton`, terms footer added
+- ✅ Prototype alignment — `PaywallScreen`: title → "Unlock Pro", feature checklist added (5 items with ✓), close button (X) at top-right, "Not now" button removed, `verticalScroll` added
+- ✅ Dev Login removed — `BuildConfig.DEBUG` "Skip Auth (Dev)" block deleted from `SignInScreen`
+- ✅ Auth bug diagnosed — root cause: `REPLACE_WITH_WEB_CLIENT_ID` placeholder in `strings.xml` → `idToken = null` → never navigates; added Logcat logging to `AuthViewModel` to trace exact failure point; `extraBufferCapacity = 1` prevents nav event drop on slow LaunchedEffect start
+- ✅ Privacy Policy 404 identified — `https://thanhnguyenxuan970.github.io/pokescan-privacy` doesn't exist; URL is correct in `AppConfig.kt`; requires user to create GitHub Pages repo `pokescan-privacy`
 
 **Completed this session (2026-05-14) — Fixes & enhancements:**
 - ✅ Google Sign-in dev bypass — `BuildConfig.DEBUG` "Skip Auth (Dev)" `TextButton` in `SignInScreen`; calls `onAuthSuccess()` directly so full post-login flow testable without Firebase config
@@ -54,8 +62,11 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 - ✅ Full `check_code` review: 1 CRITICAL + 4 WARNING + 4 INFO found and fixed across 5 files; final verification cycle clean
 
 **Step 1 — Unblock OAuth** (user action, 30 min)
-- Firebase Console → pokescan-7f2a6 → Authentication → Sign-in method → Google → copy Web Client ID
-- Replace `REPLACE_WITH_WEB_CLIENT_ID` in `android/app/src/main/res/values/strings.xml`
+- Firebase Console → pokescan-7f2a6 → Authentication → Sign-in method → Google → Enable → download new `google-services.json` → replace `android/app/google-services.json`
+- **Remove** line 5 from `android/app/src/main/res/values/strings.xml` (`<string name="default_web_client_id">REPLACE_WITH_WEB_CLIENT_ID</string>`) — Firebase Gradle plugin auto-generates this; manual entry causes duplicate compile error
+
+**Step 1a — Privacy Policy** (user action, 15 min)
+- Create GitHub repo `pokescan-privacy` under `thanhnguyenxuan970`, add `index.html` with privacy policy, enable GitHub Pages → URL `https://thanhnguyenxuan970.github.io/pokescan-privacy` goes live (already wired in `AppConfig.kt`)
 
 **Step 1b — local.properties** (if testing on physical device via WSL)
 - Add `DEBUG_BASE_URL=http://<your-LAN-IP>:8000/` to `android/local.properties` (gitignored)
@@ -81,7 +92,6 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 - Guest persistence: kill + relaunch → stays in MainScreen (isGuest=true), no re-prompt
 - Guest sign-out: tap Logout → AlertDialog with warning → "Sign Out" clears isGuest + lands on SignIn; "Create Account" navigates to SignIn without clearing Room data
 - DEBUG mock scan: tap bug icon (top-right, camera view) → yellow reticle → CardDetailSheet "Charizard ex / $45.99" after 800ms
-- DEBUG skip auth: tap "Skip Auth (Dev)" → lands directly on MainScreen (no Firebase needed)
 
 **Step 4 — Fix all bugs** — no bypasses
 
@@ -357,6 +367,23 @@ Env flags:
 | `triggerMockScan()` uses `UUID.randomUUID()` for mock card `id` | Hardcoded `"mock-001"` → second mock scan same session upserts same Room record, which is fine, but a unique id makes each mock scan traceable in the collection list during dev. |
 | `triggerMockScan()` guards `_state.value !is ScanState.Scanning` after `delay(800)` | Without guard, calling `resetScan()` during delay brings state back to Idle; after delay, `ScanState.Result` would override Idle and show the mock sheet unexpectedly. Guard mirrors pattern in `handleOcrResult()`. |
 | Guest sign-out `AlertDialog` threaded via `isGuest: Boolean` param (not read inside CollectionScreen) | Reading `prefs` directly inside `CollectionScreen` would couple the UI layer to `SharedPreferences`. Param injection keeps CollectionScreen testable and consistent with the existing NavGraph → MainScreen → CollectionScreen prop-passing pattern. |
+
+## Key Decisions Made (UI/UX Sync 2026-05-14)
+
+| Decision | Rationale |
+|---|---|
+| Onboarding emoji icons (⚡ $ ★) instead of Material icons | Prototype (L924/L931/L938) uses emoji in feat-icon divs. Emoji renders consistently without icon library dependency. Box + Surface background gives same shaped container. |
+| `ValuePropRow` icon param `String` not `ImageVector` | Emoji-as-string is simpler than adding new Material icon for ★. No `material-icons-extended` size increase. |
+| `SignInButton` → `OutlinedButton` + Google G circle + "Continue with Google" | Prototype (L961–L963) shows `.google-btn` with Google G logo. OutlinedButton matches white-bg + border style. Inline `Box(CircleShape, Color(0xFF4285F4))` renders Google blue G without asset import. |
+| Guest button `TextButton` → `OutlinedButton` | Prototype (L965) uses `.btn-secondary` (outlined style). TextButton was visually lower hierarchy than warranted. |
+| Terms footer combines ToS + PP into single `TextButton` link | No ToS URL defined — NEEDS CONFIRMATION on separate URL. Single combined button avoids placeholder dead link. Uses `PRIVACY_POLICY_URL` for both until ToS URL is confirmed. |
+| Privacy Policy link order: before CTA in Onboarding | Prototype (L945–947) shows pp link before the Get Started button. Keeps Apple-style "legal before action" ordering. |
+| `PaywallScreen` close button replaces "Not now" TextButton | Prototype has X close button at top-right. Top-right X is standard modal close pattern; bottom TextButton was non-standard and added scroll depth. |
+| `PaywallScreen` adds `verticalScroll` | Feature list + plan buttons + footer now overflow on small screens. ScrollState is stable across recompositions via `rememberScrollState`. |
+| `AuthViewModel._events` `extraBufferCapacity = 1` | `SharedFlow(replay=0)` drops events emitted before LaunchedEffect collector starts. `extraBufferCapacity=1` buffers one nav event without replay risk (buffer consumed on first collect, not replayed). |
+| "Skip Auth (Dev)" removed entirely | No longer needed: DEBUG mock scan (bug icon) already tests scanner flow without auth. Keeping debug auth bypass creates UX divergence between debug and release — removed to keep UI parity. |
+| Auth bug root cause: `REPLACE_WITH_WEB_CLIENT_ID` placeholder | `idToken == null` → never emits NavigateToScanner → stuck on SignInScreen. Not a code bug. Logcat logging added to `AuthViewModel` to surface exact failure point. Fix = Firebase setup (user action). |
+| `strings.xml` manual `default_web_client_id` entry must be REMOVED after Firebase setup | Firebase Gradle plugin auto-generates this resource from `google-services.json`. Manual entry causes duplicate resource compile error. Entry exists now only as placeholder. |
 
 ---
 
