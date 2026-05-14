@@ -20,6 +20,9 @@ securityCrypto    = "1.1.0-alpha06"
 googleServices    = "4.4.2"
 activityCompose   = "1.9.1"
 lifecycleCompose  = "2.8.4"
+junit             = "4.13.2"
+mockk             = "1.13.12"
+coroutinesTest    = "1.9.0"
 
 [libraries]
 # Compose (ui/material3/tooling are version-managed by Compose BOM)
@@ -31,6 +34,7 @@ compose-material3          = { group = "androidx.compose.material3", name = "mat
 compose-material-icons     = { group = "androidx.compose.material", name = "material-icons-extended" }
 compose-activity           = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 compose-viewmodel          = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleCompose" }
+lifecycle-runtime-compose  = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleCompose" }
 # Navigation
 navigation-compose         = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 hilt-navigation-compose    = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigation" }
@@ -66,6 +70,10 @@ datastore-preferences      = { group = "androidx.datastore", name = "datastore-p
 security-crypto            = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 # Billing
 billing                    = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "playBilling" }
+# Testing
+test-junit                 = { group = "junit", name = "junit", version.ref = "junit" }
+test-mockk                 = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+test-coroutines            = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

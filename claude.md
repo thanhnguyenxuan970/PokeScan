@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-13, pre-launch hardening complete)
+## Android Migration Status (updated 2026-05-14, test suite + pre-launch fixes complete)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -26,9 +26,20 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 | A4 | Full features — networking, collection, billing, paywall | `android/` (10 new + 8 modified), `backend/app/routers/auth.py` | ✅ Done |
 | A5 | Polish — ProGuard, navigation gating, permission rationale | `android/` (1 new + 9 modified) | ✅ Done |
 
-### Next Session — Android (updated 2026-05-13, ready for E2E test)
+### Next Session — Android (updated 2026-05-14, ready for E2E test)
 
-**Status note:** Security hardening + billing fixes applied. `google-services.json` is real (Firebase project pokescan-7f2a6). Remaining blocker before E2E: `REPLACE_WITH_WEB_CLIENT_ID` in `strings.xml`.
+**Status note:** Security hardening + billing fixes + test suite + pre-launch polish all applied. Full `check_code` pass complete — zero issues remaining. `google-services.json` is real (Firebase project pokescan-7f2a6). App icon adaptive XML done. Remaining blocker before E2E: `REPLACE_WITH_WEB_CLIENT_ID` in `strings.xml`.
+
+**Completed this session (2026-05-14):**
+- ✅ Agent test suite: 9 Android + 2 Python backend test files, all passing
+  - `libs.versions.toml` — added missing `test-junit`, `test-mockk`, `test-coroutines` entries (build was failing with unresolved reference)
+  - `build.gradle.kts` — added `testOptions { unitTests.isReturnDefaultValues = true }` (fixes `android.util.Log` stubs throwing in JVM tests)
+- ✅ `@PlainOkHttpClient` qualifier — `SetDatabaseService` now gets an unauthenticated OkHttpClient; was incorrectly sharing the `AuthInterceptor`-equipped client
+- ✅ `collectAsStateWithLifecycle` — replaced `collectAsState()` in `SignInScreen`, `CollectionScreen`, and `PaywallScreen`; added `lifecycle-runtime-compose` dep to toml + `build.gradle.kts`
+- ✅ `PaywallScreen` offer detection — `firstOrNull { offerTags.contains("base-plan") }` + `pricingPhaseList.lastOrNull()` (shows base price, not free-trial "$0.00")
+- ✅ `PaywallScreen` PP URL crash guard — `isNotBlank()` before `Uri.parse()` prevents crash on placeholder URL
+- ✅ App icon — adaptive icon XML done (`ic_launcher_foreground.xml` Pokéball + scan-beam design, `ic_launcher_background.xml` #FAFAFA, `mipmap-anydpi-v26/*.xml`)
+- ✅ Full `check_code` review: 1 CRITICAL + 4 WARNING + 4 INFO found and fixed across 5 files; final verification cycle clean
 
 **Step 1 — Unblock OAuth** (user action, 30 min)
 - Firebase Console → pokescan-7f2a6 → Authentication → Sign-in method → Google → copy Web Client ID
@@ -38,7 +49,7 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 - Add `DEBUG_BASE_URL=http://<your-LAN-IP>:8000/` to `android/local.properties` (gitignored)
 - Emulator default `10.0.2.2:8000` works without this
 
-**Step 2 — Rebuild APK with hardening fixes**
+**Step 2 — Rebuild APK**
 ```bash
 cd android && ./gradlew assembleDebug
 adb install app\build\outputs\apk\debug\app-debug.apk
@@ -57,20 +68,16 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 
 **Step 4 — Fix all bugs** — no bypasses
 
-**Step 5 — App Icon** (user action, 30 min)
-- Canva → 1024×1024 PNG, no transparent background
-- Add via Android Studio Image Asset wizard
-
-**Step 6 — Deploy backend** (must precede release build)
+**Step 5 — Deploy backend** (must precede release build)
 - Deploy to Railway or Fly.io; run `alembic upgrade head`
 - Update base URL in `NetworkModule.kt` to prod URL
 
-**Step 7 — Release build + signing keystore**
+**Step 6 — Release build + signing keystore**
 - Generate keystore (store outside repo): `keytool -genkey -v -keystore ~/pokescan-release.jks ...`
 - Set env vars `KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` (signingConfigs already wired in build.gradle.kts)
 - `./gradlew assembleRelease` — verify R8 clean, no `REPLACE_WITH_*` in APK
 
-**Step 8 — Google Play Console submission** (play.google.com/console)
+**Step 7 — Google Play Console submission** (play.google.com/console)
 - Upload signed AAB; fill store listing + content rating
 - Set up IAPs: `com.pokescan.app.pro.monthly` ($4.99) + `com.pokescan.app.pro.annual` ($39.99)
 
@@ -126,6 +133,13 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 | `DEBUG_BASE_URL` read from `local.properties` (not hardcoded) | WSL LAN IP (`172.19.208.x`) is machine-specific — hardcoding breaks every other dev machine. `local.properties` is gitignored; emulator fallback `10.0.2.2:8000` used when file absent. |
 | `signingConfigs` reads keystore from env vars (not `gradle.properties`) | Keystore path + passwords in `gradle.properties` = plaintext secrets in version control. Env vars keep secrets out of repo, compatible with CI/CD. |
 | `android/local.properties` added to root `.gitignore` | Was untracked but not ignored — would have been accidentally committed with machine-specific LAN IP. File contains no secrets but is not portable across machines. |
+| `@PlainOkHttpClient` qualifier for `SetDatabaseService` | `SetDatabaseService` calls `api.pokemontcg.io` — unauthenticated public endpoint. Sharing the `AuthInterceptor`-equipped client attached a Bearer JWT to every set DB refresh, which is unnecessary and fails if token is absent on first launch. |
+| `collectAsStateWithLifecycle` instead of `collectAsState` in screens | Lifecycle-aware — stops collecting when composable is below STARTED state. Prevents recompositions and potential crashes when app is backgrounded. Requires `lifecycle-runtime-compose` dep (separate from `lifecycle-viewmodel-compose`). |
+| `pricingPhaseList.lastOrNull()` for subscription price display | Play Billing phases are ordered chronologically (free trial → intro → base). `firstOrNull()` showed "$0.00" for free-trial SKUs. `lastOrNull()` always shows the regular recurring price. |
+| `subscriptionOfferDetails.firstOrNull { offerTags.contains("base-plan") }` | Targets the base-plan offer token explicitly. `firstOrNull()` without filter could pick a free-trial offer token for purchase, billing the wrong phase. Falls through to `lastOrNull()` if tag absent. |
+| `testOptions { unitTests.isReturnDefaultValues = true }` in `build.gradle.kts` | `android.util.Log` stubs throw `RuntimeException("Stub!")` in JVM unit tests by default. This flag makes all android stubs return zero/null/false — required for tests that exercise code paths with `Log.w()` (e.g., `CollectionRepository` catch blocks). |
+| Test library aliases in `libs.versions.toml` | `build.gradle.kts` referenced `libs.test.junit/mockk/coroutines` but the toml had no such entries. All test builds failed with unresolved reference. Entries must be declared explicitly — not auto-generated from `testImplementation()` calls. |
+| Adaptive icon XML (not PNG raster) for app icon | Vector adaptive icon scales perfectly on all densities, no need for multiple mipmap-* PNG assets. `minSdk=26` guarantees adaptive icon support. Pokéball + scan-beam design conveys app purpose at a glance. |
 
 ---
 

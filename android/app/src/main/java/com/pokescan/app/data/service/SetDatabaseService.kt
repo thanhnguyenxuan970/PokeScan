@@ -10,6 +10,7 @@ import com.pokescan.app.data.local.entity.toDomain
 import com.pokescan.app.data.local.entity.toEntity
 import com.pokescan.app.data.remote.dto.PokemonTCGSetsResponse
 import com.pokescan.app.data.remote.dto.SetEntryDto
+import com.pokescan.app.di.PlainOkHttpClient
 import com.pokescan.app.domain.model.SetEntry
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -38,7 +39,7 @@ private const val TAG = "SetDatabaseService"
 class SetDatabaseService @Inject constructor(
     @ApplicationContext private val context: Context,
     private val setEntryDao: SetEntryDao,
-    private val okHttpClient: OkHttpClient,
+    @PlainOkHttpClient private val okHttpClient: OkHttpClient,
     private val moshi: Moshi,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())

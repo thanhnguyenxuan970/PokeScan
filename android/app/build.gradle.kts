@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,7 +9,7 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
-val localProps = java.util.Properties()
+val localProps = Properties()
 val localPropsFile = rootProject.file("local.properties")
 if (localPropsFile.exists()) localProps.load(localPropsFile.inputStream())
 val debugBaseUrl = localProps.getProperty("DEBUG_BASE_URL", "http://10.0.2.2:8000/")
@@ -76,6 +78,7 @@ dependencies {
     implementation(libs.compose.material.icons)
     implementation(libs.compose.activity)
     implementation(libs.compose.viewmodel)
+    implementation(libs.lifecycle.runtime.compose)
     debugImplementation(libs.compose.ui.tooling)
 
     // Navigation

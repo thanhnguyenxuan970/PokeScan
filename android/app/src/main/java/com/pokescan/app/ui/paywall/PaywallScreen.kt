@@ -17,7 +17,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pokescan.app.config.AppConfig
 
 @Composable
@@ -32,8 +32,8 @@ fun PaywallScreen(
     onDismiss: () -> Unit,
     viewModel: PaywallViewModel = hiltViewModel(),
 ) {
-    val isPro by viewModel.isPro.collectAsState()
-    val products by viewModel.products.collectAsState()
+    val isPro by viewModel.isPro.collectAsStateWithLifecycle()
+    val products by viewModel.products.collectAsStateWithLifecycle()
     val activity = LocalContext.current as? ComponentActivity ?: return
 
     LaunchedEffect(isPro) {
@@ -67,8 +67,10 @@ fun PaywallScreen(
         val annual = products.firstOrNull { it.productId == "com.pokescan.app.pro.annual" }
 
         if (monthly != null) {
-            val offer = monthly.subscriptionOfferDetails?.firstOrNull()
-            val price = offer?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice ?: ""
+            val offer = monthly.subscriptionOfferDetails
+                ?.firstOrNull { it.offerTags.contains("base-plan") }
+                ?: monthly.subscriptionOfferDetails?.lastOrNull()
+            val price = offer?.pricingPhases?.pricingPhaseList?.lastOrNull()?.formattedPrice ?: ""
             Button(
                 onClick = {
                     offer?.offerToken?.let { token ->
@@ -84,8 +86,10 @@ fun PaywallScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         if (annual != null) {
-            val offer = annual.subscriptionOfferDetails?.firstOrNull()
-            val price = offer?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice ?: ""
+            val offer = annual.subscriptionOfferDetails
+                ?.firstOrNull { it.offerTags.contains("base-plan") }
+                ?: annual.subscriptionOfferDetails?.lastOrNull()
+            val price = offer?.pricingPhases?.pricingPhaseList?.lastOrNull()?.formattedPrice ?: ""
             OutlinedButton(
                 onClick = {
                     offer?.offerToken?.let { token ->
@@ -101,7 +105,9 @@ fun PaywallScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         TextButton(onClick = {
-            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AppConfig.PRIVACY_POLICY_URL)))
+            if (AppConfig.PRIVACY_POLICY_URL.isNotBlank()) {
+                activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AppConfig.PRIVACY_POLICY_URL)))
+            }
         }) {
             Text(
                 text = "Privacy Policy",
