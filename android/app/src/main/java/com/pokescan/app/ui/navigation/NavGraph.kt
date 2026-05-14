@@ -151,7 +151,10 @@ private fun MainScreen(onPaywall: () -> Unit, onSignOut: () -> Unit) {
             modifier = Modifier.padding(innerPadding),
         ) {
             composable(Routes.SCANNER) {
-                ScannerScreen(onShowPaywall = onPaywall)
+                ScannerScreen(
+                    onShowPaywall = onPaywall,
+                    onViewCollection = { innerNav.navigate(Routes.COLLECTION) },
+                )
             }
             composable(Routes.COLLECTION) {
                 CollectionScreen(onSignOut = onSignOut)

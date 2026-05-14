@@ -56,6 +56,8 @@ class ScannerViewModel @Inject constructor(
     private val _state = MutableStateFlow<ScanState>(ScanState.Idle)
     val state: StateFlow<ScanState> = _state.asStateFlow()
 
+    val isPro: StateFlow<Boolean> = billingRepository.isPro
+
     private val _events = MutableSharedFlow<ScanEvent>(replay = 0)
     val events = _events.asSharedFlow()
 

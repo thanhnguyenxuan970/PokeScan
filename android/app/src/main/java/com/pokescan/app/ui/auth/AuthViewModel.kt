@@ -45,13 +45,14 @@ class AuthViewModel @Inject constructor(
         }
         val idToken = account?.idToken
         if (idToken == null) {
-            _state.value = AuthState.Error("No ID token received")
+            _state.value = AuthState.Error("Sign-in config error: idToken null. Check Firebase OAuth client setup.")
             return
         }
         viewModelScope.launch {
             _state.value = AuthState.Loading
             try {
                 authRepository.signInWithGoogle(idToken)
+                _state.value = AuthState.Idle
                 _events.emit(AuthEvent.NavigateToScanner)
             } catch (e: Exception) {
                 _state.value = AuthState.Error(e.message ?: "Authentication failed")

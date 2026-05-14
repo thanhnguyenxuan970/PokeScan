@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PokeScan</string>
-    <!-- Replace with real web client ID from google-services.json once OAuth client is added -->
-    <string name="default_web_client_id" translatable="false">203923012561-4l9vu2khmccsbjmpuej9pqln6rbr395c.apps.googleusercontent.com</string>
+    <!-- ACTION REQUIRED: Firebase Console → pokescan-7f2a6 → Auth → Sign-in method → Google → Enable → download new google-services.json. The plugin will then auto-generate this resource; remove this manual entry to avoid duplicate compile error. -->
+    <string name="default_web_client_id" translatable="false">REPLACE_WITH_WEB_CLIENT_ID</string>
 </resources>

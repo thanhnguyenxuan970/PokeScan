@@ -2,8 +2,10 @@ package com.pokescan.app.ui.collection
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Logout
@@ -19,6 +22,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -29,7 +33,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pokescan.app.data.local.entity.CardRecordEntity
@@ -52,6 +58,9 @@ fun CollectionScreen(
             },
         )
 
+        StatRow(cards = cards)
+        HorizontalDivider()
+
         if (cards.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -72,6 +81,80 @@ fun CollectionScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun StatRow(cards: List<CardRecordEntity>) {
+    val totalValue = cards.sumOf { it.marketPrice ?: 0.0 }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        StatCard(
+            label = "TOTAL VALUE",
+            value = "$${"%.2f".format(totalValue)}",
+            featured = true,
+            modifier = Modifier.weight(1.4f),
+        )
+        StatCard(
+            label = "CARDS",
+            value = "${cards.size}",
+            modifier = Modifier.weight(1f),
+        )
+        StatCard(
+            label = "30D CHANGE",
+            value = "—",
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun StatCard(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    featured: Boolean = false,
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.sp,
+                    letterSpacing = 0.5.sp,
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.width(0.dp))
+            Text(
+                text = value,
+                style = if (featured) {
+                    MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                } else {
+                    MaterialTheme.typography.titleSmall.copy(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
+                color = if (featured) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
 }

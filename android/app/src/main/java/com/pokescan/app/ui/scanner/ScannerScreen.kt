@@ -44,9 +44,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun ScannerScreen(
     onShowPaywall: () -> Unit,
+    onViewCollection: () -> Unit = {},
     viewModel: ScannerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val isPro by viewModel.isPro.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -123,7 +125,10 @@ fun ScannerScreen(
         if (state is ScanState.Result) {
             CardDetailSheet(
                 card = (state as ScanState.Result).card,
+                isPro = isPro,
                 onDismiss = { viewModel.resetScan() },
+                onReset = { viewModel.resetScan() },
+                onViewCollection = onViewCollection,
             )
         }
     }

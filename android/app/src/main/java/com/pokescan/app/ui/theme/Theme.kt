@@ -7,10 +7,10 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
 private val LightColorScheme = lightColorScheme(
-    primary = PokeScanYellow,
-    onPrimary = PokeScanBlack,
-    primaryContainer = PokeScanYellowDark,
-    onPrimaryContainer = PokeScanWhite,
+    primary = PokeScanBlue,
+    onPrimary = PokeScanWhite,
+    primaryContainer = PokeScanBlueTint,
+    onPrimaryContainer = PokeScanBlue,
     surface = PokeScanSurface,
     onSurface = PokeScanBlack,
     background = PokeScanWhite,
@@ -18,9 +18,9 @@ private val LightColorScheme = lightColorScheme(
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PokeScanYellow,
-    onPrimary = PokeScanBlack,
-    primaryContainer = PokeScanYellowDark,
+    primary = PokeScanBlue,
+    onPrimary = PokeScanWhite,
+    primaryContainer = PokeScanBlueDark,
     onPrimaryContainer = PokeScanWhite,
     surface = PokeScanSurfaceDark,
     onSurface = PokeScanWhite,
