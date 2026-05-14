@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Converted from design/app_icon.svg (1024x1024 coordinate space).
+    Filters (shadows, blur) dropped — not supported in VectorDrawable.
+    minSdk=26, so adaptive icon is the only format needed.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+
+    <!-- Corner scan-target brackets -->
+    <path android:pathData="M96,96 h88 v8 h-88 Z"  android:fillColor="#2563EB" android:fillAlpha="0.55"/>
+    <path android:pathData="M96,96 h8 v88 h-8 Z"   android:fillColor="#2563EB" android:fillAlpha="0.55"/>
+    <path android:pathData="M840,96 h88 v8 h-88 Z" android:fillColor="#2563EB" android:fillAlpha="0.55"/>
+    <path android:pathData="M920,96 h8 v88 h-8 Z"  android:fillColor="#2563EB" android:fillAlpha="0.55"/>
+    <path android:pathData="M96,920 h88 v8 h-88 Z" android:fillColor="#2563EB" android:fillAlpha="0.55"/>
+    <path android:pathData="M96,840 h8 v88 h-8 Z"  android:fillColor="#2563EB" android:fillAlpha="0.55"/>
+    <path android:pathData="M840,920 h88 v8 h-88 Z" android:fillColor="#2563EB" android:fillAlpha="0.55"/>
+    <path android:pathData="M920,840 h8 v88 h-8 Z"  android:fillColor="#2563EB" android:fillAlpha="0.55"/>
+
+    <!-- Outer lens barrel ring (dark, r=354) -->
+    <path
+        android:pathData="M512,158 A354,354,0,1,1,512,866 A354,354,0,1,1,512,158 Z"
+        android:fillColor="#1A1F2B"/>
+
+    <!-- Pokéball top hemisphere (red) — arc from left(192,512) to right(832,512) via top -->
+    <path
+        android:pathData="M192,512 A320,320,0,0,1,832,512 Z"
+        android:fillColor="#EE1515"/>
+
+    <!-- Pokéball bottom hemisphere (white) — arc via bottom -->
+    <path
+        android:pathData="M192,512 A320,320,0,0,0,832,512 Z"
+        android:fillColor="#E8ECF2"/>
+
+    <!-- Equator band -->
+    <path
+        android:pathData="M192,492 H832 V532 H192 Z"
+        android:fillColor="#0F1117"/>
+
+    <!-- Pokéball border ring (stroke only, r=320) -->
+    <path
+        android:pathData="M512,192 A320,320,0,1,1,512,832 A320,320,0,1,1,512,192 Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#0F1117"
+        android:strokeWidth="6"/>
+
+    <!-- Center button: outer black ring (r=92) -->
+    <path
+        android:pathData="M512,420 A92,92,0,1,1,512,604 A92,92,0,1,1,512,420 Z"
+        android:fillColor="#0F1117"/>
+
+    <!-- Center button: white face (r=72) -->
+    <path
+        android:pathData="M512,440 A72,72,0,1,1,512,584 A72,72,0,1,1,512,440 Z"
+        android:fillColor="#FFFFFF"/>
+
+    <!-- Center button: aperture (r=42) -->
+    <path
+        android:pathData="M512,470 A42,42,0,1,1,512,554 A42,42,0,1,1,512,470 Z"
+        android:fillColor="#0A0F1A"/>
+
+    <!-- Catch-light (r=10 at 498,498) -->
+    <path
+        android:pathData="M498,488 A10,10,0,1,1,498,508 A10,10,0,1,1,498,488 Z"
+        android:fillColor="#FFFFFF"/>
+
+    <!-- Scan beam (ink blue line across equator) -->
+    <path
+        android:pathData="M80,520 H944 V526 H80 Z"
+        android:fillColor="#2563EB"/>
+
+</vector>
