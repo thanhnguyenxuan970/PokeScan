@@ -14,12 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -28,9 +23,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pokescan.app.config.AppConfig
 
@@ -51,40 +46,32 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Your Pokémon card price guide",
+            text = "Scan any Pokémon card. Know its real value. Instantly.",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(48.dp))
 
         ValuePropRow(
-            icon = Icons.Default.CameraAlt,
-            title = "Instant scan",
-            description = "Point your camera — get real market prices in seconds"
+            icon = "⚡",
+            title = "Sub-second scans",
+            description = "97% accuracy on reprints & variants"
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         ValuePropRow(
-            icon = Icons.Default.AttachMoney,
-            title = "Real pricing",
-            description = "Live data from eBay completed sales, not stale listings"
+            icon = "$",
+            title = "Real market price",
+            description = "TCGPlayer + eBay 30-day completed sales"
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         ValuePropRow(
-            icon = Icons.Default.Lock,
-            title = "Your collection",
-            description = "Track cards with server-synced storage — never lose data"
+            icon = "★",
+            title = "Grade ROI built-in",
+            description = "Should you grade it? See net profit instantly."
         )
 
         Spacer(modifier = Modifier.height(48.dp))
-
-        Button(
-            onClick = onGetStarted,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Start Scanning")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         TextButton(onClick = {
             if (AppConfig.PRIVACY_POLICY_URL.isNotBlank()) {
@@ -97,11 +84,20 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = onGetStarted,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Get Started")
+        }
     }
 }
 
 @Composable
-private fun ValuePropRow(icon: ImageVector, title: String, description: String) {
+private fun ValuePropRow(icon: String, title: String, description: String) {
     val shape = RoundedCornerShape(12.dp)
     Row(
         modifier = Modifier
@@ -117,11 +113,9 @@ private fun ValuePropRow(icon: ImageVector, title: String, description: String) 
             modifier = Modifier.size(36.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
+                Text(
+                    text = icon,
+                    style = MaterialTheme.typography.bodyLarge,
                 )
             }
         }
