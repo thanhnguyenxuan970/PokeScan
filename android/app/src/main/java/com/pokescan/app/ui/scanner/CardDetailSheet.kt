@@ -52,6 +52,7 @@ fun CardDetailSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        dragHandle = {},
     ) {
         Column(
             modifier = Modifier
@@ -184,11 +185,13 @@ fun CardDetailSheet(
                         else -> null
                     }
                     val updatedSuffix = card.priceUpdatedAt?.let {
-                        val hoursAgo = ((System.currentTimeMillis() - it) / 3_600_000).toInt()
-                        val ageLabel = if (hoursAgo == 0) "just now" else "${hoursAgo}h ago"
-                        " · updated $ageLabel"
-                    } ?: ""
-                    val priceSubtitle = "${sourceLabel ?: ""}$updatedSuffix"
+                        val hoursAgo = ((System.currentTimeMillis() - it) / 3_600_000).coerceAtLeast(0).toInt()
+                        if (hoursAgo == 0) "just now" else "${hoursAgo}h ago"
+                    }
+                    val priceSubtitle = listOfNotNull(
+                        sourceLabel,
+                        updatedSuffix?.let { "updated $it" },
+                    ).joinToString(" · ")
                     if (priceSubtitle.isNotBlank()) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
@@ -258,7 +261,7 @@ fun CardDetailSheet(
                             )
                             RoiStatCell(
                                 label = "Sell value",
-                                value = "$${card.gradeRoiSellValue?.let { "%.0f".format(it) } ?: "—"}",
+                                value = card.gradeRoiSellValue?.let { "$${"%.0f".format(it)}" } ?: "—",
                                 green = true,
                             )
                             RoiStatCell(
@@ -284,7 +287,7 @@ fun CardDetailSheet(
                 onClick = onViewCollection,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Save to Collection")
+                Text("View Collection")
             }
 
             Spacer(modifier = Modifier.height(8.dp))

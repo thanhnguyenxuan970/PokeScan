@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-15, SignIn bug fixes — guest button + CLEARTEXT UX)
+## Android Migration Status (updated 2026-05-15, mock scan flow + CardDetailSheet bugfixes)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -73,7 +73,7 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 - ✅ T2 — `SetResolver.kt`: `resolve()` now returns `ResolvedSet(setCode, setName, releaseYear)` instead of `String`; `CardIdentificationService.kt` destructures `ResolvedSet`, passes `setName`/`setYear` into `IdentifiedCard`; OCR set-number regex accepts `l`/`|` as `/`; `noiseLineRegex` filters HP/copyright/trainer noise lines
 - ✅ T3 — `PricingService.kt`: `fetchPrice()` threads `tcgPlayerPrice`, `ebayPrice`, `setName`, `setYear`, `priceUpdatedAt` into `Card`
 - ✅ T4 — `ScannerViewModel.kt`: Charizard mock has full `gradeRoi*` fields; 3-card random mock pool; `scanTimeoutJob` cancellation in `resetScan()` + `triggerMockScan()`; `ScanEvent.NoCardDetected` added; 5s scan timeout
-- ✅ T5 — `CardDetailSheet.kt`: set subtitle uses `setName`/`setYear`; Holo + Authentic chips; `"MARKET PRICE · 30-DAY"` label; source+age subtitle; `TCGPLAYER`/`EBAY SOLD` grid; ROI gated on `isPro && gradeRoiPsaGrade != null`; `RoiStatCell` green param; `Button("Save to Collection")` + `OutlinedButton("Scan another")`
+- ✅ T5 — `CardDetailSheet.kt`: set subtitle uses `setName`/`setYear`; Holo + Authentic chips; `"MARKET PRICE · 30-DAY"` label; source+age subtitle; `TCGPLAYER`/`EBAY SOLD` grid; ROI gated on `isPro && gradeRoiPsaGrade != null`; `RoiStatCell` green param; `Button("View Collection")` + `OutlinedButton("Scan another")`
 - ✅ T6 — `AuthViewModel.kt`: `idToken == null` → explicit error (`BuildConfig.DEBUG` shows Firebase config hint; release shows generic message)
 - ✅ `ScannerScreen.kt`: `SnackbarHostState` added; `ScanEvent.NoCardDetected` → snackbar "No card detected. Try again."
 - ✅ Firebase OAuth unblocked: real `google-services.json` placed; `strings.xml` placeholder removed
@@ -88,8 +88,14 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 - ✅ `OnboardingScreen` ★ row: `iconContainerColor` `Color(0x1AF59B0B)` (10% opacity, near-invisible) → `Color(0xFFFEF3C7)` (opaque light amber, Tailwind amber-100 equivalent)
 - ✅ `OnboardingScreen` `ValuePropRow` description: `onSurface` (near-black) → `onSurfaceVariant` (medium gray, lighter than title, matching screenshots)
 
-**Pending optional fix (low priority):**
-- `CardDetailSheet.kt` `gradeRoiSellValue` null inside Pro branch: `"$${...}"` null case → `$—` display. Fix: `card.gradeRoiSellValue?.let { "${"%.0f".format(it)}" } ?: "—"`
+**Completed this session (2026-05-15) — Mock scan flow + CardDetailSheet bugfixes:**
+- ✅ `ScannerViewModel.kt` rewritten — stripped CameraX/ML Kit; `startScan()` → 1800ms delay → `ScanState.Result(Charizard)`; `ScanState` simplified to 3 states (Idle/Scanning/Result); `scansThisMonth` Flow exposed; `saveLocal` fire-and-forget wrapped in `try/catch` + `Log.w`
+- ✅ `ScannerScreen.kt` rewritten — removed camera permission + `CameraPreview`; dark `#0A0A0A` background; `ScanCounterPill` top-left ("X/20 scans"); `SnackbarHost` for `NoCardDetected` event; `CardDetailSheet` shown on `ScanState.Result`
+- ✅ `CardDetailSheet.kt` double drag handle fixed — `dragHandle = {}` on `ModalBottomSheet` suppresses M3 default; custom 36×4dp pill is now the only handle
+- ✅ `CardDetailSheet.kt` `hoursAgo` overflow fixed — `.coerceAtLeast(0)` before `.toInt()` prevents wrap on zero/ancient `priceUpdatedAt`
+- ✅ `CardDetailSheet.kt` leading ` · ` in price subtitle fixed — rebuilt with `listOfNotNull(sourceLabel, updatedSuffix?.let { "updated $it" }).joinToString(" · ")`
+- ✅ `CardDetailSheet.kt` "Save to Collection" → "View Collection" — card already saved in `startScan()` before sheet opens; button navigates, not saves
+- ✅ Build verified: `assembleDebug` → BUILD SUCCESSFUL after all changes
 
 **Step 1 — Unblock OAuth** ✅ Done (2026-05-15)
 - Real `google-services.json` downloaded from Firebase Console (OAuth `client_type: 3` entry present)
@@ -450,6 +456,18 @@ Env flags:
 | Guest button hoisted outside `when (state)` block | Button was inside `else` branch only — disappeared on `AuthState.Error`. Moving it outside renders it in all states. Tapping Guest during `AuthState.Loading` is safe: `onGuestMode` navigates away, ViewModel clears, `viewModelScope` cancels the in-flight coroutine. |
 | Network error classified by substring match on `e.message` (not exception type) | OkHttp and Android throw `IOException` for both CLEARTEXT and DNS failures — same type, different messages. Substring match on known Android/OkHttp error strings is the only way to distinguish them without adding a typed wrapper around every Retrofit call. |
 | Release shows user-friendly message; debug shows raw error | Raw CLEARTEXT message tells devs exactly what to fix (missing config). Users don't need Android framework internals — "Unable to connect" is actionable. `BuildConfig.DEBUG` gate keeps both. |
+
+## Key Decisions Made (Mock scan flow + CardDetailSheet bugfixes 2026-05-15)
+
+| Decision | Rationale |
+|---|---|
+| `ScanState` simplified to 3 states (Idle/Scanning/Result) | `Detected` and `Loading` were unreachable in mock flow (YAGNI). Simplification removes dead `when()` branches and makes state machine readable. Restore when real OCR pipeline is wired back in. |
+| Mock `startScan()` — `delay(1_800)` not `delay(800)` | Prototype specifies 1.8s scan animation. Prior `triggerMockScan()` used 800ms (was a dev shortcut). Unified to match prototype fidelity. |
+| `saveLocal` wrapped in `try/catch(Exception) { Log.w }` in sibling coroutine | Sibling `viewModelScope.launch` exceptions are not propagated to parent — they would be silently swallowed. `Log.w` surfaces errors in Logcat without crashing or blocking the scan result from showing. |
+| `dragHandle = {}` on `ModalBottomSheet` | M3 `ModalBottomSheet` renders its own 32×4dp handle by default. `CardDetailSheet` had a custom 36×4dp Box handle inside the Column — this caused two handles to display. `dragHandle = {}` suppresses the M3 default; custom Box is the only handle. |
+| `listOfNotNull(...).joinToString(" · ")` for price subtitle | `"${sourceLabel ?: ""}$updatedSuffix"` produced ` · updated Xh ago` (leading ` · `) when `sourceLabel = null`. `listOfNotNull` drops nulls before joining — no leading separator possible. |
+| "View Collection" replaces "Save to Collection" | Card is saved via `saveLocal()` in `startScan()` before `ScanState.Result` is set — sheet opens after save is already in flight. "Save to Collection" implied the button triggers the save, which is wrong. "View Collection" accurately describes the navigation action. |
+| `hoursAgo` clamped with `.coerceAtLeast(0)` | `((currentMs - priceUpdatedAt) / 3_600_000).toInt()` wraps to `Int.MIN_VALUE` if `priceUpdatedAt` is `0L` or far-future. Clamp produces `0` → displays "just now" instead of overflowed garbage. |
 
 ---
 
