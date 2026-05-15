@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-15, OnboardingScreen redesign + SignIn polish)
+## Android Migration Status (updated 2026-05-15, SignIn bug fixes — guest button + CLEARTEXT UX)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -77,6 +77,10 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 - ✅ T6 — `AuthViewModel.kt`: `idToken == null` → explicit error (`BuildConfig.DEBUG` shows Firebase config hint; release shows generic message)
 - ✅ `ScannerScreen.kt`: `SnackbarHostState` added; `ScanEvent.NoCardDetected` → snackbar "No card detected. Try again."
 - ✅ Firebase OAuth unblocked: real `google-services.json` placed; `strings.xml` placeholder removed
+
+**Completed this session (2026-05-15) — SignIn bug fixes:**
+- ✅ Guest button always visible — `OutlinedButton("Continue as Guest")` hoisted outside `when (val s = state)` block in `SignInScreen.kt`; now renders in `Idle`, `Error`, AND `Loading` states; was hidden when `AuthState.Error` hit
+- ✅ CLEARTEXT error UX — `AuthViewModel.handleSignInResult` backend catch block now classifies network errors (CLEARTEXT, Unable to resolve host, Failed to connect, timeout, SocketException); release builds show "Unable to connect. Check your connection and try again." instead of raw OkHttp/Android error string; debug builds still see raw error for diagnostics
 
 **Pending optional fix (low priority):**
 - `CardDetailSheet.kt` `gradeRoiSellValue` null inside Pro branch: `"$${...}"` null case → `$—` display. Fix: `card.gradeRoiSellValue?.let { "${"%.0f".format(it)}" } ?: "—"`
@@ -428,6 +432,14 @@ Env flags:
 | `ClickableText` with `pushStringAnnotation` for `TermsFooter` | Single `TextButton` couldn't route TOS and PP to different URLs. `ClickableText` gives per-span tap targets. `ClickableText` is soft-deprecated but stable on current Compose BOM. |
 | TOS annotation routes to `PRIVACY_POLICY_URL` until ToS URL exists | Placeholder avoids a dead link crash. ⚠️ Must be replaced when ToS URL is created — tapping "Terms of Service" currently opens Privacy Policy. |
 | `network_security_config.xml` scoped to dev hosts only | `cleartextTrafficPermitted=true` for `10.0.2.2`/`localhost`/`127.0.0.1` only. Prod domains always use HTTPS. File is untracked — must be staged explicitly before next commit. |
+
+## Key Decisions Made (SignIn bug fixes 2026-05-15)
+
+| Decision | Rationale |
+|---|---|
+| Guest button hoisted outside `when (state)` block | Button was inside `else` branch only — disappeared on `AuthState.Error`. Moving it outside renders it in all states. Tapping Guest during `AuthState.Loading` is safe: `onGuestMode` navigates away, ViewModel clears, `viewModelScope` cancels the in-flight coroutine. |
+| Network error classified by substring match on `e.message` (not exception type) | OkHttp and Android throw `IOException` for both CLEARTEXT and DNS failures — same type, different messages. Substring match on known Android/OkHttp error strings is the only way to distinguish them without adding a typed wrapper around every Retrofit call. |
+| Release shows user-friendly message; debug shows raw error | Raw CLEARTEXT message tells devs exactly what to fix (missing config). Users don't need Android framework internals — "Unable to connect" is actionable. `BuildConfig.DEBUG` gate keeps both. |
 
 ---
 
