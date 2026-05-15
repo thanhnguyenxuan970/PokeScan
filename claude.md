@@ -26,9 +26,13 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 | A4 | Full features — networking, collection, billing, paywall | `android/` (10 new + 8 modified), `backend/app/routers/auth.py` | ✅ Done |
 | A5 | Polish — ProGuard, navigation gating, permission rationale | `android/` (1 new + 9 modified) | ✅ Done |
 
-### Next Session — Android (updated 2026-05-15, Firebase OAuth unblocked)
+### Next Session — Android (updated 2026-05-15, physical device auth fix)
 
-**Status note:** Firebase Google Sign-In unblocked. Real `google-services.json` with OAuth client in place. `strings.xml` placeholder removed. Build ready for E2E device test. DEBUG mock scan (bug icon, top-right camera view) available for scanner testing without network.
+**Status note:** Firebase Google Sign-In unblocked. Real `google-services.json` with OAuth client in place. `strings.xml` placeholder removed. Debug cleartext HTTP override added for physical device. **Remaining user action**: add `DEBUG_BASE_URL=http://<LAN-IP>:8000/` to `android/local.properties`, then rebuild + reinstall.
+
+**Completed this session (2026-05-15) — Physical device Google Auth fix:**
+- ✅ `android/app/src/debug/res/xml/network_security_config.xml` created — `<base-config cleartextTrafficPermitted="true">` allows cleartext HTTP to any host in debug builds; source-set overlay replaces main config for debug, release unaffected
+- ⏸ `android/local.properties` — user must add `DEBUG_BASE_URL=http://<LAN-IP>:8000/` (find IP: `ipconfig | Select-String "IPv4"`); backend must run `--host 0.0.0.0`
 
 **Completed this session (2026-05-14) — UI/UX Sync & Bug Fixes:**
 - ✅ Prototype alignment — `OnboardingScreen`: tagline → "Scan any Pokémon card. Know its real value. Instantly.", feature icons → emoji (⚡ $ ★), titles/descriptions match prototype, CTA → "Get Started", Privacy Policy link moved before CTA
@@ -490,6 +494,7 @@ Env flags:
 | Removed `!BuildConfig.DEBUG` guard on network error message in backend catch | Debug APK on physical device was showing raw OkHttp error string. Classification (`isNetworkError`) was already correct — only the `DEBUG` branch bypassed it. Removing guard: raw error stays in Logcat via `Log.e`, UI always shows friendly string. |
 | Network classification applied to `task.result` catch (not just backend catch) | `task.result` throws `ApiException` on network failure at Google Sign-In layer — same IOException class, same message patterns. Without classification, device network errors surfaced as raw `ApiException` message at the first catch block before reaching the backend catch. |
 | `onViewCollection` → `onSaveToCollection` rename across 3 files | Callback name must match button label. After label reverted to "Save to Collection", `onViewCollection` was semantically wrong and would confuse future readers tracing the nav callback. Renamed in `CardDetailSheet`, `ScannerScreen`, `NavGraph`. |
+| `src/debug/res/xml/network_security_config.xml` with `<base-config cleartextTrafficPermitted="true">` | Physical device can't reach `10.0.2.2:8000` (emulator-only address). LAN IPs (192.168.x.x) were also blocked by the main `network_security_config.xml` (only 3 explicit hosts allowed cleartext). Debug source-set overlay replaces the main config for debug builds — release stays HTTPS-only. |
 
 ---
 
