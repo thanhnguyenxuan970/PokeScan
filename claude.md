@@ -97,6 +97,17 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 - ✅ `CardDetailSheet.kt` "Save to Collection" → "View Collection" — card already saved in `startScan()` before sheet opens; button navigates, not saves
 - ✅ Build verified: `assembleDebug` → BUILD SUCCESSFUL after all changes
 
+**Completed this session (2026-05-15) — Physical device UI/Auth fixes + code review:**
+- ✅ `OnboardingScreen.kt` L69: `MaterialTheme.colorScheme.onBackground` → `Color.Black` for "Poke" span — `onBackground = PokeScanWhite` in dark scheme → text invisible on device in system dark mode
+- ✅ `Theme.kt`: `darkTheme: Boolean = isSystemInDarkTheme()` → `false` — force light mode globally; dark theme not designed; removed now-unused `isSystemInDarkTheme` import
+- ✅ `SignInScreen.kt` L97–104: plain `Text("Sign in to PokeScan")` → `buildAnnotatedString` two-tone heading ("Poke" `Color.Black` + "Scan" `primary` blue)
+- ✅ `CardDetailSheet.kt` L290: "View Collection" → "Save to Collection" — prototype Image #2 match; reversal of prior session's rename
+- ✅ `AuthViewModel.kt` L71–75: removed `!BuildConfig.DEBUG` guard — friendly network error always shown on device; raw message retained in Logcat via `Log.e`
+- ✅ `AuthViewModel.kt` L42–47: applied same network error classification to `task.result` catch block — same IOException can surface at Google Sign-In layer before backend call
+- ✅ `OnboardingScreen.kt`: inlined `goldColor` val (was declared, used once at ★ row)
+- ✅ `onViewCollection` → `onSaveToCollection` rename propagated across `CardDetailSheet.kt`, `ScannerScreen.kt`, `NavGraph.kt`
+- ✅ Full `check_code` (2 cycles) + `caveman-review` clean — 0 issues in final cycle; `assembleDebug` → BUILD SUCCESSFUL
+
 **Step 1 — Unblock OAuth** ✅ Done (2026-05-15)
 - Real `google-services.json` downloaded from Firebase Console (OAuth `client_type: 3` entry present)
 - SHA-1 fingerprint registered in Firebase Console for debug keystore
@@ -468,6 +479,17 @@ Env flags:
 | `listOfNotNull(...).joinToString(" · ")` for price subtitle | `"${sourceLabel ?: ""}$updatedSuffix"` produced ` · updated Xh ago` (leading ` · `) when `sourceLabel = null`. `listOfNotNull` drops nulls before joining — no leading separator possible. |
 | "View Collection" replaces "Save to Collection" | Card is saved via `saveLocal()` in `startScan()` before `ScanState.Result` is set — sheet opens after save is already in flight. "Save to Collection" implied the button triggers the save, which is wrong. "View Collection" accurately describes the navigation action. |
 | `hoursAgo` clamped with `.coerceAtLeast(0)` | `((currentMs - priceUpdatedAt) / 3_600_000).toInt()` wraps to `Int.MIN_VALUE` if `priceUpdatedAt` is `0L` or far-future. Clamp produces `0` → displays "just now" instead of overflowed garbage. |
+
+## Key Decisions Made (Physical device UI/Auth fixes 2026-05-15)
+
+| Decision | Rationale |
+|---|---|
+| `Color.Black` hardcoded for "Poke" span in both Onboarding + SignIn | `MaterialTheme.colorScheme.onBackground` resolves to `PokeScanWhite` in dark scheme — white text on white/light card background is invisible. `Color.Black` is explicit and correct regardless of scheme. Paired with `darkTheme=false` for belt-and-suspenders. |
+| `darkTheme: Boolean = false` (force light mode globally) | Device was in system dark mode. Dark color scheme not designed — only light tokens are defined per spec. `isSystemInDarkTheme()` was pulling untested dark colors. Forced light until dark theme assets are designed and tested. |
+| "Save to Collection" label restored (reverting prior "View Collection") | Prototype Image #2 explicitly shows "Save to Collection". Prior rename to "View Collection" was semantically accurate (save fires in `startScan()`) but diverged from spec. Prototype is authoritative for UI copy; code comment documents the actual behavior. |
+| Removed `!BuildConfig.DEBUG` guard on network error message in backend catch | Debug APK on physical device was showing raw OkHttp error string. Classification (`isNetworkError`) was already correct — only the `DEBUG` branch bypassed it. Removing guard: raw error stays in Logcat via `Log.e`, UI always shows friendly string. |
+| Network classification applied to `task.result` catch (not just backend catch) | `task.result` throws `ApiException` on network failure at Google Sign-In layer — same IOException class, same message patterns. Without classification, device network errors surfaced as raw `ApiException` message at the first catch block before reaching the backend catch. |
+| `onViewCollection` → `onSaveToCollection` rename across 3 files | Callback name must match button label. After label reverted to "Save to Collection", `onViewCollection` was semantically wrong and would confuse future readers tracing the nav callback. Renamed in `CardDetailSheet`, `ScannerScreen`, `NavGraph`. |
 
 ---
 

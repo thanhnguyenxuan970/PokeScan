@@ -95,8 +95,11 @@ fun SignInScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Sign in to PokeScan",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
+                text = buildAnnotatedString {
+                    withStyle(SpanStyle(color = Color.Black, fontWeight = FontWeight.Black)) { append("Sign in to Poke") }
+                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black)) { append("Scan") }
+                },
+                style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(8.dp))

@@ -180,7 +180,7 @@ private fun MainScreen(
             composable(Routes.SCANNER) {
                 ScannerScreen(
                     onShowPaywall = onPaywall,
-                    onViewCollection = { innerNav.navigate(Routes.COLLECTION) },
+                    onSaveToCollection = { innerNav.navigate(Routes.COLLECTION) },
                 )
             }
             composable(Routes.COLLECTION) {

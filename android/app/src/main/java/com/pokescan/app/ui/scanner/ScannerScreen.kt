@@ -34,7 +34,7 @@ import com.pokescan.app.data.service.ScanCounterService
 @Composable
 fun ScannerScreen(
     onShowPaywall: () -> Unit,
-    onViewCollection: () -> Unit = {},
+    onSaveToCollection: () -> Unit = {},
     viewModel: ScannerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -91,7 +91,7 @@ fun ScannerScreen(
                 isPro = isPro,
                 onDismiss = { viewModel.resetScan() },
                 onReset = { viewModel.resetScan() },
-                onViewCollection = onViewCollection,
+                onSaveToCollection = onSaveToCollection,
             )
         }
     }

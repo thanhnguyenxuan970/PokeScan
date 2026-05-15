@@ -43,7 +43,13 @@ class AuthViewModel @Inject constructor(
             task.result
         } catch (e: Exception) {
             Log.e("AuthVM", "task.result threw: ${e.message}")
-            _state.value = AuthState.Error(e.message ?: "Sign-in failed")
+            val isNetworkError = listOf("CLEARTEXT", "Unable to resolve host",
+                "Failed to connect", "timeout", "SocketException")
+                .any { e.message?.contains(it, ignoreCase = true) == true }
+            _state.value = AuthState.Error(
+                if (isNetworkError) "Unable to connect. Check your connection and try again."
+                else e.message ?: "Sign-in failed"
+            )
             return
         }
         val idToken = account?.idToken
@@ -69,8 +75,7 @@ class AuthViewModel @Inject constructor(
                     "Failed to connect", "timeout", "SocketException")
                     .any { e.message?.contains(it, ignoreCase = true) == true }
                 val msg = when {
-                    isNetworkError && !BuildConfig.DEBUG -> "Unable to connect. Check your connection and try again."
-                    isNetworkError -> e.message ?: "Network error"
+                    isNetworkError -> "Unable to connect. Check your connection and try again."
                     else -> e.message ?: "Authentication failed"
                 }
                 _state.value = AuthState.Error(msg)

@@ -66,7 +66,7 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
 
         Text(
             text = buildAnnotatedString {
-                withStyle(SpanStyle(color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Black)) {
+                withStyle(SpanStyle(color = Color.Black, fontWeight = FontWeight.Black)) {
                     append("Poke")
                 }
                 withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black)) {
@@ -90,7 +90,6 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(48.dp))
 
-        val goldColor = Color(0xFFF59B0B)
         ValuePropRow(
             icon = "⚡",
             title = "Sub-second scans",
@@ -109,7 +108,7 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
             icon = "★",
             title = "Grade ROI built-in",
             description = "Should you grade it? See net profit instantly.",
-            iconColor = goldColor,
+            iconColor = Color(0xFFF59B0B),
             iconContainerColor = Color(0xFFFEF3C7),
         )
 

@@ -57,6 +57,10 @@ Thumbs.db
 # Android local config (machine-specific, contains LAN IPs and keystore paths)
 android/local.properties
 
+# Android Gradle cache (deep paths exceed Windows 260-char limit)
+.gradle/
+android/.gradle/
+
 # Secrets
 *.p12
 *.mobileprovision
