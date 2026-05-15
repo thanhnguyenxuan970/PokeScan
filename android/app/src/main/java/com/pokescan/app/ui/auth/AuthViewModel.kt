@@ -65,7 +65,15 @@ class AuthViewModel @Inject constructor(
                 _events.emit(AuthEvent.NavigateToScanner)
             } catch (e: Exception) {
                 Log.e("AuthVM", "backend failed: ${e.message}")
-                _state.value = AuthState.Error(e.message ?: "Authentication failed")
+                val isNetworkError = listOf("CLEARTEXT", "Unable to resolve host",
+                    "Failed to connect", "timeout", "SocketException")
+                    .any { e.message?.contains(it, ignoreCase = true) == true }
+                val msg = when {
+                    isNetworkError && !BuildConfig.DEBUG -> "Unable to connect. Check your connection and try again."
+                    isNetworkError -> e.message ?: "Network error"
+                    else -> e.message ?: "Authentication failed"
+                }
+                _state.value = AuthState.Error(msg)
             }
         }
     }
