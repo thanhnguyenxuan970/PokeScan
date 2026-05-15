@@ -64,13 +64,19 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
                     append("Scan")
                 }
             },
-            style = MaterialTheme.typography.displaySmall,
+            style = MaterialTheme.typography.headlineLarge,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Scan any Pokémon card. Know its real value. Instantly.",
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
+                    append("Scan any Pokémon card. Know its real value. ")
+                }
+                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                    append("Instantly.")
+                }
+            },
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(48.dp))
@@ -80,19 +86,21 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
             icon = "⚡",
             title = "Sub-second scans",
             description = "97% accuracy on reprints & variants",
+            iconContainerColor = MaterialTheme.colorScheme.primary,
         )
         Spacer(modifier = Modifier.height(12.dp))
         ValuePropRow(
             icon = "$",
             title = "Real market price",
             description = "TCGPlayer + eBay 30-day completed sales",
+            iconContainerColor = MaterialTheme.colorScheme.primary,
         )
         Spacer(modifier = Modifier.height(12.dp))
         ValuePropRow(
             icon = "★",
             title = "Grade ROI built-in",
             description = "Should you grade it? See net profit instantly.",
-            iconTint = goldColor,
+            iconColor = goldColor,
             iconContainerColor = Color(0x1AF59B0B),
         )
 
@@ -126,7 +134,7 @@ private fun ValuePropRow(
     icon: String,
     title: String,
     description: String,
-    iconTint: Color = Color.Unspecified,
+    iconColor: Color = Color.Unspecified,
     iconContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
 ) {
     val shape = RoundedCornerShape(12.dp)
@@ -147,7 +155,7 @@ private fun ValuePropRow(
                 Text(
                     text = icon,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = iconTint,
+                    color = iconColor,
                 )
             }
         }

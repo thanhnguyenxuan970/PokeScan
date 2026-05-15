@@ -6,7 +6,6 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,12 +16,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,10 +30,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -144,19 +145,12 @@ private fun GoogleSignInButton(onClick: () -> Unit) {
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Box(
-            modifier = Modifier
-                .size(20.dp)
-                .background(Color(0xFF4285F4), shape = CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "G",
-                color = Color.White,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
+        Icon(
+            painter = painterResource(R.drawable.ic_google),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = Color.Unspecified,
+        )
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = "Continue with Google")
     }
@@ -164,19 +158,25 @@ private fun GoogleSignInButton(onClick: () -> Unit) {
 
 @Composable
 private fun TermsFooter(onOpenUrl: (String) -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = "By continuing, you agree to our",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        TextButton(onClick = { onOpenUrl(AppConfig.PRIVACY_POLICY_URL) }) {
-            Text(
-                text = "Terms of Service · Privacy Policy",
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
-            )
-        }
+    val linkColor = MaterialTheme.colorScheme.primary
+    val baseColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val annotated = buildAnnotatedString {
+        withStyle(SpanStyle(color = baseColor)) { append("By continuing you agree to our ") }
+        pushStringAnnotation(tag = "TOS", annotation = AppConfig.PRIVACY_POLICY_URL) // TODO: replace with ToS URL when available
+        withStyle(SpanStyle(color = linkColor)) { append("Terms of Service") }
+        pop()
+        withStyle(SpanStyle(color = baseColor)) { append(" and ") }
+        pushStringAnnotation(tag = "PP", annotation = AppConfig.PRIVACY_POLICY_URL)
+        withStyle(SpanStyle(color = linkColor)) { append("Privacy Policy") }
+        pop()
+        withStyle(SpanStyle(color = baseColor)) { append(".") }
     }
+    ClickableText(
+        text = annotated,
+        style = MaterialTheme.typography.bodySmall.copy(textAlign = TextAlign.Center),
+        onClick = { offset ->
+            annotated.getStringAnnotations(start = offset, end = offset)
+                .firstOrNull()?.let { onOpenUrl(it.item) }
+        },
+    )
 }

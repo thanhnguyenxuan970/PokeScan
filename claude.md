@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-15, Firebase OAuth unblocked)
+## Android Migration Status (updated 2026-05-15, OnboardingScreen redesign + SignIn polish)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -60,6 +60,12 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 - ✅ `PaywallScreen` PP URL crash guard — `isNotBlank()` before `Uri.parse()` prevents crash on placeholder URL
 - ✅ App icon — adaptive icon XML done (`ic_launcher_foreground.xml` Pokéball + scan-beam design, `ic_launcher_background.xml` #FAFAFA, `mipmap-anydpi-v26/*.xml`)
 - ✅ Full `check_code` review: 1 CRITICAL + 4 WARNING + 4 INFO found and fixed across 5 files; final verification cycle clean
+
+**Completed this session (2026-05-15) — OnboardingScreen redesign + SignIn polish:**
+- ✅ `OnboardingScreen`: title `displaySmall` → `headlineLarge`; subtitle "Instantly." accented in `primary` color via `buildAnnotatedString`; `ValuePropRow` param renamed `iconTint` → `iconColor`; default `iconContainerColor` kept `primaryContainer`, ⚡ and $ rows explicitly pass `primary` (solid blue)
+- ✅ `SignInScreen`: fake Google G circle replaced with real `ic_google` drawable (`tint = Color.Unspecified` preserves brand colors); `TermsFooter` rewritten as `ClickableText` with inline `pushStringAnnotation` spans (TOS + PP clickable separately)
+- ✅ `network_security_config.xml` added — `cleartextTrafficPermitted=true` scoped to `10.0.2.2`/`localhost`/`127.0.0.1` only; wired into `AndroidManifest.xml`
+- ⚠️ `TermsFooter` TOS link routes to `AppConfig.PRIVACY_POLICY_URL` (TODO — no ToS URL yet); misleading until resolved
 
 **Completed this session (2026-05-15) — CardDetailSheet redesign + Card model expansion:**
 - ✅ T1 — `Card.kt` + `CardRecordEntity.kt`: 8 nullable fields added (`tcgPlayerPrice`, `ebayPrice`, `variant`, `setName`, `setYear`, `isAuthentic`, `priceUpdatedAt`, `gradeRoiPsaGrade`, `gradeRoiSellValue`, `gradeRoiNetProfit`); `toDomain()` + `toEntity()` updated; `scannedAt` default `0L` → `System.currentTimeMillis()`
@@ -410,6 +416,18 @@ Env flags:
 | `noiseLineRegex` uses `\bTrainer\b` word boundary | Bare `Trainer` match would incorrectly filter card names like "Trainer's Choice". Word boundary limits match to standalone token. Same pattern applied to `\bItem\b`, `\bSupporter\b`, `\bStadium\b`. |
 | `BuildConfig.DEBUG` branch in `AuthViewModel` null-idToken error | Release users see generic "Sign-in failed" (no config detail leakage). Debug builds show exact cause ("Firebase not configured — set up google-services.json") to aid dev. |
 | `SnackbarHostState` for `NoCardDetected` (not `AlertDialog` or `Toast`) | Snackbar is non-blocking — camera stays live, user can immediately retry without dismissing a modal. Toast is deprecated API. AlertDialog would interrupt the scan flow. |
+
+## Key Decisions Made (OnboardingScreen + SignIn polish 2026-05-15)
+
+| Decision | Rationale |
+|---|---|
+| `iconColor` renamed from `iconTint` in `ValuePropRow` | `iconTint` implied color transformation (like `ImageVector` tinting). Param applies to emoji strings where color is irrelevant — `iconColor` is a more honest name. |
+| Default `iconContainerColor = primaryContainer`; callers pass `primary` explicitly | Changing the default to `primary` would make `ValuePropRow` unsafe to reuse elsewhere (any caller not passing an override gets solid blue). Explicit call-site is safer API contract. |
+| `Color.White` dropped from `$` row | `Surface(color = primary)` propagates `LocalContentColor = onPrimary` (white). Explicit `Color.White` was redundant — `Text(color = Color.Unspecified)` already inherits white via LocalContentColor. |
+| `ic_google` drawable replaces fake "G" `Box` in `GoogleSignInButton` | Fake circle with "G" text is off-brand. Real SVG drawable with `tint = Color.Unspecified` preserves Google's brand colors without extra assets. |
+| `ClickableText` with `pushStringAnnotation` for `TermsFooter` | Single `TextButton` couldn't route TOS and PP to different URLs. `ClickableText` gives per-span tap targets. `ClickableText` is soft-deprecated but stable on current Compose BOM. |
+| TOS annotation routes to `PRIVACY_POLICY_URL` until ToS URL exists | Placeholder avoids a dead link crash. ⚠️ Must be replaced when ToS URL is created — tapping "Terms of Service" currently opens Privacy Policy. |
+| `network_security_config.xml` scoped to dev hosts only | `cleartextTrafficPermitted=true` for `10.0.2.2`/`localhost`/`127.0.0.1` only. Prod domains always use HTTPS. File is untracked — must be staged explicitly before next commit. |
 
 ---
 
