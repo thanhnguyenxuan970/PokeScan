@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.util.UUID
 import java.util.concurrent.Executors
@@ -45,6 +46,7 @@ sealed class ScanState {
 
 sealed class ScanEvent {
     object ShowPaywall : ScanEvent()
+    object NoCardDetected : ScanEvent()
 }
 
 @HiltViewModel
@@ -67,6 +69,7 @@ class ScannerViewModel @Inject constructor(
 
     @Volatile private var isProcessing = false
     private var isCameraStarted = false
+    private var scanTimeoutJob: Job? = null
 
     private val analysisExecutor = Executors.newSingleThreadExecutor()
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -134,6 +137,7 @@ class ScannerViewModel @Inject constructor(
 
     private fun handleOcrResult(lines: List<String>) {
         if (_state.value !is ScanState.Scanning) return
+        scanTimeoutJob?.cancel()
         val identified = cardIdentificationService.identify(lines) ?: return
         _state.value = ScanState.Detected(identified)
         viewModelScope.launch {
@@ -159,30 +163,74 @@ class ScannerViewModel @Inject constructor(
                 return@launch
             }
             _state.value = ScanState.Scanning
+            scanTimeoutJob = viewModelScope.launch {
+                delay(5_000)
+                if (_state.value is ScanState.Scanning) {
+                    _state.value = ScanState.Idle
+                    _events.emit(ScanEvent.NoCardDetected)
+                }
+            }
         }
     }
 
     fun resetScan() {
+        scanTimeoutJob?.cancel()
         _state.value = ScanState.Idle
     }
 
     fun triggerMockScan() {
         if (!BuildConfig.DEBUG) return
         if (_state.value !is ScanState.Idle) return
+        scanTimeoutJob?.cancel()
         viewModelScope.launch {
             _state.value = ScanState.Scanning
             delay(800)
             if (_state.value !is ScanState.Scanning) return@launch
-            val mockCard = Card(
-                id = UUID.randomUUID().toString(),
-                name = "Charizard ex",
-                setNumber = "199",
-                setCode = "sv3",
-                language = CardLanguage.ENGLISH,
-                marketPrice = 45.99,
-                priceSource = PriceSource.EBAY,
-                scannedAt = System.currentTimeMillis(),
+            val mockCards = listOf(
+                Card(
+                    id = UUID.randomUUID().toString(),
+                    name = "Charizard",
+                    setNumber = "4/102",
+                    setCode = "base1",
+                    language = CardLanguage.ENGLISH,
+                    marketPrice = 450.00,
+                    priceSource = PriceSource.AGGREGATED,
+                    scannedAt = System.currentTimeMillis(),
+                    tcgPlayerPrice = 425.00,
+                    ebayPrice = 472.00,
+                    variant = "Holo",
+                    setName = "Base Set",
+                    setYear = 1999,
+                    isAuthentic = true,
+                    priceUpdatedAt = System.currentTimeMillis(),
+                    gradeRoiPsaGrade = 9,
+                    gradeRoiSellValue = 1200.00,
+                    gradeRoiNetProfit = 725.00,
+                ),
+                Card(
+                    id = UUID.randomUUID().toString(),
+                    name = "Pikachu",
+                    setNumber = "25",
+                    setCode = "cel25",
+                    language = CardLanguage.ENGLISH,
+                    marketPrice = 8.50,
+                    priceSource = PriceSource.EBAY,
+                    scannedAt = System.currentTimeMillis(),
+                    ebayPrice = 8.50,
+                ),
+                Card(
+                    id = UUID.randomUUID().toString(),
+                    name = "Lugia",
+                    setNumber = "9/111",
+                    setCode = "neo1",
+                    language = CardLanguage.ENGLISH,
+                    marketPrice = 200.00,
+                    priceSource = PriceSource.EBAY,
+                    scannedAt = System.currentTimeMillis(),
+                    ebayPrice = 200.00,
+                ),
             )
+            val mockCard = mockCards.random()
             _state.value = ScanState.Result(mockCard)
             viewModelScope.launch { collectionRepository.saveLocal(mockCard) }
         }

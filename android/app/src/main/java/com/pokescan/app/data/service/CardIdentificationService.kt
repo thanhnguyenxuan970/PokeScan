@@ -9,28 +9,38 @@ class CardIdentificationService @Inject constructor(
     private val setDatabaseService: SetDatabaseService,
     private val setResolver: SetResolver,
 ) {
-    private val setNumberRegex = Regex("""(?<![.])\b\d{1,3}/\d{1,3}\b""")
+    // OCR sometimes reads '/' as 'l' or '|' — accept all three
+    private val setNumberRegex = Regex("""(?<![.])\b\d{1,3}[/|l]\d{1,3}\b""")
+    private val noiseLineRegex = Regex(
+        """HP\s*\d+|©|Nintendo|Creatures|GAME\s*FREAK|\bTrainer\b|\bItem\b|\bSupporter\b|\bStadium\b""",
+        RegexOption.IGNORE_CASE,
+    )
 
     data class IdentifiedCard(
         val cardName: String,
         val setNumber: String,
         val setCode: String,
         val language: CardLanguage,
+        val setName: String? = null,
+        val setYear: Int? = null,
     )
 
     fun identify(lines: List<String>): IdentifiedCard? {
         if (lines.isEmpty()) return null
-        val setNumber = lines.firstNotNullOfOrNull { setNumberRegex.find(it)?.value } ?: return null
+        val rawSetNumber = lines.firstNotNullOfOrNull { setNumberRegex.find(it)?.value } ?: return null
+        // Normalize OCR misreads before passing to SetResolver
+        val setNumber = rawSetNumber.replace('l', '/').replace('|', '/')
         val cardName = lines.firstOrNull { line ->
             line.isNotBlank()
-                && line != setNumber
-                && !line.matches(Regex("""^\d+(/\d+)?$"""))
+                && line != rawSetNumber
+                && !line.matches(Regex("""^\d+([/|l]\d+)?$"""))
                 && line.length >= 3
+                && !noiseLineRegex.containsMatchIn(line)
         } ?: "Unknown Card"
         val language = if (lines.any { line -> line.any { ch -> ch.code in 0x3000..0x9FFF } })
             CardLanguage.JAPANESE else CardLanguage.ENGLISH
         val entries = setDatabaseService.sets.value
-        val setCode = setResolver.resolve(entries, setNumber, language)
-        return IdentifiedCard(cardName, setNumber, setCode, language)
+        val resolved = setResolver.resolve(entries, setNumber, language)
+        return IdentifiedCard(cardName, setNumber, resolved.setCode, language, resolved.setName, resolved.releaseYear)
     }
 }

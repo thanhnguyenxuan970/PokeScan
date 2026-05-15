@@ -2,6 +2,7 @@ package com.pokescan.app.ui.onboarding
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,10 +24,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.pokescan.app.R
 import com.pokescan.app.config.AppConfig
 
 @Composable
@@ -36,13 +43,28 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .padding(32.dp),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Image(
+            painter = painterResource(R.drawable.ic_launcher_foreground),
+            contentDescription = null,
+            modifier = Modifier.size(88.dp),
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
         Text(
-            text = "PokeScan",
-            style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Black),
-            color = MaterialTheme.colorScheme.primary,
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Black)) {
+                    append("Poke")
+                }
+                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black)) {
+                    append("Scan")
+                }
+            },
+            style = MaterialTheme.typography.displaySmall,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -53,25 +75,28 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(48.dp))
 
+        val goldColor = Color(0xFFF59B0B)
         ValuePropRow(
             icon = "⚡",
             title = "Sub-second scans",
-            description = "97% accuracy on reprints & variants"
+            description = "97% accuracy on reprints & variants",
         )
         Spacer(modifier = Modifier.height(12.dp))
         ValuePropRow(
             icon = "$",
             title = "Real market price",
-            description = "TCGPlayer + eBay 30-day completed sales"
+            description = "TCGPlayer + eBay 30-day completed sales",
         )
         Spacer(modifier = Modifier.height(12.dp))
         ValuePropRow(
             icon = "★",
             title = "Grade ROI built-in",
-            description = "Should you grade it? See net profit instantly."
+            description = "Should you grade it? See net profit instantly.",
+            iconTint = goldColor,
+            iconContainerColor = Color(0x1AF59B0B),
         )
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.weight(1f))
 
         TextButton(onClick = {
             if (AppConfig.PRIVACY_POLICY_URL.isNotBlank()) {
@@ -97,7 +122,13 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
 }
 
 @Composable
-private fun ValuePropRow(icon: String, title: String, description: String) {
+private fun ValuePropRow(
+    icon: String,
+    title: String,
+    description: String,
+    iconTint: Color = Color.Unspecified,
+    iconContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+) {
     val shape = RoundedCornerShape(12.dp)
     Row(
         modifier = Modifier
@@ -109,13 +140,14 @@ private fun ValuePropRow(icon: String, title: String, description: String) {
     ) {
         Surface(
             shape = RoundedCornerShape(10.dp),
-            color = MaterialTheme.colorScheme.primaryContainer,
+            color = iconContainerColor,
             modifier = Modifier.size(36.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
                     text = icon,
                     style = MaterialTheme.typography.bodyLarge,
+                    color = iconTint,
                 )
             }
         }

@@ -19,7 +19,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, "pokescan.db").build()
+        Room.databaseBuilder(context, AppDatabase::class.java, "pokescan.db")
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
+            .build()
 
     @Provides
     fun provideCardRecordDao(db: AppDatabase): CardRecordDao = db.cardRecordDao()

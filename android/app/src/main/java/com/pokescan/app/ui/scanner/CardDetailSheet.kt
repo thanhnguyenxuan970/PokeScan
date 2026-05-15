@@ -1,5 +1,6 @@
 package com.pokescan.app.ui.scanner
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -11,17 +12,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -103,8 +103,10 @@ fun CardDetailSheet(
                         ),
                     )
                     Spacer(modifier = Modifier.height(2.dp))
+                    val setDisplay = card.setName ?: card.setCode.uppercase()
+                    val yearSuffix = card.setYear?.let { " · $it" } ?: ""
                     Text(
-                        text = "${card.setCode.uppercase()} · ${card.setNumber}",
+                        text = "$setDisplay · #${card.setNumber}$yearSuffix",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -119,10 +121,29 @@ fun CardDetailSheet(
                                 ),
                             )
                         }
+                        if (card.variant == "Holo") {
+                            SuggestionChip(
+                                onClick = {},
+                                label = { Text("Holo", style = MaterialTheme.typography.labelSmall) },
+                            )
+                        }
                         SuggestionChip(
                             onClick = {},
                             label = { Text("Near Mint", style = MaterialTheme.typography.labelSmall) },
                         )
+                        if (card.isAuthentic == true) {
+                            SuggestionChip(
+                                onClick = {},
+                                label = {
+                                    Text(
+                                        text = "✓ Authentic",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF16A34A),
+                                    )
+                                },
+                                border = BorderStroke(1.dp, Color(0xFF16A34A)),
+                            )
+                        }
                     }
                 }
             }
@@ -140,7 +161,7 @@ fun CardDetailSheet(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "MARKET PRICE",
+                        text = "MARKET PRICE · 30-DAY",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 11.sp,
                             letterSpacing = 0.8.sp,
@@ -156,10 +177,22 @@ fun CardDetailSheet(
                         ),
                         color = MaterialTheme.colorScheme.primary,
                     )
-                    card.priceSource?.let { source ->
+                    val sourceLabel = when (card.priceSource) {
+                        PriceSource.AGGREGATED -> "TCGPlayer + eBay weighted"
+                        PriceSource.TCGPLAYER -> "TCGPlayer"
+                        PriceSource.EBAY -> "eBay"
+                        else -> null
+                    }
+                    val updatedSuffix = card.priceUpdatedAt?.let {
+                        val hoursAgo = ((System.currentTimeMillis() - it) / 3_600_000).toInt()
+                        val ageLabel = if (hoursAgo == 0) "just now" else "${hoursAgo}h ago"
+                        " · updated $ageLabel"
+                    } ?: ""
+                    val priceSubtitle = "${sourceLabel ?: ""}$updatedSuffix"
+                    if (priceSubtitle.isNotBlank()) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = source.raw.replaceFirstChar { it.uppercase() },
+                            text = priceSubtitle,
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -174,17 +207,11 @@ fun CardDetailSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                val tcgPrice = if (card.priceSource == PriceSource.TCGPLAYER ||
-                    card.priceSource == PriceSource.AGGREGATED) {
-                    card.marketPrice?.let { "$${"%.2f".format(it)}" } ?: "—"
-                } else "—"
-                val ebayPrice = if (card.priceSource == PriceSource.EBAY ||
-                    card.priceSource == PriceSource.AGGREGATED) {
-                    card.marketPrice?.let { "$${"%.2f".format(it)}" } ?: "—"
-                } else "—"
+                val tcgPrice = card.tcgPlayerPrice?.let { "$${"%.2f".format(it)}" } ?: "—"
+                val ebayPrice = card.ebayPrice?.let { "$${"%.2f".format(it)}" } ?: "—"
 
-                PriceGridCell(label = "TCGPlayer", value = tcgPrice, modifier = Modifier.weight(1f))
-                PriceGridCell(label = "eBay", value = ebayPrice, modifier = Modifier.weight(1f))
+                PriceGridCell(label = "TCGPLAYER", value = tcgPrice, modifier = Modifier.weight(1f))
+                PriceGridCell(label = "EBAY SOLD", value = ebayPrice, modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -223,10 +250,30 @@ fun CardDetailSheet(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                     ) {
-                        val roiValue = if (isPro) "—" else "—"
-                        RoiStatCell(label = "PSA 10 Est.", value = roiValue)
-                        RoiStatCell(label = "Net ROI", value = roiValue)
-                        RoiStatCell(label = "Break-even", value = roiValue)
+                        if (isPro && card.gradeRoiPsaGrade != null) {
+                            RoiStatCell(
+                                label = "Predicted",
+                                value = "PSA ${card.gradeRoiPsaGrade}",
+                                green = true,
+                            )
+                            RoiStatCell(
+                                label = "Sell value",
+                                value = "$${card.gradeRoiSellValue?.let { "%.0f".format(it) } ?: "—"}",
+                                green = true,
+                            )
+                            RoiStatCell(
+                                label = "Net profit",
+                                value = card.gradeRoiNetProfit?.let {
+                                    val sign = if (it >= 0) "+" else "-"
+                                    sign + "$" + "%.0f".format(kotlin.math.abs(it))
+                                } ?: "—",
+                                green = true,
+                            )
+                        } else {
+                            RoiStatCell(label = "Predicted", value = "—")
+                            RoiStatCell(label = "Sell value", value = "—")
+                            RoiStatCell(label = "Net profit", value = "—")
+                        }
                     }
                 }
             }
@@ -234,17 +281,19 @@ fun CardDetailSheet(
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(
-                onClick = onReset,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Scan Another")
-            }
-
-            TextButton(
                 onClick = onViewCollection,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("View Collection")
+                Text("Save to Collection")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = onReset,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Scan another")
             }
         }
     }
@@ -276,11 +325,12 @@ private fun PriceGridCell(label: String, value: String, modifier: Modifier = Mod
 }
 
 @Composable
-private fun RoiStatCell(label: String, value: String) {
+private fun RoiStatCell(label: String, value: String, green: Boolean = false) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+            color = if (green) Color(0xFF16A34A) else MaterialTheme.colorScheme.onSurface,
         )
         Text(
             text = label,

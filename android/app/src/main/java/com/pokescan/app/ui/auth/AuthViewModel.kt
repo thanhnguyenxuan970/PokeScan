@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.tasks.Task
+import com.pokescan.app.BuildConfig
 import com.pokescan.app.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -49,7 +50,8 @@ class AuthViewModel @Inject constructor(
         Log.d("AuthVM", "idToken null=${idToken == null}")
         if (idToken == null) {
             _state.value = AuthState.Error(
-                "Firebase not configured — replace REPLACE_WITH_WEB_CLIENT_ID in strings.xml"
+                if (BuildConfig.DEBUG) "Firebase not configured — set up google-services.json"
+                else "Sign-in failed. Please try again."
             )
             return
         }

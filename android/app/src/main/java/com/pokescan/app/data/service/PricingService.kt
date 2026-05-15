@@ -25,6 +25,11 @@ class PricingService @Inject constructor(private val api: ApiService) {
                 PriceSource.entries.find { it.raw == raw }
             },
             scannedAt = System.currentTimeMillis(),
+            tcgPlayerPrice = dto.tcgPlayerPrice,
+            ebayPrice = dto.ebayPrice,
+            setName = identified.setName,
+            setYear = identified.setYear,
+            priceUpdatedAt = System.currentTimeMillis(),
         )
     }
 }

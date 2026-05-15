@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-14, fixes & enhancements applied)
+## Android Migration Status (updated 2026-05-15, Firebase OAuth unblocked)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -26,9 +26,9 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 | A4 | Full features — networking, collection, billing, paywall | `android/` (10 new + 8 modified), `backend/app/routers/auth.py` | ✅ Done |
 | A5 | Polish — ProGuard, navigation gating, permission rationale | `android/` (1 new + 9 modified) | ✅ Done |
 
-### Next Session — Android (updated 2026-05-14, UI/UX synced to prototype)
+### Next Session — Android (updated 2026-05-15, Firebase OAuth unblocked)
 
-**Status note:** UI/UX sync + bug fixes applied. Build clean (`assembleDebug` zero errors). Remaining blocker before real Google Sign-in: Firebase OAuth not configured. **"Skip Auth (Dev)" removed** — use DEBUG mock scan (bug icon) to test scanner without auth.
+**Status note:** Firebase Google Sign-In unblocked. Real `google-services.json` with OAuth client in place. `strings.xml` placeholder removed. Build ready for E2E device test. DEBUG mock scan (bug icon, top-right camera view) available for scanner testing without network.
 
 **Completed this session (2026-05-14) — UI/UX Sync & Bug Fixes:**
 - ✅ Prototype alignment — `OnboardingScreen`: tagline → "Scan any Pokémon card. Know its real value. Instantly.", feature icons → emoji (⚡ $ ★), titles/descriptions match prototype, CTA → "Get Started", Privacy Policy link moved before CTA
@@ -61,9 +61,24 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 - ✅ App icon — adaptive icon XML done (`ic_launcher_foreground.xml` Pokéball + scan-beam design, `ic_launcher_background.xml` #FAFAFA, `mipmap-anydpi-v26/*.xml`)
 - ✅ Full `check_code` review: 1 CRITICAL + 4 WARNING + 4 INFO found and fixed across 5 files; final verification cycle clean
 
-**Step 1 — Unblock OAuth** (user action, 30 min)
-- Firebase Console → pokescan-7f2a6 → Authentication → Sign-in method → Google → Enable → download new `google-services.json` → replace `android/app/google-services.json`
-- **Remove** line 5 from `android/app/src/main/res/values/strings.xml` (`<string name="default_web_client_id">REPLACE_WITH_WEB_CLIENT_ID</string>`) — Firebase Gradle plugin auto-generates this; manual entry causes duplicate compile error
+**Completed this session (2026-05-15) — CardDetailSheet redesign + Card model expansion:**
+- ✅ T1 — `Card.kt` + `CardRecordEntity.kt`: 8 nullable fields added (`tcgPlayerPrice`, `ebayPrice`, `variant`, `setName`, `setYear`, `isAuthentic`, `priceUpdatedAt`, `gradeRoiPsaGrade`, `gradeRoiSellValue`, `gradeRoiNetProfit`); `toDomain()` + `toEntity()` updated; `scannedAt` default `0L` → `System.currentTimeMillis()`
+- ✅ T1 — `AppDatabase.kt`: version 1→3; manual `MIGRATION_1_2` + `MIGRATION_2_3` companion object vals; `DatabaseModule` wired
+- ✅ T2 — `SetResolver.kt`: `resolve()` now returns `ResolvedSet(setCode, setName, releaseYear)` instead of `String`; `CardIdentificationService.kt` destructures `ResolvedSet`, passes `setName`/`setYear` into `IdentifiedCard`; OCR set-number regex accepts `l`/`|` as `/`; `noiseLineRegex` filters HP/copyright/trainer noise lines
+- ✅ T3 — `PricingService.kt`: `fetchPrice()` threads `tcgPlayerPrice`, `ebayPrice`, `setName`, `setYear`, `priceUpdatedAt` into `Card`
+- ✅ T4 — `ScannerViewModel.kt`: Charizard mock has full `gradeRoi*` fields; 3-card random mock pool; `scanTimeoutJob` cancellation in `resetScan()` + `triggerMockScan()`; `ScanEvent.NoCardDetected` added; 5s scan timeout
+- ✅ T5 — `CardDetailSheet.kt`: set subtitle uses `setName`/`setYear`; Holo + Authentic chips; `"MARKET PRICE · 30-DAY"` label; source+age subtitle; `TCGPLAYER`/`EBAY SOLD` grid; ROI gated on `isPro && gradeRoiPsaGrade != null`; `RoiStatCell` green param; `Button("Save to Collection")` + `OutlinedButton("Scan another")`
+- ✅ T6 — `AuthViewModel.kt`: `idToken == null` → explicit error (`BuildConfig.DEBUG` shows Firebase config hint; release shows generic message)
+- ✅ `ScannerScreen.kt`: `SnackbarHostState` added; `ScanEvent.NoCardDetected` → snackbar "No card detected. Try again."
+- ✅ Firebase OAuth unblocked: real `google-services.json` placed; `strings.xml` placeholder removed
+
+**Pending optional fix (low priority):**
+- `CardDetailSheet.kt` `gradeRoiSellValue` null inside Pro branch: `"$${...}"` null case → `$—` display. Fix: `card.gradeRoiSellValue?.let { "${"%.0f".format(it)}" } ?: "—"`
+
+**Step 1 — Unblock OAuth** ✅ Done (2026-05-15)
+- Real `google-services.json` downloaded from Firebase Console (OAuth `client_type: 3` entry present)
+- SHA-1 fingerprint registered in Firebase Console for debug keystore
+- `strings.xml` `REPLACE_WITH_WEB_CLIENT_ID` placeholder removed — Firebase Gradle plugin now auto-generates `default_web_client_id`
 
 **Step 1a — Privacy Policy** (user action, 15 min)
 - Create GitHub repo `pokescan-privacy` under `thanhnguyenxuan970`, add `index.html` with privacy policy, enable GitHub Pages → URL `https://thanhnguyenxuan970.github.io/pokescan-privacy` goes live (already wired in `AppConfig.kt`)
@@ -384,6 +399,17 @@ Env flags:
 | "Skip Auth (Dev)" removed entirely | No longer needed: DEBUG mock scan (bug icon) already tests scanner flow without auth. Keeping debug auth bypass creates UX divergence between debug and release — removed to keep UI parity. |
 | Auth bug root cause: `REPLACE_WITH_WEB_CLIENT_ID` placeholder | `idToken == null` → never emits NavigateToScanner → stuck on SignInScreen. Not a code bug. Logcat logging added to `AuthViewModel` to surface exact failure point. Fix = Firebase setup (user action). |
 | `strings.xml` manual `default_web_client_id` entry must be REMOVED after Firebase setup | Firebase Gradle plugin auto-generates this resource from `google-services.json`. Manual entry causes duplicate resource compile error. Entry exists now only as placeholder. |
+
+## Key Decisions Made (CardDetail + Room migration 2026-05-15)
+
+| Decision | Rationale |
+|---|---|
+| Manual `MIGRATION_1_2` + `MIGRATION_2_3` instead of `AutoMigration` | `exportSchema = true` requires schema JSON files to exist in `android/app/schemas/` before AutoMigration spec can reference them. Manual migrations avoid Gradle schema-file dependency and are explicit about the SQL. |
+| `ResolvedSet(setCode, setName, releaseYear)` replaces `String` return from `SetResolver.resolve()` | Enables setName/setYear passthrough from OCR → `IdentifiedCard` → `PricingService` → `Card` without adding a parallel lookup or changing `IdentifiedCard`'s interface. Single-call resolution. |
+| OCR set-number regex accepts `l`/`\|` as `/` | OCR (ML Kit) sometimes reads `/` as lowercase `l` or `\|`. Additive change to character class — doesn't break existing EN detection, adds robustness for common misread. |
+| `noiseLineRegex` uses `\bTrainer\b` word boundary | Bare `Trainer` match would incorrectly filter card names like "Trainer's Choice". Word boundary limits match to standalone token. Same pattern applied to `\bItem\b`, `\bSupporter\b`, `\bStadium\b`. |
+| `BuildConfig.DEBUG` branch in `AuthViewModel` null-idToken error | Release users see generic "Sign-in failed" (no config detail leakage). Debug builds show exact cause ("Firebase not configured — set up google-services.json") to aid dev. |
+| `SnackbarHostState` for `NoCardDetected` (not `AlertDialog` or `Toast`) | Snackbar is non-blocking — camera stays live, user can immediately retry without dismissing a modal. Toast is deprecated API. AlertDialog would interrupt the scan flow. |
 
 ---
 

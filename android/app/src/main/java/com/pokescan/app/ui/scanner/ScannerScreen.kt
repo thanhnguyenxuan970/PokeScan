@@ -21,6 +21,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material3.Button
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -64,6 +67,7 @@ fun ScannerScreen(
         )
     }
     var showPermanentDenial by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -89,6 +93,10 @@ fun ScannerScreen(
         viewModel.events.collect { event ->
             when (event) {
                 ScanEvent.ShowPaywall -> onShowPaywall()
+                ScanEvent.NoCardDetected -> snackbarHostState.showSnackbar(
+                    message = "No card detected. Try better lighting or hold card steady.",
+                    duration = SnackbarDuration.Short,
+                )
             }
         }
     }
@@ -140,6 +148,13 @@ fun ScannerScreen(
                     .padding(32.dp),
             )
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(UiAlignment.BottomCenter)
+                .padding(bottom = 140.dp),
+        )
 
         if (state is ScanState.Result) {
             CardDetailSheet(

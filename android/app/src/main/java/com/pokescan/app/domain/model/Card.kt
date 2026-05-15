@@ -21,6 +21,16 @@ data class Card(
     val marketPrice: Double?,
     val priceSource: PriceSource?,
     val scannedAt: Long,
+    val tcgPlayerPrice: Double? = null,
+    val ebayPrice: Double? = null,
+    val variant: String? = null,
+    val setName: String? = null,
+    val setYear: Int? = null,
+    val isAuthentic: Boolean? = null,
+    val priceUpdatedAt: Long? = null,
+    val gradeRoiPsaGrade: Int? = null,
+    val gradeRoiSellValue: Double? = null,
+    val gradeRoiNetProfit: Double? = null,
 ) {
     val cardSKU: String get() = "$setCode-${setNumber.replace("/", "-")}"
 }
