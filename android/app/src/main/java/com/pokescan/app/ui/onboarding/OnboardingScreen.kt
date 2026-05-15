@@ -3,6 +3,7 @@ package com.pokescan.app.ui.onboarding
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,11 +49,19 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        Image(
-            painter = painterResource(R.drawable.ic_launcher_foreground),
-            contentDescription = null,
-            modifier = Modifier.size(88.dp),
-        )
+        Box(
+            modifier = Modifier
+                .size(88.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0xFFFAFAFA)),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(R.drawable.ic_launcher_foreground),
+                contentDescription = null,
+                modifier = Modifier.size(88.dp),
+            )
+        }
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
@@ -86,7 +95,7 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
             icon = "⚡",
             title = "Sub-second scans",
             description = "97% accuracy on reprints & variants",
-            iconContainerColor = MaterialTheme.colorScheme.primary,
+            iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
         )
         Spacer(modifier = Modifier.height(12.dp))
         ValuePropRow(
@@ -101,7 +110,7 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
             title = "Grade ROI built-in",
             description = "Should you grade it? See net profit instantly.",
             iconColor = goldColor,
-            iconContainerColor = Color(0x1AF59B0B),
+            iconContainerColor = Color(0xFFFEF3C7),
         )
 
         Spacer(modifier = Modifier.weight(1f))
@@ -164,7 +173,7 @@ private fun ValuePropRow(
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
