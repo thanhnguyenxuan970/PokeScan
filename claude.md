@@ -82,6 +82,12 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 - ✅ Guest button always visible — `OutlinedButton("Continue as Guest")` hoisted outside `when (val s = state)` block in `SignInScreen.kt`; now renders in `Idle`, `Error`, AND `Loading` states; was hidden when `AuthState.Error` hit
 - ✅ CLEARTEXT error UX — `AuthViewModel.handleSignInResult` backend catch block now classifies network errors (CLEARTEXT, Unable to resolve host, Failed to connect, timeout, SocketException); release builds show "Unable to connect. Check your connection and try again." instead of raw OkHttp/Android error string; debug builds still see raw error for diagnostics
 
+**Completed this session (2026-05-15) — Screen pixel-match to reference screenshots:**
+- ✅ `SignInScreen` + `OnboardingScreen`: bare `Image(ic_launcher_foreground)` wrapped in `Box(size=88dp, clip=RoundedCornerShape(16dp), background=#FAFAFA)`; gives adaptive-icon look (white rounded-rect + scan-corner marks) matching screenshots
+- ✅ `OnboardingScreen` ⚡ row: `iconContainerColor` `primary` → `primaryContainer` (light tonal blue container, dark bolt via `onPrimaryContainer`)
+- ✅ `OnboardingScreen` ★ row: `iconContainerColor` `Color(0x1AF59B0B)` (10% opacity, near-invisible) → `Color(0xFFFEF3C7)` (opaque light amber, Tailwind amber-100 equivalent)
+- ✅ `OnboardingScreen` `ValuePropRow` description: `onSurface` (near-black) → `onSurfaceVariant` (medium gray, lighter than title, matching screenshots)
+
 **Pending optional fix (low priority):**
 - `CardDetailSheet.kt` `gradeRoiSellValue` null inside Pro branch: `"$${...}"` null case → `$—` display. Fix: `card.gradeRoiSellValue?.let { "${"%.0f".format(it)}" } ?: "—"`
 
@@ -192,6 +198,10 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 | `testOptions { unitTests.isReturnDefaultValues = true }` in `build.gradle.kts` | `android.util.Log` stubs throw `RuntimeException("Stub!")` in JVM unit tests by default. This flag makes all android stubs return zero/null/false — required for tests that exercise code paths with `Log.w()` (e.g., `CollectionRepository` catch blocks). |
 | Test library aliases in `libs.versions.toml` | `build.gradle.kts` referenced `libs.test.junit/mockk/coroutines` but the toml had no such entries. All test builds failed with unresolved reference. Entries must be declared explicitly — not auto-generated from `testImplementation()` calls. |
 | Adaptive icon XML (not PNG raster) for app icon | Vector adaptive icon scales perfectly on all densities, no need for multiple mipmap-* PNG assets. `minSdk=26` guarantees adaptive icon support. Pokéball + scan-beam design conveys app purpose at a glance. |
+| `Box(clip+background)` wraps `ic_launcher_foreground` in both Onboarding + SignIn screens | `ic_launcher_foreground` includes the Pokéball + scan-corner marks but has no background. Wrapping in a `Box` with `#FAFAFA` background + `RoundedCornerShape(16dp)` gives the adaptive-icon look (white rounded-rect container) matching the prototype. Modifier order `clip → background` required: clip creates shape boundary, background fills it; children also clipped to rounded rect. |
+| `OnboardingScreen` ⚡ row uses `primaryContainer` not `primary` | `primary` (solid blue) made the first feature row too heavy. `primaryContainer` gives the light tonal blue shown in the prototype. `Surface(color=primaryContainer)` sets `LocalContentColor = onPrimaryContainer` (dark navy); emoji ⚡ renders with native color regardless, but container contrast is correct. |
+| `OnboardingScreen` ★ row uses `Color(0xFFFEF3C7)` (fully opaque light amber) | Previous `Color(0x1AF59B0B)` at 10% opacity was near-invisible on white background. `0xFFFEF3C7` is Tailwind amber-100 equivalent — fully opaque, warm, and readable. `iconColor = Color(0xFFF59B0B)` explicitly sets gold star regardless of `LocalContentColor` from the custom-color Surface. |
+| `ValuePropRow` description uses `onSurfaceVariant` not `onSurface` | `onSurface` in Material3 is near-black — made description same visual weight as title. Prototype shows descriptions as clearly lighter secondary text. `onSurfaceVariant` (medium gray) gives correct two-level hierarchy. Was previously changed to `onSurface` for contrast; reverted to match prototype after pixel comparison. |
 
 ---
 
