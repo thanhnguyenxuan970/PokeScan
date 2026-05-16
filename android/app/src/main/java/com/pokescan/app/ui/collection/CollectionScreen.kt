@@ -55,6 +55,25 @@ fun CollectionScreen(
 ) {
     val cards by viewModel.cards.collectAsStateWithLifecycle()
     var showSignOutDialog by remember { mutableStateOf(false) }
+    var showAuthSignOutDialog by remember { mutableStateOf(false) }
+
+    if (showAuthSignOutDialog) {
+        AlertDialog(
+            onDismissRequest = { showAuthSignOutDialog = false },
+            title = { Text("Sign out?") },
+            text = { Text("Your collection is saved to your account and will be available when you sign back in.") },
+            confirmButton = {
+                TextButton(onClick = { showAuthSignOutDialog = false; onSignOut() }) {
+                    Text("Sign Out", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAuthSignOutDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
 
     if (showSignOutDialog) {
         AlertDialog(
@@ -78,7 +97,7 @@ fun CollectionScreen(
         TopAppBar(
             title = { Text("Collection") },
             actions = {
-                IconButton(onClick = { if (isGuest) showSignOutDialog = true else onSignOut() }) {
+                IconButton(onClick = { if (isGuest) showSignOutDialog = true else showAuthSignOutDialog = true }) {
                     Icon(Icons.Default.Logout, contentDescription = "Sign out")
                 }
             },
