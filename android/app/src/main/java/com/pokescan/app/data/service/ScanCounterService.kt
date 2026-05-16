@@ -24,7 +24,7 @@ class ScanCounterService @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     companion object {
-        const val FREE_MONTHLY_LIMIT = 20
+        const val FREE_MONTHLY_LIMIT = 10
     }
 
     private val mutex = Mutex()

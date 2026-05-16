@@ -39,6 +39,10 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 
 **Status note:** Firebase Google Sign-In unblocked. Real `google-services.json` with OAuth client in place. `strings.xml` placeholder removed. Debug cleartext HTTP override added for physical device. **Remaining user action**: add `DEBUG_BASE_URL=http://<LAN-IP>:8000/` to `android/local.properties`, then rebuild + reinstall.
 
+**Completed this session (2026-05-16) — Mock scan flow + scan limit reduction:**
+- ✅ `ScannerViewModel.kt` — `startScan()` replaced with 1.8s mock delay → random card from `MOCK_CARDS` (Charizard ex / Pikachu ex / Mewtwo ex); `isProcessing = true` set before `ScanState.Scanning` to close OCR race window; mock card gets fresh UUID + timestamps via `.copy()`; `scanCounterService.recordScan()` + `saveLocal()` fire-and-forget wired same as real pipeline; `CardLanguage` + `PriceSource` imports added; `onFrameAnalyzed()` preserved intact (real pipeline blocked by `isProcessing` flag; camera stays live)
+- ✅ `ScanCounterService.kt` — `FREE_MONTHLY_LIMIT` changed from 20 → 10; paywall triggers on 11th scan attempt
+
 **Completed this session (2026-05-16) — Camera permission + preview fixes:**
 - ✅ `CameraPreviewComposable.kt` — full CameraX setup moved into `factory` block (runs once, not on every recompose); `onSurfaceProviderReady` callback removed; `ProcessCameraProvider` future `remember`-ed; self-contained composable, no external wiring needed
 - ✅ `ScannerScreen.kt` — runtime `CAMERA` permission request added via `rememberLauncherForActivityResult(RequestPermission)`; auto-requested on first screen entry via `LaunchedEffect("permission")`; all scanner UI (preview + reticle + counter + scan button + snackbar + sheet) gated behind `hasCameraPermission`; permission-denied state shows full-screen fallback ("Camera access required" + "Grant Permission" button, no reticle overlay obscuring it)
@@ -546,6 +550,10 @@ Env flags:
 | `scanJob` holds the 5s timeout — `onFrameAnalyzed` cancels it on successful OCR | Single `scanJob` variable simplifies `resetScan()` (one cancel covers both timeout and in-progress scan). `onFrameAnalyzed` cancels the timeout coroutine before launching `fetchPrice` — prevents false `NoCardDetected` event after a successful identification. |
 | `@Volatile isProcessing` flag instead of channel/mutex | ML Kit analyzer and `onFrameAnalyzed` both run on main executor (single thread). `@Volatile` provides JVM visibility guarantee without Mutex overhead. State guard (`!is Scanning`) handles the semantic invariant; `isProcessing` handles the in-flight pricing call guard. |
 | `isProcessing = false` in `finally` block of pricing coroutine | Ensures flag is always reset even if `fetchPrice` throws or the coroutine is cancelled mid-way. Without `finally`, a cancelled coroutine leaves `isProcessing = true` permanently — scanner never recovers. |
+| `isProcessing = true` set BEFORE `_state.value = ScanState.Scanning` in mock `startScan()` | ML Kit executor and viewModelScope run on different threads. Setting `isProcessing` after the state change leaves a nanosecond window where `onFrameAnalyzed` sees `state=Scanning` + `isProcessing=false` and enters the real OCR pipeline. Setting it first closes that window completely. |
+| Mock `startScan()` uses `MOCK_CARDS.random().copy(id=UUID, scannedAt=now, priceUpdatedAt=now)` | MOCK_CARDS is a static `companion object` list. IDs in the list are fixed placeholders (`"mock-charizard"` etc.). `.copy()` generates a fresh UUID per scan — prevents Room from upsert-deduplicating all Charizard scans into one record. |
+| `FREE_MONTHLY_LIMIT` reduced 20 → 10 | Tighter free-tier gate to drive Pro conversion earlier. Single constant change; `canScan()` and `recordScan()` reference it directly — no other changes needed. |
+| `onFrameAnalyzed()` preserved intact during mock phase | Real OCR pipeline code stays in place for when backend is integrated. `isProcessing = true` during mock delay blocks it from executing. Zero dead-code removal — easy to restore real pipeline by removing mock `startScan()` body. |
 
 ---
 
