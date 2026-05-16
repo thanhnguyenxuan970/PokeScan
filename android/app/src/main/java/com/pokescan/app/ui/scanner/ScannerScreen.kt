@@ -102,7 +102,7 @@ fun ScannerScreen(
         if (hasCameraPermission) {
             CameraPreview(
                 modifier = Modifier.fillMaxSize(),
-                onTextDetected = { lines -> viewModel.onFrameAnalyzed(lines) },
+                onTextDetected = {},
             )
             ReticleOverlay(state = state, modifier = Modifier.fillMaxSize())
             ScanCounterPill(

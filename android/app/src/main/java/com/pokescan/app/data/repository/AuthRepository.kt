@@ -5,6 +5,7 @@ import com.pokescan.app.data.local.SecureStorage
 import com.pokescan.app.data.local.dao.CardRecordDao
 import com.pokescan.app.data.remote.ApiService
 import com.pokescan.app.data.remote.dto.GoogleSignInRequest
+import com.pokescan.app.data.service.ScanCounterService
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -16,6 +17,7 @@ class AuthRepository @Inject constructor(
     private val secureStorage: SecureStorage,
     private val cardRecordDao: CardRecordDao,
     private val googleSignInClient: GoogleSignInClient,
+    private val scanCounterService: ScanCounterService,
 ) {
     suspend fun signInWithGoogle(idToken: String) {
         val response = apiService.signInWithGoogle(GoogleSignInRequest(idToken))
@@ -25,6 +27,7 @@ class AuthRepository @Inject constructor(
     suspend fun signOut() {
         secureStorage.clearToken()
         cardRecordDao.deleteAll()
+        scanCounterService.resetCount()
         suspendCancellableCoroutine<Unit> { cont ->
             googleSignInClient.signOut().addOnCompleteListener { cont.resume(Unit) }
         }

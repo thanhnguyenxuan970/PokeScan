@@ -49,6 +49,13 @@ class ScanCounterService @Inject constructor(
         }
     }
 
+    suspend fun resetCount() {
+        context.scanDataStore.edit { prefs ->
+            prefs[SCAN_COUNT_KEY] = 0
+            prefs[SCAN_RESET_DATE_KEY] = System.currentTimeMillis()
+        }
+    }
+
     private suspend fun resetIfNewMonth() {
         val storedMs = context.scanDataStore.data.first()[SCAN_RESET_DATE_KEY] ?: 0L
         val stored = Calendar.getInstance().apply { timeInMillis = storedMs }
