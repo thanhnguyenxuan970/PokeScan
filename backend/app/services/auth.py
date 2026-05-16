@@ -41,16 +41,23 @@ async def verify_apple_token(identity_token: str) -> str:
 
 async def verify_google_token(id_token: str) -> str:
     """Verifies Google ID token. Returns stable Google user ID (sub). Raises ValueError on failure."""
-    try:
-        info = await asyncio.to_thread(
-            google_id_token.verify_oauth2_token,
-            id_token,
-            google_transport.Request(_http),
-            settings.google_client_id,
-        )
-        return info["sub"]
-    except Exception as exc:
-        raise ValueError(f"Invalid Google ID token: {exc}") from exc
+    last_exc: Exception | None = None
+    for attempt in range(2):
+        try:
+            info = await asyncio.to_thread(
+                google_id_token.verify_oauth2_token,
+                id_token,
+                google_transport.Request(_http),
+                settings.google_client_id,
+            )
+            return info["sub"]
+        except ValueError:
+            raise  # bad token or wrong audience — no retry
+        except Exception as exc:
+            last_exc = exc
+            if attempt == 0:
+                await asyncio.sleep(0.3)
+    raise ValueError(f"Google token verification failed: {last_exc}") from last_exc
 
 
 def create_server_token(apple_user_id: str) -> str:
