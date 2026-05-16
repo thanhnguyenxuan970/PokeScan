@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-16, auth 401 fix + real OCR scan pipeline)
+## Android Migration Status (updated 2026-05-16, mock scan bypass + scan count reset fix)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -26,7 +26,12 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 | A4 | Full features — networking, collection, billing, paywall | `android/` (10 new + 8 modified), `backend/app/routers/auth.py` | ✅ Done |
 | A5 | Polish — ProGuard, navigation gating, permission rationale | `android/` (1 new + 9 modified) | ✅ Done |
 
-### Next Session — Android (updated 2026-05-16, auth 401 + real scan pipeline)
+### Next Session — Android (updated 2026-05-16, mock scan bypass + scan count reset fix)
+
+**Completed this session (2026-05-16) — Mock scan bypass + scan count state leak fix:**
+- ✅ `android/.../ScannerScreen.kt` — `onTextDetected = {}` (no-op lambda); real ML Kit OCR frames no longer forwarded to ViewModel; only `startScan()` 1.8s mock path runs; eliminates `NoCardDetected` snackbar from real OCR interference
+- ✅ `android/.../ScanCounterService.kt` — `suspend fun resetCount()` added; writes `SCAN_COUNT_KEY = 0` + `SCAN_RESET_DATE_KEY = now` to DataStore; called on sign-out to prevent counter bleed across sessions
+- ✅ `android/.../AuthRepository.kt` — `ScanCounterService` injected via constructor; `signOut()` now calls `scanCounterService.resetCount()` before Google session clear; covers both auth user logout and guest sign-out paths (NavGraph `handleSignOut` routes both through `authRepository.signOut()`)
 
 **Completed this session (2026-05-16) — Auth 401 fix + real OCR scan pipeline:**
 - ✅ `backend/app/services/auth.py` — `verify_google_token()` wrapped in retry loop (max 2 attempts, 300ms sleep); only non-ValueError transport errors are retried; `ValueError` (bad token) still immediate 401; fixes cold urllib3 pool causing 401 on first sign-in after backend startup
@@ -554,6 +559,9 @@ Env flags:
 | Mock `startScan()` uses `MOCK_CARDS.random().copy(id=UUID, scannedAt=now, priceUpdatedAt=now)` | MOCK_CARDS is a static `companion object` list. IDs in the list are fixed placeholders (`"mock-charizard"` etc.). `.copy()` generates a fresh UUID per scan — prevents Room from upsert-deduplicating all Charizard scans into one record. |
 | `FREE_MONTHLY_LIMIT` reduced 20 → 10 | Tighter free-tier gate to drive Pro conversion earlier. Single constant change; `canScan()` and `recordScan()` reference it directly — no other changes needed. |
 | `onFrameAnalyzed()` preserved intact during mock phase | Real OCR pipeline code stays in place for when backend is integrated. `isProcessing = true` during mock delay blocks it from executing. Zero dead-code removal — easy to restore real pipeline by removing mock `startScan()` body. |
+| `onTextDetected = {}` in `ScannerScreen` (no-op lambda) | Real `onFrameAnalyzed()` pipeline was running in parallel with mock `startScan()` — could emit `NoCardDetected` snackbar or preempt mock result by cancelling `scanJob`. Disconnect at call site (ScannerScreen) rather than in ViewModel to keep ViewModel wiring intact for future real-pipeline restore. ML Kit still runs frames inside CameraPreviewComposable (unavoidable at this layer) but results are silently discarded. |
+| `resetCount()` not guarded by mutex in `ScanCounterService` | `canScan()` / `recordScan()` use mutex for read-check-write atomicity. `resetCount()` is only called from `signOut()` which kills the scanner coroutine scope first — no concurrent `recordScan()` in flight. DataStore serializes writes internally preventing corruption. Adding mutex would be over-engineering for this call pattern. |
+| `scanCounterService.resetCount()` in `AuthRepository.signOut()` (not NavGraph) | Counter reset is a data-layer concern — keeping it in the repository matches existing pattern (`cardRecordDao.deleteAll()` and `secureStorage.clearToken()` are also in `signOut()`). NavGraph's `handleSignOut` routes both authenticated and guest sign-out through `authRepository.signOut()`, so single callsite covers both cases. |
 
 ---
 
