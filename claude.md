@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-15, mock scan flow + CardDetailSheet bugfixes)
+## Android Migration Status (updated 2026-05-16, logout UX + auth persistence fixes)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -29,6 +29,10 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 ### Next Session — Android (updated 2026-05-15, physical device auth fix)
 
 **Status note:** Firebase Google Sign-In unblocked. Real `google-services.json` with OAuth client in place. `strings.xml` placeholder removed. Debug cleartext HTTP override added for physical device. **Remaining user action**: add `DEBUG_BASE_URL=http://<LAN-IP>:8000/` to `android/local.properties`, then rebuild + reinstall.
+
+**Completed this session (2026-05-16) — Logout UX + Auth Persistence fixes:**
+- ✅ `CollectionScreen.kt` — `showAuthSignOutDialog` state added; new `AlertDialog` for authenticated users ("Your collection is saved to your account...") with "Sign Out" (error color) + "Cancel"; logout `IconButton` now routes to this dialog instead of calling `onSignOut()` directly; guest path unchanged
+- ✅ `AuthRepository.kt` — `GoogleSignInClient` injected into constructor (Hilt auto-wires from existing `@Singleton` in `AuthModule`); `signOut()` now calls `googleSignInClient.signOut()` via `suspendCancellableCoroutine` before returning — Google session cleared on logout, account picker shown on next sign-in attempt
 
 **Completed this session (2026-05-15) — Physical device Google Auth fix:**
 - ✅ `android/app/src/debug/res/xml/network_security_config.xml` created — `<base-config cleartextTrafficPermitted="true">` allows cleartext HTTP to any host in debug builds; source-set overlay replaces main config for debug, release unaffected
@@ -495,6 +499,15 @@ Env flags:
 | Network classification applied to `task.result` catch (not just backend catch) | `task.result` throws `ApiException` on network failure at Google Sign-In layer — same IOException class, same message patterns. Without classification, device network errors surfaced as raw `ApiException` message at the first catch block before reaching the backend catch. |
 | `onViewCollection` → `onSaveToCollection` rename across 3 files | Callback name must match button label. After label reverted to "Save to Collection", `onViewCollection` was semantically wrong and would confuse future readers tracing the nav callback. Renamed in `CardDetailSheet`, `ScannerScreen`, `NavGraph`. |
 | `src/debug/res/xml/network_security_config.xml` with `<base-config cleartextTrafficPermitted="true">` | Physical device can't reach `10.0.2.2:8000` (emulator-only address). LAN IPs (192.168.x.x) were also blocked by the main `network_security_config.xml` (only 3 explicit hosts allowed cleartext). Debug source-set overlay replaces the main config for debug builds — release stays HTTPS-only. |
+
+## Key Decisions Made (Logout UX + Auth Persistence 2026-05-16)
+
+| Decision | Rationale |
+|---|---|
+| Auth-user confirmation dialog separate from guest dialog | Guest dialog ("cards will be lost") needs "Create Account" CTA — not appropriate for authenticated users. Authenticated dialog ("collection is saved") reassures instead of warns. Two dialogs, two messages, same `onSignOut()` callback. |
+| `GoogleSignInClient.signOut()` via `suspendCancellableCoroutine` (no new dep) | `kotlinx-coroutines-play-services` (provides `Task.await()`) is not in the project. `suspendCancellableCoroutine` wrapping `addOnCompleteListener` achieves the same result with zero new dependencies. `cont.resume(Unit)` is safe on a cancelled continuation — no-op. |
+| `GoogleSignInClient` injected into `AuthRepository` (not called in NavGraph) | Logout is a repository-layer concern. Calling `googleSignInClient.signOut()` in `NavGraph.handleSignOut` (UI layer) would leak Google API knowledge into navigation. `AuthModule` already provides `@Singleton GoogleSignInClient` — Hilt auto-wires with no changes to `AuthModule`. |
+| `showAuthSignOutDialog` only triggers when `!isGuest` | Existing `showSignOutDialog` path for guests is unchanged. If `isGuest` check logic changes in future, both dialogs stay independent and correct without cross-coupling. |
 
 ---
 
