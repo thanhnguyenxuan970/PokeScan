@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-16, logout UX + auth persistence fixes)
+## Android Migration Status (updated 2026-05-16, camera permission + preview fixes)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -29,6 +29,10 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 ### Next Session — Android (updated 2026-05-15, physical device auth fix)
 
 **Status note:** Firebase Google Sign-In unblocked. Real `google-services.json` with OAuth client in place. `strings.xml` placeholder removed. Debug cleartext HTTP override added for physical device. **Remaining user action**: add `DEBUG_BASE_URL=http://<LAN-IP>:8000/` to `android/local.properties`, then rebuild + reinstall.
+
+**Completed this session (2026-05-16) — Camera permission + preview fixes:**
+- ✅ `CameraPreviewComposable.kt` — full CameraX setup moved into `factory` block (runs once, not on every recompose); `onSurfaceProviderReady` callback removed; `ProcessCameraProvider` future `remember`-ed; self-contained composable, no external wiring needed
+- ✅ `ScannerScreen.kt` — runtime `CAMERA` permission request added via `rememberLauncherForActivityResult(RequestPermission)`; auto-requested on first screen entry via `LaunchedEffect("permission")`; all scanner UI (preview + reticle + counter + scan button + snackbar + sheet) gated behind `hasCameraPermission`; permission-denied state shows full-screen fallback ("Camera access required" + "Grant Permission" button, no reticle overlay obscuring it)
 
 **Completed this session (2026-05-16) — Logout UX + Auth Persistence fixes:**
 - ✅ `CollectionScreen.kt` — `showAuthSignOutDialog` state added; new `AlertDialog` for authenticated users ("Your collection is saved to your account...") with "Sign Out" (error color) + "Cancel"; logout `IconButton` now routes to this dialog instead of calling `onSignOut()` directly; guest path unchanged
@@ -499,6 +503,16 @@ Env flags:
 | Network classification applied to `task.result` catch (not just backend catch) | `task.result` throws `ApiException` on network failure at Google Sign-In layer — same IOException class, same message patterns. Without classification, device network errors surfaced as raw `ApiException` message at the first catch block before reaching the backend catch. |
 | `onViewCollection` → `onSaveToCollection` rename across 3 files | Callback name must match button label. After label reverted to "Save to Collection", `onViewCollection` was semantically wrong and would confuse future readers tracing the nav callback. Renamed in `CardDetailSheet`, `ScannerScreen`, `NavGraph`. |
 | `src/debug/res/xml/network_security_config.xml` with `<base-config cleartextTrafficPermitted="true">` | Physical device can't reach `10.0.2.2:8000` (emulator-only address). LAN IPs (192.168.x.x) were also blocked by the main `network_security_config.xml` (only 3 explicit hosts allowed cleartext). Debug source-set overlay replaces the main config for debug builds — release stays HTTPS-only. |
+
+## Key Decisions Made (Camera permission + preview 2026-05-16)
+
+| Decision | Rationale |
+|---|---|
+| `CameraPreview` self-contained — no `onSurfaceProviderReady` callback | Callback was invoked in `update` block which fires every recomposition → repeated `bindToLifecycle` calls → flicker. Moving full CameraX setup into `factory` (runs once per `AndroidView` lifetime) eliminates the re-bind bug at the correct layer. |
+| `ProcessCameraProvider` future wrapped in `remember` | `ProcessCameraProvider.getInstance(context)` starts an async initialization. `remember` ensures it's created once per composition entry, not on every recompose. |
+| All scanner UI gated behind `hasCameraPermission` (not just `CameraPreview`) | Showing reticle overlay + scan button over a permission-denied message creates confusing UI — dim overlay obscures the message. Gating all scanner composables together gives a clean full-screen fallback with no visual conflicts. |
+| Permission auto-requested via `LaunchedEffect("permission")` on screen entry | Named key `"permission"` distinguishes it from the event-collector `LaunchedEffect(Unit)` at the same composable level — clearer intent, no ambiguity about which effect fires for what. |
+| `hasCameraPermission` re-evaluated on every composition entry (via `remember { mutableStateOf(checkSelfPermission(...)) }`) | If user grants permission in Settings and navigates back, `remember` resets and `checkSelfPermission` re-reads the current OS state — no re-prompt needed, preview shows immediately on return. |
 
 ## Key Decisions Made (Logout UX + Auth Persistence 2026-05-16)
 
