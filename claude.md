@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-16, camera permission + preview fixes)
+## Android Migration Status (updated 2026-05-16, auth 401 fix + real OCR scan pipeline)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -25,6 +25,15 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 | A3 | Scanner — CameraX, ML Kit, ScannerViewModel, ScannerScreen | `android/` (7 new + 2 modified) | ✅ Done |
 | A4 | Full features — networking, collection, billing, paywall | `android/` (10 new + 8 modified), `backend/app/routers/auth.py` | ✅ Done |
 | A5 | Polish — ProGuard, navigation gating, permission rationale | `android/` (1 new + 9 modified) | ✅ Done |
+
+### Next Session — Android (updated 2026-05-16, auth 401 + real scan pipeline)
+
+**Completed this session (2026-05-16) — Auth 401 fix + real OCR scan pipeline:**
+- ✅ `backend/app/services/auth.py` — `verify_google_token()` wrapped in retry loop (max 2 attempts, 300ms sleep); only non-ValueError transport errors are retried; `ValueError` (bad token) still immediate 401; fixes cold urllib3 pool causing 401 on first sign-in after backend startup
+- ✅ `android/.../AuthInterceptor.kt` — Bearer token no longer attached to `/auth/*` endpoints; guard: `token != null && !encodedPath.contains("/auth/")`; defensive fix per Key Decision
+- ✅ `android/.../ScannerScreen.kt` — permanent permission denial handled: launcher callback checks `shouldShowRequestPermissionRationale()` after denial; if permanently denied → "Open Settings" button deep-links to app settings; if soft denial → "Grant Permission" button (existing behavior)
+- ✅ `android/.../CameraPreviewComposable.kt` — real `ImageAnalysis` use case added alongside `Preview`; ML Kit `TextRecognition` client created via `remember` + closed via `DisposableEffect.onDispose`; `STRATEGY_KEEP_ONLY_LATEST` backpressure; `proxy.close()` in `addOnCompleteListener`; `onTextDetected: (List<String>) -> Unit` callback parameter wired to ViewModel
+- ✅ `android/.../ScannerViewModel.kt` — mock Charizard replaced with real pipeline: `CardIdentificationService` + `PricingService` injected; `startScan()` sets 5s timeout in `scanJob`; `onFrameAnalyzed(lines)` called per frame with `isProcessing` flag guard; successful OCR → cancel timeout → `fetchPrice` → `ScanState.Result`; `NoCardDetected` on timeout or pricing error; scan counter + saveLocal unchanged
 
 ### Next Session — Android (updated 2026-05-15, physical device auth fix)
 
@@ -522,6 +531,21 @@ Env flags:
 | `GoogleSignInClient.signOut()` via `suspendCancellableCoroutine` (no new dep) | `kotlinx-coroutines-play-services` (provides `Task.await()`) is not in the project. `suspendCancellableCoroutine` wrapping `addOnCompleteListener` achieves the same result with zero new dependencies. `cont.resume(Unit)` is safe on a cancelled continuation — no-op. |
 | `GoogleSignInClient` injected into `AuthRepository` (not called in NavGraph) | Logout is a repository-layer concern. Calling `googleSignInClient.signOut()` in `NavGraph.handleSignOut` (UI layer) would leak Google API knowledge into navigation. `AuthModule` already provides `@Singleton GoogleSignInClient` — Hilt auto-wires with no changes to `AuthModule`. |
 | `showAuthSignOutDialog` only triggers when `!isGuest` | Existing `showSignOutDialog` path for guests is unchanged. If `isGuest` check logic changes in future, both dialogs stay independent and correct without cross-coupling. |
+
+## Key Decisions Made (Auth 401 + Real Scan Pipeline 2026-05-16)
+
+| Decision | Rationale |
+|---|---|
+| Retry loop (max 2, 300ms sleep) in `verify_google_token` — only on non-`ValueError` exceptions | Cold urllib3 pool on backend startup causes transient `TransportError` on first JWKS cert fetch → 401. Retry once with warm pool succeeds. `ValueError` (bad token, wrong audience) is never transient — retry would be wrong and delay the error. |
+| `AuthInterceptor` guards Bearer from `/auth/*` endpoints | `POST /auth/google` ignores the header, but attaching a token to the endpoint that issues tokens is semantically wrong. Consistent with existing 401-event guard (`contains("auth/")`). No functional change; defensive correctness. |
+| Permission permanent-denial detected via `shouldShowRequestPermissionRationale()` in launcher callback | After "Don't ask again", `launch()` silently does nothing — button appears active but is dead. `shouldShowRequestPermissionRationale()` returning `false` after a denial is the only reliable signal for permanent denial on Android. Settings deep-link is the only recovery path. |
+| `context as? Activity ?: return@rememberLauncherForActivityResult` — nullable cast in permission callback | `LocalContext.current` in `ComponentActivity`-hosted composables is always the `Activity`. Nullable cast + early return is defensive for edge cases (ContextWrapper, testing) without crashing. |
+| `TextRecognizer` created via `remember` + closed via `DisposableEffect.onDispose` | `remember` ensures single instance per composable lifetime. `DisposableEffect` guarantees `close()` when composable leaves composition — prevents resource leak across multiple scanner screen entries. |
+| `STRATEGY_KEEP_ONLY_LATEST` for `ImageAnalysis` backpressure | Camera produces frames faster than ML Kit can process them. `KEEP_ONLY_LATEST` drops stale frames so ML Kit always processes the most recent one — no queue buildup, no latency creep. |
+| `proxy.close()` in `addOnCompleteListener` (not `addOnSuccessListener`) | `addOnSuccessListener` only fires on success. A failure (e.g., ML Kit internal error) would skip the listener and never close `ImageProxy` — blocking the analyzer pipeline. `addOnCompleteListener` fires always. |
+| `scanJob` holds the 5s timeout — `onFrameAnalyzed` cancels it on successful OCR | Single `scanJob` variable simplifies `resetScan()` (one cancel covers both timeout and in-progress scan). `onFrameAnalyzed` cancels the timeout coroutine before launching `fetchPrice` — prevents false `NoCardDetected` event after a successful identification. |
+| `@Volatile isProcessing` flag instead of channel/mutex | ML Kit analyzer and `onFrameAnalyzed` both run on main executor (single thread). `@Volatile` provides JVM visibility guarantee without Mutex overhead. State guard (`!is Scanning`) handles the semantic invariant; `isProcessing` handles the in-flight pricing call guard. |
+| `isProcessing = false` in `finally` block of pricing coroutine | Ensures flag is always reset even if `fetchPrice` throws or the coroutine is cancelled mid-way. Without `finally`, a cancelled coroutine leaves `isProcessing = true` permanently — scanner never recovers. |
 
 ---
 

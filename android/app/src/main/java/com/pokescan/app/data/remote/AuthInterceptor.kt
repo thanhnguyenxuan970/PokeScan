@@ -20,7 +20,7 @@ class AuthInterceptor @Inject constructor(
             chain.request()
         }
         val response = chain.proceed(request)
-        if (response.code == 401 && !request.url.encodedPath.contains("auth/")) {
+        if (response.code == 401 && !request.url.encodedPath.contains("/auth/")) {
             secureStorage.clearToken()
             authEventBus.emitUnauthorized()
         }

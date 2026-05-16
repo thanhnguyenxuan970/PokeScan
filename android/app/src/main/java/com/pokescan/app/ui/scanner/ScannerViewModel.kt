@@ -81,6 +81,7 @@ class ScannerViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val card = pricingService.fetchPrice(identified, billingRepository.isPro.value)
+                if (_state.value !is ScanState.Scanning) return@launch
                 _state.value = ScanState.Result(card)
                 scanCounterService.recordScan(isPro = billingRepository.isPro.value)
                 viewModelScope.launch {
@@ -98,6 +99,7 @@ class ScannerViewModel @Inject constructor(
 
     fun resetScan() {
         scanJob?.cancel()
+        isProcessing = false
         _state.value = ScanState.Idle
     }
 
