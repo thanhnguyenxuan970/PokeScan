@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -174,6 +175,10 @@ private fun ScanButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier,
+        colors = ButtonDefaults.buttonColors(
+            disabledContainerColor = Color.White.copy(alpha = 0.15f),
+            disabledContentColor = Color.White.copy(alpha = 0.75f),
+        ),
     ) {
         Text(label, fontWeight = FontWeight.SemiBold)
     }
