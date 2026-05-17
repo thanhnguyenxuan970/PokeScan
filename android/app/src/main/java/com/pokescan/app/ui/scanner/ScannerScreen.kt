@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -61,13 +62,14 @@ fun ScannerScreen(
             .fillMaxSize()
             .background(Color(0xFF0A0A0A)),
     ) {
-        ReticleOverlay(state = state, modifier = Modifier.fillMaxSize().padding(bottom = 96.dp))
+        ReticleOverlay(state = state, modifier = Modifier.fillMaxSize().padding(top = 80.dp, bottom = 96.dp))
         ScanCounterPill(
             scansUsed = scansThisMonth,
             limit = ScanCounterService.FREE_MONTHLY_LIMIT,
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(top = 60.dp, start = 16.dp),
+                .statusBarsPadding()
+                .padding(top = 8.dp, start = 16.dp),
         )
         ScanButton(
             state = state,

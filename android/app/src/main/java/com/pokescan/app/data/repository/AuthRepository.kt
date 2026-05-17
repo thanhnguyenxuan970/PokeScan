@@ -10,6 +10,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 
 @Singleton
 class AuthRepository @Inject constructor(
@@ -26,12 +27,14 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun signOut() {
-        collectionRepository.pushPending()   // push while token is still valid
+        withTimeoutOrNull(3_000L) { collectionRepository.pushPending() }
         secureStorage.clearToken()
-        cardRecordDao.deleteAllSynced()
+        cardRecordDao.deleteAll()
         scanCounterService.resetCount()
-        suspendCancellableCoroutine<Unit> { cont ->
-            googleSignInClient.signOut().addOnCompleteListener { cont.resume(Unit) }
+        withTimeoutOrNull(2_000L) {
+            suspendCancellableCoroutine<Unit> { cont ->
+                googleSignInClient.signOut().addOnCompleteListener { cont.resume(Unit) }
+            }
         }
     }
 }
