@@ -18,6 +18,7 @@ class AuthRepository @Inject constructor(
     private val cardRecordDao: CardRecordDao,
     private val googleSignInClient: GoogleSignInClient,
     private val scanCounterService: ScanCounterService,
+    private val collectionRepository: CollectionRepository,
 ) {
     suspend fun signInWithGoogle(idToken: String) {
         val response = apiService.signInWithGoogle(GoogleSignInRequest(idToken))
@@ -25,6 +26,7 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun signOut() {
+        collectionRepository.pushPending()   // push while token is still valid
         secureStorage.clearToken()
         cardRecordDao.deleteAll()
         scanCounterService.resetCount()
