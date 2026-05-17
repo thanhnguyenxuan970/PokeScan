@@ -66,31 +66,27 @@ class CollectionRepository @Inject constructor(
     }
 
     suspend fun pullFromServer() {
-        try {
-            val dtos = apiService.getCollection()
-            for (dto in dtos) {
-                val existing = dao.getByServerId(dto.serverId)
-                val scannedAtMs = try {
-                    Instant.parse(dto.scannedAt).toEpochMilli()
-                } catch (e: Exception) {
-                    System.currentTimeMillis()
-                }
-                val entity = CardRecordEntity(
-                    id = existing?.id ?: UUID.randomUUID().toString(),
-                    name = dto.name,
-                    setCode = dto.setCode ?: "",
-                    setNumber = dto.setNumber ?: "",
-                    language = dto.language,
-                    marketPrice = dto.marketPrice,
-                    priceSource = dto.priceSource,
-                    scannedAt = scannedAtMs,
-                    syncedAt = System.currentTimeMillis(),
-                    serverID = dto.serverId,
-                )
-                dao.upsert(entity)
+        val dtos = apiService.getCollection()
+        for (dto in dtos) {
+            val existing = dao.getByServerId(dto.serverId)
+            val scannedAtMs = try {
+                Instant.parse(dto.scannedAt).toEpochMilli()
+            } catch (e: Exception) {
+                System.currentTimeMillis()
             }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to pull from server: ${e.message}")
+            val entity = CardRecordEntity(
+                id = existing?.id ?: UUID.randomUUID().toString(),
+                name = dto.name,
+                setCode = dto.setCode ?: "",
+                setNumber = dto.setNumber ?: "",
+                language = dto.language,
+                marketPrice = dto.marketPrice,
+                priceSource = dto.priceSource,
+                scannedAt = scannedAtMs,
+                syncedAt = System.currentTimeMillis(),
+                serverID = dto.serverId,
+            )
+            dao.upsert(entity)
         }
     }
 
