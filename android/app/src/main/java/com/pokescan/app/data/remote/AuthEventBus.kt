@@ -1,4 +1,4 @@
-package com.pokescan.app.data.remote
+package com.snapdex.app.data.remote
 
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow

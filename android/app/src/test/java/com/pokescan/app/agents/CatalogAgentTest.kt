@@ -1,10 +1,11 @@
-package com.pokescan.app.agents
+package com.snapdex.app.agents
 
-import com.pokescan.app.data.service.CardIdentificationService
-import com.pokescan.app.data.service.SetDatabaseService
-import com.pokescan.app.data.service.SetResolver
-import com.pokescan.app.domain.model.CardLanguage
-import com.pokescan.app.domain.model.SetEntry
+import com.snapdex.app.data.service.CardIdentificationService
+import com.snapdex.app.data.service.SetDatabaseService
+import com.snapdex.app.data.service.SetResolver
+import com.snapdex.app.data.service.PHashService
+import com.snapdex.app.domain.model.CardLanguage
+import com.snapdex.app.domain.model.SetEntry
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +29,7 @@ class CatalogAgentTest {
 
     private val mockSetDb = mockk<SetDatabaseService>()
     private val resolver = SetResolver()
+    private val mockPHash = mockk<PHashService>(relaxed = true)
     private lateinit var service: CardIdentificationService
 
     private val base1 = SetEntry("base1", "Base Set", total = 102, printedTotal = 102, releaseYear = 1999, series = "Base", language = "english")
@@ -38,7 +40,7 @@ class CatalogAgentTest {
 
     @Before
     fun setUp() {
-        service = CardIdentificationService(mockSetDb, resolver)
+        service = CardIdentificationService(mockSetDb, resolver, mockPHash)
     }
 
     // ---- Reprint disambiguation ----

@@ -11,8 +11,8 @@ final class StoreKitService: ObservableObject {
     @Published var purchasePending: Bool = false
     @Published var purchaseError: String? = nil
 
-    static let proMonthlyID = "com.pokescan.app.pro.monthly"
-    static let proAnnualID  = "com.pokescan.app.pro.annual"
+    static let proMonthlyID = "com.snapdex.app.pro.monthly"
+    static let proAnnualID  = "com.snapdex.app.pro.annual"
 
     private init() {
         Task {

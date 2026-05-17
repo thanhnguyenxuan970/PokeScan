@@ -1,9 +1,9 @@
-package com.pokescan.app.agents
+package com.snapdex.app.agents
 
 import android.content.SharedPreferences
-import com.pokescan.app.config.AppConfig
-import com.pokescan.app.data.local.SecureStorage
-import com.pokescan.app.ui.navigation.Routes
+import com.snapdex.app.config.AppConfig
+import com.snapdex.app.data.local.SecureStorage
+import com.snapdex.app.ui.navigation.Routes
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Assert.assertEquals

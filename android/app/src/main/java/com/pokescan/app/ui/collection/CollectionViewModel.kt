@@ -1,11 +1,11 @@
-package com.pokescan.app.ui.collection
+package com.snapdex.app.ui.collection
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pokescan.app.data.local.SecureStorage
-import com.pokescan.app.data.local.entity.CardRecordEntity
-import com.pokescan.app.data.repository.CollectionRepository
+import com.snapdex.app.data.local.SecureStorage
+import com.snapdex.app.data.local.entity.CardRecordEntity
+import com.snapdex.app.data.repository.CollectionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

@@ -8,7 +8,7 @@ enum AppEnvironment: String {
 
 enum AppConfig {
     static var environment: AppEnvironment {
-        let raw = ProcessInfo.processInfo.environment["POKESCAN_ENV"] ?? "development"
+        let raw = ProcessInfo.processInfo.environment["SNAPDEX_ENV"] ?? "development"
         return AppEnvironment(rawValue: raw) ?? .development
     }
 
@@ -17,14 +17,14 @@ enum AppConfig {
         case .development:
             return URL(string: "http://localhost:8000")!
         case .production:
-            return URL(string: "https://api.pokescan.app")!
+            return URL(string: "https://api.snapdex.app")!
         }
     }
 
     static var visionRecognitionLevel: VNRequestTextRecognitionLevel {
-        ProcessInfo.processInfo.environment["POKESCAN_VISION_FAST"] == "1" ? .fast : .accurate
+        ProcessInfo.processInfo.environment["SNAPDEX_VISION_FAST"] == "1" ? .fast : .accurate
     }
 
-    // Replace REPLACE_ME with real UUID from termly.io before production build
-    static let privacyPolicyURL = URL(string: "https://app.termly.io/policy-viewer/policy.html?policyUUID=REPLACE_ME")!
+    // LAUNCH_BLOCKER: replace REPLACE_ME with real UUID from termly.io before release
+    static let privacyPolicyURL = URL(string: "https://app.termly.io/policy-viewer/policy.html?policyUUID=REPLACE_ME") ?? URL(string: "https://example.com")!
 }

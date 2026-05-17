@@ -1,8 +1,8 @@
-package com.pokescan.app.data.service
+package com.snapdex.app.data.service
 
-import com.pokescan.app.data.remote.ApiService
-import com.pokescan.app.domain.model.Card
-import com.pokescan.app.domain.model.PriceSource
+import com.snapdex.app.data.remote.ApiService
+import com.snapdex.app.domain.model.Card
+import com.snapdex.app.domain.model.PriceSource
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton

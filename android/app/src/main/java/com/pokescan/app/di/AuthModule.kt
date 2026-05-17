@@ -1,10 +1,10 @@
-package com.pokescan.app.di
+package com.snapdex.app.di
 
 import android.content.Context
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.pokescan.app.R
+import com.snapdex.app.R
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

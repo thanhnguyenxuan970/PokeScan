@@ -1,4 +1,4 @@
-package com.pokescan.app.data.service
+package com.snapdex.app.data.service
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit

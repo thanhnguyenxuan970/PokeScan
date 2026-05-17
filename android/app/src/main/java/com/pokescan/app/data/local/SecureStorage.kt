@@ -1,4 +1,4 @@
-package com.pokescan.app.data.local
+package com.snapdex.app.data.local
 
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences

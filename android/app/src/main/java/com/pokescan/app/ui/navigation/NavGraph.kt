@@ -1,4 +1,4 @@
-package com.pokescan.app.ui.navigation
+package com.snapdex.app.ui.navigation
 
 import android.content.SharedPreferences
 import androidx.compose.foundation.layout.padding
@@ -21,14 +21,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.pokescan.app.data.local.SecureStorage
-import com.pokescan.app.data.remote.AuthEventBus
-import com.pokescan.app.data.repository.AuthRepository
-import com.pokescan.app.ui.auth.SignInScreen
-import com.pokescan.app.ui.collection.CollectionScreen
-import com.pokescan.app.ui.onboarding.OnboardingScreen
-import com.pokescan.app.ui.paywall.PaywallScreen
-import com.pokescan.app.ui.scanner.ScannerScreen
+import com.snapdex.app.data.local.SecureStorage
+import com.snapdex.app.data.remote.AuthEventBus
+import com.snapdex.app.data.repository.AuthRepository
+import com.snapdex.app.ui.auth.SignInScreen
+import com.snapdex.app.ui.collection.CollectionScreen
+import com.snapdex.app.ui.onboarding.OnboardingScreen
+import com.snapdex.app.ui.paywall.PaywallScreen
+import com.snapdex.app.ui.scanner.ScannerScreen
 import kotlinx.coroutines.launch
 
 object Routes {

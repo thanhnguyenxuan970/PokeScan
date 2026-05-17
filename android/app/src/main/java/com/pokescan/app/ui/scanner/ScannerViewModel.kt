@@ -1,16 +1,16 @@
-package com.pokescan.app.ui.scanner
+package com.snapdex.app.ui.scanner
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pokescan.app.data.repository.BillingRepository
-import com.pokescan.app.data.repository.CollectionRepository
-import com.pokescan.app.data.service.CardIdentificationService
-import com.pokescan.app.data.service.PricingService
-import com.pokescan.app.data.service.ScanCounterService
-import com.pokescan.app.domain.model.Card
-import com.pokescan.app.domain.model.CardLanguage
-import com.pokescan.app.domain.model.PriceSource
+import com.snapdex.app.data.repository.BillingRepository
+import com.snapdex.app.data.repository.CollectionRepository
+import com.snapdex.app.data.service.CardIdentificationService
+import com.snapdex.app.data.service.PricingService
+import com.snapdex.app.data.service.ScanCounterService
+import com.snapdex.app.domain.model.Card
+import com.snapdex.app.domain.model.CardLanguage
+import com.snapdex.app.domain.model.PriceSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

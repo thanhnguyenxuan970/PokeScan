@@ -1,4 +1,4 @@
-package com.pokescan.app.di
+package com.snapdex.app.di
 
 import dagger.Module
 import dagger.hilt.InstallIn

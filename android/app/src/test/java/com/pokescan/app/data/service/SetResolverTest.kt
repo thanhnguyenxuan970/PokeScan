@@ -1,7 +1,7 @@
-package com.pokescan.app.data.service
+package com.snapdex.app.data.service
 
-import com.pokescan.app.domain.model.CardLanguage
-import com.pokescan.app.domain.model.SetEntry
+import com.snapdex.app.domain.model.CardLanguage
+import com.snapdex.app.domain.model.SetEntry
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test

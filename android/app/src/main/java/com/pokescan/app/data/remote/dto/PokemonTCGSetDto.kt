@@ -1,6 +1,6 @@
-package com.pokescan.app.data.remote.dto
+package com.snapdex.app.data.remote.dto
 
-import com.pokescan.app.domain.model.SetEntry
+import com.snapdex.app.domain.model.SetEntry
 import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)

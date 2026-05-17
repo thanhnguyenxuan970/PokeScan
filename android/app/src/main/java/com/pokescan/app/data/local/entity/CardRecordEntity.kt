@@ -1,11 +1,11 @@
-package com.pokescan.app.data.local.entity
+package com.snapdex.app.data.local.entity
 
 import android.util.Log
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.pokescan.app.domain.model.Card
-import com.pokescan.app.domain.model.CardLanguage
-import com.pokescan.app.domain.model.PriceSource
+import com.snapdex.app.domain.model.Card
+import com.snapdex.app.domain.model.CardLanguage
+import com.snapdex.app.domain.model.PriceSource
 
 @Entity(tableName = "card_records")
 data class CardRecordEntity(

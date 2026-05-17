@@ -39,6 +39,19 @@ Replaces the 5-command manual ADB loop. Run from `android/` directory.
 
 Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
 
+### Next Session — Android (updated 2026-05-18, SnapDex rebrand + pHash + checklist)
+
+**Completed this session (2026-05-18) — SnapDex rebrand + pHash disambiguation + fake detection rewrite:**
+- ✅ **Task 1 (Rebrand):** All 56 `.kt` files: `com.pokescan.app` → `com.snapdex.app` (package + imports). `build.gradle.kts`: namespace + applicationId + release URL + keystore alias. `AndroidManifest.xml`, `strings.xml`, `themes.xml`, `Color.kt`, `Theme.kt`, `SnapDexApplication.kt` updated. iOS: `AppConfig.swift`, `StoreKitService.swift`, `PokeScan.storekit`, `PokeScanApp.swift` updated. Backend: `.env.production.example`. Docs: `CLAUDE.md`, `about_me.md`.
+- ✅ **Task 2 (pHash):** `PHashService.kt` (new) — BT.601 luminance + 8×8 DCT + 64-bit Hamming hash; recycled bitmap guard; memory-safe scaled bitmap recycle. `SetResolver.kt` — `candidates` field on `ResolvedSet`. `CardIdentificationService.kt` — optional `frame: Bitmap?` param + pHash disambiguation path. `backend/scripts/build_phash_db.py` (new). `PHashService.swift` (new) — iOS parity with `[UInt8]` pixel buffer (not `[Float]`). Test files (VisionAgentTest, CatalogAgentTest, NonCardAgentTest, BadDataAgentTest) updated for 3-arg constructor.
+- ✅ **Task 3 (Checklist):** `authenticity.py` rewritten (static 6-item checklist). `detection.py` — new `ChecklistResponse` model, backward-compat `risk_level`/`risk_score` fields. `CardDetailView.swift` — `DisclosureGroup` replaces algorithmic badge. `ChecklistItem.swift` (new). `AuthenticityResult.swift` + `FakeDetectionService.swift` deleted. `PaywallScreen.kt` copy updated.
+- ✅ **Task 4 (Privacy URL guards):** iOS `AppConfig.swift` — non-crashing fallback + `LAUNCH_BLOCKER` comment. Android `AppConfig.kt` — `LAUNCH_BLOCKER` comment. `build.gradle.kts` — `checkPrivacyUrl` Gradle task wired to `assembleRelease`.
+- ✅ **Task 5 (Skill):** `C:\Users\Admin\.claude\skills\audit-against-claude-md.md` created.
+- **[NEEDS USER ACTION]:** Firebase Console: update package name to `com.snapdex.app` → re-download `google-services.json` → replace `android/app/google-services.json`. Without this, Google Sign-In silently fails.
+- **[NEEDS USER ACTION]:** Run `python backend/scripts/build_phash_db.py` (requires `pip install imagehash requests Pillow`) → copy `set_phashes.json` to `android/app/src/main/assets/` and `PokeScan/Resources/`.
+- **[NEEDS USER ACTION]:** Xcode GUI: Project → Target → Build Phases → + → Run Script: `grep -q "REPLACE_ME" "$SRCROOT/PokeScan/Config/AppConfig.swift" && echo "error: Privacy policy URL not configured" && exit 1; exit 0`
+- **Tests: 100 passing (pHash path inactive in all tests — frame=null)**
+
 ### Next Session — Android (updated 2026-05-18, fix server sync + multi-account isolation)
 
 **Completed this session (2026-05-18) — Fix server sync + multi-account isolation (client-side Android only):**
@@ -136,7 +149,7 @@ Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without 
 - ✅ Prototype alignment — `PaywallScreen`: title → "Unlock Pro", feature checklist added (5 items with ✓), close button (X) at top-right, "Not now" button removed, `verticalScroll` added
 - ✅ Dev Login removed — `BuildConfig.DEBUG` "Skip Auth (Dev)" block deleted from `SignInScreen`
 - ✅ Auth bug diagnosed — root cause: `REPLACE_WITH_WEB_CLIENT_ID` placeholder in `strings.xml` → `idToken = null` → never navigates; added Logcat logging to `AuthViewModel` to trace exact failure point; `extraBufferCapacity = 1` prevents nav event drop on slow LaunchedEffect start
-- ✅ Privacy Policy 404 identified — `https://thanhnguyenxuan970.github.io/pokescan-privacy` doesn't exist; URL is correct in `AppConfig.kt`; requires user to create GitHub Pages repo `pokescan-privacy`
+- ✅ Privacy Policy 404 identified — `https://thanhnguyenxuan970.github.io/snapdex-privacy` doesn't exist; URL is correct in `AppConfig.kt`; requires user to create GitHub Pages repo `snapdex-privacy`
 
 **Completed this session (2026-05-14) — Fixes & enhancements:**
 - ✅ Google Sign-in dev bypass — `BuildConfig.DEBUG` "Skip Auth (Dev)" `TextButton` in `SignInScreen`; calls `onAuthSuccess()` directly so full post-login flow testable without Firebase config
@@ -214,7 +227,7 @@ Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without 
 - `strings.xml` `REPLACE_WITH_WEB_CLIENT_ID` placeholder removed — Firebase Gradle plugin now auto-generates `default_web_client_id`
 
 **Step 1a — Privacy Policy** (user action, 15 min)
-- Create GitHub repo `pokescan-privacy` under `thanhnguyenxuan970`, add `index.html` with privacy policy, enable GitHub Pages → URL `https://thanhnguyenxuan970.github.io/pokescan-privacy` goes live (already wired in `AppConfig.kt`)
+- Create GitHub repo `snapdex-privacy` under `thanhnguyenxuan970`, add `index.html` with privacy policy, enable GitHub Pages → URL `https://thanhnguyenxuan970.github.io/snapdex-privacy` goes live (already wired in `AppConfig.kt`)
 
 **Step 1b — local.properties** (if testing on physical device via WSL)
 - Add `DEBUG_BASE_URL=http://<your-LAN-IP>:8000/` to `android/local.properties` (gitignored)
@@ -248,13 +261,13 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 - Update base URL in `NetworkModule.kt` to prod URL
 
 **Step 6 — Release build + signing keystore**
-- Generate keystore (store outside repo): `keytool -genkey -v -keystore ~/pokescan-release.jks ...`
+- Generate keystore (store outside repo): `keytool -genkey -v -keystore ~/snapdex-release.jks ...`
 - Set env vars `KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` (signingConfigs already wired in build.gradle.kts)
 - `./gradlew assembleRelease` — verify R8 clean, no `REPLACE_WITH_*` in APK
 
 **Step 7 — Google Play Console submission** (play.google.com/console)
 - Upload signed AAB; fill store listing + content rating
-- Set up IAPs: `com.pokescan.app.pro.monthly` ($4.99) + `com.pokescan.app.pro.annual` ($39.99)
+- Set up IAPs: `com.snapdex.app.pro.monthly` ($4.99) + `com.snapdex.app.pro.annual` ($39.99)
 
 ### Key Decisions — Android Migration
 
@@ -402,7 +415,7 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 
 ### After All Unblocked
 
-8. **App Store Connect** — create IAP products `com.pokescan.app.pro.monthly` ($4.99/mo) + `com.pokescan.app.pro.annual` ($39.99/yr), subscription group `pokescan_pro`.
+8. **App Store Connect** — create IAP products `com.snapdex.app.pro.monthly` ($4.99/mo) + `com.snapdex.app.pro.annual` ($39.99/yr), subscription group `snapdex_pro`.
 9. **Deploy backend** — `docker-compose up --build` locally → Railway/Fly.io. Run `alembic upgrade head` against prod DB.
 10. **Set `POKESCAN_ENV=production`** in Xcode release scheme before archiving.
 11. **E2E test** — scan real card → price → Grade ROI → result. Test paywall → purchase → Pro unlocks. Scan JP card → eBay-only price.
@@ -499,7 +512,7 @@ Env flags:
 
 | Decision | Rationale |
 |---|---|
-| Auth product IDs derived from `settings.apple_bundle_id` (not hardcoded) | Placeholder used `"com.yourname.pokescan.pro.*"` — wouldn't match iOS client's `"com.pokescan.app.pro.*"`. All Pro purchases would be rejected. Fix reads bundle ID from env var, zero hardcoded strings. |
+| Auth product IDs derived from `settings.apple_bundle_id` (not hardcoded) | Placeholder used `"com.yourname.pokescan.pro.*"` — wouldn't match iOS client's `"com.snapdex.app.pro.*"`. All Pro purchases would be rejected. Fix reads bundle ID from env var, zero hardcoded strings. |
 | Guard `if not settings.apple_bundle_id` before building `valid_ids` | Empty default would produce `{".pro.monthly", ".pro.annual"}` — nonsensical but technically passable by a crafted request. 503 fails loudly on misconfiguration instead of silently degrading. |
 | Docker-compose DB credentials via `${VAR}` (not hardcoded `pokescan/pokescan`) | Hardcoded credentials in docker-compose.yml = plaintext secrets in git. `${VAR}` reads from `.env` at compose time, zero code change for different envs. |
 | TCGPlayer skipped for v1.0 launch | API not self-service — requires email to api@tcgplayer.com, approval takes weeks. eBay-only pricing sufficient for launch. TCGPlayer added post-launch when keys arrive. |
@@ -684,6 +697,25 @@ Env flags:
 | `ScanCounterPill` uses `.statusBarsPadding()` + `padding(top=8.dp)` (was `padding(top=60.dp)`) | Fixed 60dp top padding had no status bar awareness. On edge-to-edge displays, pill was partially behind the status bar. On 640dp screens, reticle top = 58dp, pill bottom = 96dp → 38dp overlap with reticle frame. `statusBarsPadding()` pushes pill below status bar; `padding(top=8.dp)` gives 8dp breathing room. |
 | `ReticleOverlay` gains `padding(top=80.dp)` (was `padding(bottom=96.dp)` only) | Reticle centered in full height minus bottom padding put it too high on small screens, colliding with counter pill. Adding 80dp top padding shifts the reticle center down — 80dp gap filled by the outer Box's dark `0xFF0A0A0A` background (visually identical to dim overlay; no camera preview in mock phase). |
 | `applicationScope` in `AuthRepository` — `CoroutineScope(SupervisorJob() + Dispatchers.IO)` as class field | Google `signOut()` GMS callback is non-critical (only affects account picker on next sign-in). Fire-and-forget via `applicationScope.launch` eliminates 2s blocking from `signOut()`. `SupervisorJob` prevents child failure from cancelling the scope. Lives for process lifetime — idiomatic pattern for `@Singleton` repositories needing app-lifetime scope without a Hilt `@ApplicationScope` module. Push timeout also reduced 3s → 1s (parallelized push completes in <1s on normal connection). Combined: `signOut()` returns in ~1s max (was ~5s). |
+
+---
+
+## Key Decisions Made (SnapDex rebrand + pHash + checklist — 2026-05-18)
+
+| Decision | Rationale |
+|---|---|
+| Kotlin namespace-only rename (`package`/`import` find-replace, no file moves) | Physical directory `java/com/pokescan/app/` retained. Kotlin resolves by `package` declaration, not directory. Avoids filesystem-level rename that breaks KSP/Hilt generated sources mid-build. Requires clean build (`android/app/build/` delete) to flush stale generated code. |
+| `SnapDexApplication` class renamed in-file; physical file renamed separately (`Rename-Item`) | Class inside same physical file. File rename via PowerShell `Rename-Item` is atomic on NTFS; class rename via find-replace keeps line history. Both steps required — Gradle `AndroidManifest` entry `.SnapDexApplication` must match the physical filename. |
+| `google-services.json` not hand-edited — must be re-downloaded from Firebase Console after package name update | Firebase stores the SHA-1 fingerprint against the package name. Hand-editing package name in `google-services.json` leaves the OAuth client_id mapping stale → Google Sign-In silently fails (id_token = null). Re-download is the only safe path. |
+| `ResolvedSet.candidates: List<SetEntry>?` signal field (non-null = collision) | Nullable field acts as a zero-cost signal without adding a separate boolean flag. `null` = unambiguous resolution (printedTotal-unique or single-candidate). Non-null = newest-wins fallback used, pHash disambiguation available. Callers check `candidates != null` before any pHash work. |
+| `identify(lines, frame: Bitmap? = null)` — optional Bitmap param | Default `null` preserves all existing test call sites (no compile changes). pHash path unreachable when `frame = null`. Enables incremental rollout: real OCR pipeline wires the bitmap when it restores; mock-only phase stays safe with `null`. |
+| `PHashService.computeHash()` returns `Long?` (not `Long`) | Recycled `Bitmap.getPixel()` throws `IllegalStateException`. Returning null on `bitmap.isRecycled` propagates the failure up to `findBestMatch()` → null → falls back to `resolved.setCode` (newest-wins). No crash. Scaled bitmap recycled immediately after pixel extraction to prevent GC pressure on every scan frame. |
+| `java.lang.Long.parseUnsignedLong(hex, 16)` for pHash JSON parsing | `imagehash.phash()` produces 64-bit hex strings (e.g. `"f8c0..."`). Values with the high bit set exceed `Long.MAX_VALUE` (9.2×10¹⁸) → `String.toLong(16)` throws `NumberFormatException`. Java's `parseUnsignedLong` handles the full unsigned 64-bit range. Available since Java 8; Android minSdk 26 = API 26 = Java 8 baseline. |
+| pHash set image crops bottom-right 15% (set symbol region) | Full-card pHash is noise-dominated by art (varies per card in same set). Set symbol occupies consistent bottom-right corner regardless of card art. Cropping to that region maximizes signal for set disambiguation at the cost of symbol size (~15% of card area). |
+| Fake detection rewrite: algorithmic scoring → static inspection checklist | Algorithmic verdict (`"high risk"` / `"low risk"`) is a legal liability — any ML/heuristic false positive implies the app is making a fraud claim about a seller's card. Static physical checklist shifts responsibility to the user's inspection. Backend endpoint kept (Pro-gated) for future localization/A/B without a client update. |
+| `POST /detection/authenticity` no longer takes a request body | Old body (`listed_price`, `market_price`) was only used by the now-deleted scoring function. Static checklist needs no input. FastAPI silently ignores extra fields when no request body model is declared — iOS v1.x clients posting the old body continue to work and receive backward-compat `risk_level: "none"` + `risk_score: 0.0` in the response. |
+| `AppConfig.privacyPolicyURL` — `?? URL(string: "https://example.com")!` fallback | iOS `URL(string:)` returns `nil` on invalid URLs (including `REPLACE_ME` placeholder). Force-unwrap on nil crashes at launch. `example.com` is a valid URL per IANA; fallback is harmless (user taps Privacy Policy → `example.com` loads) and prevents crash until real UUID is substituted. Xcode run script (Build Phases) blocks Archive on `REPLACE_ME` — fallback is only a dev-time safety net. |
+| `checkPrivacyUrl` Gradle task hooked to `assembleRelease` (not `assembleDebug`) | `REPLACE_ME` check should not block daily development builds. `assembleRelease` is only run when preparing a production APK — correct gate for a launch blocker. Task reads `AppConfig.kt` at build time; no runtime overhead. |
 
 ---
 

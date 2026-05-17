@@ -1,4 +1,4 @@
-package com.pokescan.app.ui.collection
+package com.snapdex.app.ui.collection
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pokescan.app.data.local.entity.CardRecordEntity
+import com.snapdex.app.data.local.entity.CardRecordEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

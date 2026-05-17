@@ -1,10 +1,15 @@
-package com.pokescan.app.data.service
+package com.snapdex.app.data.service
 
-import com.pokescan.app.domain.model.CardLanguage
-import com.pokescan.app.domain.model.SetEntry
+import com.snapdex.app.domain.model.CardLanguage
+import com.snapdex.app.domain.model.SetEntry
 import javax.inject.Inject
 
-data class ResolvedSet(val setCode: String, val setName: String?, val releaseYear: Int?)
+data class ResolvedSet(
+    val setCode: String,
+    val setName: String?,
+    val releaseYear: Int?,
+    val candidates: List<SetEntry>? = null,
+)
 
 class SetResolver @Inject constructor() {
 
@@ -33,10 +38,15 @@ class SetResolver @Inject constructor() {
         }
 
         // Newest-wins fallback: deterministic — releaseYear DESC, then setCode ASC
-        val winner = candidates
-            .filter { cardNum <= it.total }
+        // candidates field populated so callers can attempt pHash disambiguation
+        val eligible = candidates.filter { cardNum <= it.total }
+        val winner = eligible
             .sortedWith(compareByDescending<SetEntry> { it.releaseYear }.thenBy { it.setCode })
             .firstOrNull()
-        return if (winner != null) ResolvedSet(winner.setCode, winner.name, winner.releaseYear) else ResolvedSet("unknown", null, null)
+        return if (winner != null) {
+            ResolvedSet(winner.setCode, winner.name, winner.releaseYear, candidates = eligible)
+        } else {
+            ResolvedSet("unknown", null, null)
+        }
     }
 }

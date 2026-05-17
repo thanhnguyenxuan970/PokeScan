@@ -1,4 +1,4 @@
-package com.pokescan.app.domain.model
+package com.snapdex.app.domain.model
 
 data class SetEntry(
     val setCode: String,

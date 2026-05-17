@@ -1,4 +1,4 @@
-package com.pokescan.app.ui.paywall
+package com.snapdex.app.ui.paywall
 
 import android.content.Intent
 import android.net.Uri
@@ -36,13 +36,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pokescan.app.config.AppConfig
+import com.snapdex.app.config.AppConfig
 
 private val proFeatures = listOf(
     "Unlimited scans" to "every day, every card",
     "No ads" to "clean, distraction-free experience",
     "Grade ROI" to "should you grade it?",
-    "Fake detection" to "risk score every scan",
+    "Card verification" to "6-point physical checklist",
     "Price alerts" to "track up to 50 cards",
     "Unlimited collection" to "free tier: 50 cards",
 )
@@ -96,8 +96,8 @@ fun PaywallScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            val monthly = products.firstOrNull { it.productId == "com.pokescan.app.pro.monthly" }
-            val annual = products.firstOrNull { it.productId == "com.pokescan.app.pro.annual" }
+            val monthly = products.firstOrNull { it.productId == "com.snapdex.app.pro.monthly" }
+            val annual = products.firstOrNull { it.productId == "com.snapdex.app.pro.annual" }
 
             if (monthly != null) {
                 val offer = monthly.subscriptionOfferDetails

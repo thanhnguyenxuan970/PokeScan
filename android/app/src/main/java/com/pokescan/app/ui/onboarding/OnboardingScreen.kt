@@ -1,4 +1,4 @@
-package com.pokescan.app.ui.onboarding
+package com.snapdex.app.ui.onboarding
 
 import android.content.Intent
 import android.net.Uri
@@ -34,8 +34,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import com.pokescan.app.R
-import com.pokescan.app.config.AppConfig
+import com.snapdex.app.R
+import com.snapdex.app.config.AppConfig
 
 @Composable
 fun OnboardingScreen(onGetStarted: () -> Unit) {

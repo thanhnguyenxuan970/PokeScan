@@ -1,13 +1,13 @@
-package com.pokescan.app.data.local
+package com.snapdex.app.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.pokescan.app.data.local.dao.CardRecordDao
-import com.pokescan.app.data.local.dao.SetEntryDao
-import com.pokescan.app.data.local.entity.CardRecordEntity
-import com.pokescan.app.data.local.entity.SetEntryEntity
+import com.snapdex.app.data.local.dao.CardRecordDao
+import com.snapdex.app.data.local.dao.SetEntryDao
+import com.snapdex.app.data.local.entity.CardRecordEntity
+import com.snapdex.app.data.local.entity.SetEntryEntity
 
 @Database(
     entities = [CardRecordEntity::class, SetEntryEntity::class],

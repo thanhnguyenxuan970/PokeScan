@@ -1,11 +1,11 @@
-package com.pokescan.app.di
+package com.snapdex.app.di
 
-import com.pokescan.app.BuildConfig
-import com.pokescan.app.config.AppConfig
-import com.pokescan.app.data.local.SecureStorage
-import com.pokescan.app.data.remote.ApiService
-import com.pokescan.app.data.remote.AuthEventBus
-import com.pokescan.app.data.remote.AuthInterceptor
+import com.snapdex.app.BuildConfig
+import com.snapdex.app.config.AppConfig
+import com.snapdex.app.data.local.SecureStorage
+import com.snapdex.app.data.remote.ApiService
+import com.snapdex.app.data.remote.AuthEventBus
+import com.snapdex.app.data.remote.AuthInterceptor
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import dagger.Module

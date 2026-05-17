@@ -1,12 +1,12 @@
-package com.pokescan.app.agents
+package com.snapdex.app.agents
 
-import com.pokescan.app.data.local.dao.CardRecordDao
-import com.pokescan.app.data.remote.ApiService
-import com.pokescan.app.data.local.entity.CardRecordEntity
-import com.pokescan.app.data.repository.CollectionRepository
-import com.pokescan.app.data.service.CardIdentificationService
-import com.pokescan.app.data.service.PricingService
-import com.pokescan.app.domain.model.CardLanguage
+import com.snapdex.app.data.local.dao.CardRecordDao
+import com.snapdex.app.data.remote.ApiService
+import com.snapdex.app.data.local.entity.CardRecordEntity
+import com.snapdex.app.data.repository.CollectionRepository
+import com.snapdex.app.data.service.CardIdentificationService
+import com.snapdex.app.data.service.PricingService
+import com.snapdex.app.domain.model.CardLanguage
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk

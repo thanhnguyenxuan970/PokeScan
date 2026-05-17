@@ -1,14 +1,14 @@
-package com.pokescan.app.data.remote
+package com.snapdex.app.data.remote
 
-import com.pokescan.app.data.remote.dto.AndroidVerifyReceiptRequest
-import com.pokescan.app.data.remote.dto.AndroidVerifyReceiptResponse
-import com.pokescan.app.data.remote.dto.CardInDto
-import com.pokescan.app.data.remote.dto.CardOutDto
-import com.pokescan.app.data.remote.dto.DeleteCardResponseDto
-import com.pokescan.app.data.remote.dto.GoogleSignInRequest
-import com.pokescan.app.data.remote.dto.GoogleSignInResponse
-import com.pokescan.app.data.remote.dto.PostCardResponseDto
-import com.pokescan.app.data.remote.dto.PriceResponseDto
+import com.snapdex.app.data.remote.dto.AndroidVerifyReceiptRequest
+import com.snapdex.app.data.remote.dto.AndroidVerifyReceiptResponse
+import com.snapdex.app.data.remote.dto.CardInDto
+import com.snapdex.app.data.remote.dto.CardOutDto
+import com.snapdex.app.data.remote.dto.DeleteCardResponseDto
+import com.snapdex.app.data.remote.dto.GoogleSignInRequest
+import com.snapdex.app.data.remote.dto.GoogleSignInResponse
+import com.snapdex.app.data.remote.dto.PostCardResponseDto
+import com.snapdex.app.data.remote.dto.PriceResponseDto
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET

@@ -2,7 +2,7 @@ import SwiftData
 import SwiftUI
 
 @main
-struct PokeScanApp: App {
+struct SnapDexApp: App {
     @StateObject private var auth = AuthService.shared
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
 

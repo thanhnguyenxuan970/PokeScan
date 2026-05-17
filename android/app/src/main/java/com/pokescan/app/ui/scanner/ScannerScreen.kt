@@ -1,4 +1,4 @@
-package com.pokescan.app.ui.scanner
+package com.snapdex.app.ui.scanner
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Canvas
@@ -32,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pokescan.app.data.service.ScanCounterService
+import com.snapdex.app.data.service.ScanCounterService
 
 @Composable
 fun ScannerScreen(

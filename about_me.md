@@ -3,7 +3,7 @@
 ## Identity
 - **Role:** Founder / Builder
 - **Stage:** Early-stage product development
-- **Project:** iOS-first app — users scan physical trading cards (Pokémon, MTG, sports cards) to get real-time market valuations
+- **Project:** Android-first app (iOS paused — Apple Dev registration blocked) — users scan physical trading cards (Pokémon, MTG, sports cards) to get real-time market valuations
 
 ## What I Build
 - Consumer mobile product targeting trading card collectors and traders
@@ -18,7 +18,7 @@
 ## Domains I Work Across
 | Domain | Context |
 |---|---|
-| Software Engineering | Architecture decisions, iOS stack, backend APIs |
+| Software Engineering | Architecture decisions, Android stack (Kotlin/Compose), backend APIs |
 | Product Management | Feature scoping, prioritization, user flows |
 | Business / Strategy | Monetization, market positioning, competitive analysis |
 | Data / Analytics | Pricing data pipelines, market trend signals |

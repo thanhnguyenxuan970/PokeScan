@@ -1,4 +1,4 @@
-package com.pokescan.app.data.remote.dto
+package com.snapdex.app.data.remote.dto
 
 import com.squareup.moshi.Json
 

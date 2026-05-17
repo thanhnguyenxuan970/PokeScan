@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Base theme for Compose-only app — no ActionBar, no appcompat dependency. -->
-    <style name="Theme.PokeScan" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.SnapDex" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

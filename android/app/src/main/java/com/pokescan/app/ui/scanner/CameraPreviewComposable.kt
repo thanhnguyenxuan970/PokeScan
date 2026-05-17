@@ -1,4 +1,4 @@
-package com.pokescan.app.ui.scanner
+package com.snapdex.app.ui.scanner
 
 import android.util.Log
 import androidx.camera.core.CameraSelector

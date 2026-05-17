@@ -1,10 +1,11 @@
-package com.pokescan.app.agents
+package com.snapdex.app.agents
 
-import com.pokescan.app.data.service.CardIdentificationService
-import com.pokescan.app.data.service.SetDatabaseService
-import com.pokescan.app.data.service.SetResolver
-import com.pokescan.app.domain.model.CardLanguage
-import com.pokescan.app.domain.model.SetEntry
+import com.snapdex.app.data.service.CardIdentificationService
+import com.snapdex.app.data.service.SetDatabaseService
+import com.snapdex.app.data.service.SetResolver
+import com.snapdex.app.data.service.PHashService
+import com.snapdex.app.domain.model.CardLanguage
+import com.snapdex.app.domain.model.SetEntry
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +30,7 @@ class VisionAgentTest {
 
     private val mockSetDb = mockk<SetDatabaseService>()
     private val resolver = SetResolver()
+    private val mockPHash = mockk<PHashService>(relaxed = true)
     private lateinit var service: CardIdentificationService
 
     private val sv1 = SetEntry("sv1", "Scarlet & Violet", total = 198, printedTotal = 198, releaseYear = 2023, series = "SV", language = "english")
@@ -37,7 +39,7 @@ class VisionAgentTest {
 
     @Before
     fun setUp() {
-        service = CardIdentificationService(mockSetDb, resolver)
+        service = CardIdentificationService(mockSetDb, resolver, mockPHash)
     }
 
     // ---- Clear scan ----

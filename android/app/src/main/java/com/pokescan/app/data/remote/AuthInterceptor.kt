@@ -1,6 +1,6 @@
-package com.pokescan.app.data.remote
+package com.snapdex.app.data.remote
 
-import com.pokescan.app.data.local.SecureStorage
+import com.snapdex.app.data.local.SecureStorage
 import okhttp3.Interceptor
 import okhttp3.Response
 import javax.inject.Inject

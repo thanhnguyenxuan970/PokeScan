@@ -1,4 +1,4 @@
-package com.pokescan.app.ui.theme
+package com.snapdex.app.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -6,29 +6,29 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
 private val LightColorScheme = lightColorScheme(
-    primary = PokeScanBlue,
-    onPrimary = PokeScanWhite,
-    primaryContainer = PokeScanBlueTint,
-    onPrimaryContainer = PokeScanBlue,
-    surface = PokeScanSurface,
-    onSurface = PokeScanBlack,
-    background = PokeScanWhite,
-    onBackground = PokeScanBlack,
+    primary = SnapDexBlue,
+    onPrimary = SnapDexWhite,
+    primaryContainer = SnapDexBlueTint,
+    onPrimaryContainer = SnapDexBlue,
+    surface = SnapDexSurface,
+    onSurface = SnapDexBlack,
+    background = SnapDexWhite,
+    onBackground = SnapDexBlack,
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PokeScanBlue,
-    onPrimary = PokeScanWhite,
-    primaryContainer = PokeScanBlueDark,
-    onPrimaryContainer = PokeScanWhite,
-    surface = PokeScanSurfaceDark,
-    onSurface = PokeScanWhite,
-    background = PokeScanBlack,
-    onBackground = PokeScanWhite,
+    primary = SnapDexBlue,
+    onPrimary = SnapDexWhite,
+    primaryContainer = SnapDexBlueDark,
+    onPrimaryContainer = SnapDexWhite,
+    surface = SnapDexSurfaceDark,
+    onSurface = SnapDexWhite,
+    background = SnapDexBlack,
+    onBackground = SnapDexWhite,
 )
 
 @Composable
-fun PokeScanTheme(
+fun SnapDexTheme(
     darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
@@ -36,7 +36,7 @@ fun PokeScanTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = PokeScanTypography,
+        typography = SnapDexTypography,
         content = content
     )
 }

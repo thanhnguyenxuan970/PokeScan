@@ -1,17 +1,17 @@
-package com.pokescan.app.data.service
+package com.snapdex.app.data.service
 
 import android.content.Context
 import android.util.Log
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.pokescan.app.data.local.dao.SetEntryDao
-import com.pokescan.app.data.local.entity.toDomain
-import com.pokescan.app.data.local.entity.toEntity
-import com.pokescan.app.data.remote.dto.PokemonTCGSetsResponse
-import com.pokescan.app.data.remote.dto.SetEntryDto
-import com.pokescan.app.di.PlainOkHttpClient
-import com.pokescan.app.domain.model.SetEntry
+import com.snapdex.app.data.local.dao.SetEntryDao
+import com.snapdex.app.data.local.entity.toDomain
+import com.snapdex.app.data.local.entity.toEntity
+import com.snapdex.app.data.remote.dto.PokemonTCGSetsResponse
+import com.snapdex.app.data.remote.dto.SetEntryDto
+import com.snapdex.app.di.PlainOkHttpClient
+import com.snapdex.app.domain.model.SetEntry
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.qualifiers.ApplicationContext

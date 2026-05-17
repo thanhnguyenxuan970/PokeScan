@@ -1,10 +1,11 @@
-package com.pokescan.app.agents
+package com.snapdex.app.agents
 
-import com.pokescan.app.data.service.CardIdentificationService
-import com.pokescan.app.data.service.ScanCounterService
-import com.pokescan.app.data.service.SetDatabaseService
-import com.pokescan.app.data.service.SetResolver
-import com.pokescan.app.domain.model.SetEntry
+import com.snapdex.app.data.service.CardIdentificationService
+import com.snapdex.app.data.service.ScanCounterService
+import com.snapdex.app.data.service.SetDatabaseService
+import com.snapdex.app.data.service.SetResolver
+import com.snapdex.app.data.service.PHashService
+import com.snapdex.app.domain.model.SetEntry
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,7 +68,7 @@ class PowerUserAgentTest {
     @Test
     fun `50 sequential identifications complete without any null result`() {
         every { mockSetDb.sets } returns MutableStateFlow(listOf(sv1))
-        val service = CardIdentificationService(mockSetDb, SetResolver())
+        val service = CardIdentificationService(mockSetDb, SetResolver(), mockk<PHashService>(relaxed = true))
 
         val inputs = listOf(
             listOf("Pikachu", "025/198"),
@@ -83,7 +84,7 @@ class PowerUserAgentTest {
     @Test
     fun `50 sequential identifications complete under 1000ms`() {
         every { mockSetDb.sets } returns MutableStateFlow(listOf(sv1))
-        val service = CardIdentificationService(mockSetDb, SetResolver())
+        val service = CardIdentificationService(mockSetDb, SetResolver(), mockk<PHashService>(relaxed = true))
 
         val elapsed = measureTimeMillis {
             repeat(50) { i ->
@@ -97,7 +98,7 @@ class PowerUserAgentTest {
     @Test
     fun `same input resolves to same setCode across 20 repeated calls — no flakiness`() {
         every { mockSetDb.sets } returns MutableStateFlow(listOf(sv1))
-        val service = CardIdentificationService(mockSetDb, SetResolver())
+        val service = CardIdentificationService(mockSetDb, SetResolver(), mockk<PHashService>(relaxed = true))
         val lines = listOf("Charizard", "004/198")
 
         val results = (1..20).map { service.identify(lines) }
@@ -112,7 +113,7 @@ class PowerUserAgentTest {
     @Test
     fun `power user scanning different cards — all resolve without error`() {
         every { mockSetDb.sets } returns MutableStateFlow(listOf(sv1))
-        val service = CardIdentificationService(mockSetDb, SetResolver())
+        val service = CardIdentificationService(mockSetDb, SetResolver(), mockk<PHashService>(relaxed = true))
 
         val cardInputs = (1..198).map { i ->
             listOf("Card Name $i", "${String.format("%03d", i)}/198")

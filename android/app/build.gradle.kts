@@ -15,11 +15,11 @@ if (localPropsFile.exists()) localProps.load(localPropsFile.inputStream())
 val debugBaseUrl: String = localProps.getProperty("DEBUG_BASE_URL", "http://10.0.2.2:8000/")
 
 extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
-    namespace = "com.pokescan.app"
+    namespace = "com.snapdex.app"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.pokescan.app"
+        applicationId = "com.snapdex.app"
         minSdk = 26
         //noinspection EditedTargetSdkVersion
         targetSdk = 37
@@ -30,9 +30,9 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
 
     signingConfigs {
         create("release") {
-            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "../pokescan-release.jks")
+            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "../snapdex-release.jks")
             storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-            keyAlias = System.getenv("KEY_ALIAS") ?: "pokescan"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "snapdex"
             keyPassword = System.getenv("KEY_PASSWORD") ?: ""
         }
     }
@@ -43,7 +43,7 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            buildConfigField("String", "BASE_URL", "\"https://api.pokescan.app/\"")
+            buildConfigField("String", "BASE_URL", "\"https://api.snapdex.app/\"")
         }
     }
 
@@ -69,6 +69,17 @@ kotlin {
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
+
+tasks.register("checkPrivacyUrl") {
+    doLast {
+        val appConfig = file("src/main/java/com/pokescan/app/config/AppConfig.kt")
+        val text = appConfig.readText()
+        if (text.contains("pokescan-privacy") || text.contains("REPLACE_ME")) {
+            throw GradleException("Privacy URL not configured — create github.io/snapdex-privacy repo before release")
+        }
+    }
+}
+tasks.named("assembleRelease") { dependsOn("checkPrivacyUrl") }
 
 dependencies {
     // Compose BOM — version-manages compose-ui, compose-material3, compose-ui-tooling*

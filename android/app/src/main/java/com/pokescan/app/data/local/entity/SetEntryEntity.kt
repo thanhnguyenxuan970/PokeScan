@@ -1,8 +1,8 @@
-package com.pokescan.app.data.local.entity
+package com.snapdex.app.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.pokescan.app.domain.model.SetEntry
+import com.snapdex.app.domain.model.SetEntry
 
 @Entity(tableName = "set_entries")
 data class SetEntryEntity(

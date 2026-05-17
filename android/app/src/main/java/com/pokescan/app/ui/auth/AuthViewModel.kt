@@ -1,4 +1,4 @@
-package com.pokescan.app.ui.auth
+package com.snapdex.app.ui.auth
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.tasks.Task
-import com.pokescan.app.BuildConfig
-import com.pokescan.app.data.repository.AuthRepository
+import com.snapdex.app.BuildConfig
+import com.snapdex.app.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow

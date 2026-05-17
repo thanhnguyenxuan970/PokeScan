@@ -1,9 +1,10 @@
-package com.pokescan.app.agents
+package com.snapdex.app.agents
 
-import com.pokescan.app.data.service.CardIdentificationService
-import com.pokescan.app.data.service.SetDatabaseService
-import com.pokescan.app.data.service.SetResolver
-import com.pokescan.app.domain.model.SetEntry
+import com.snapdex.app.data.service.CardIdentificationService
+import com.snapdex.app.data.service.SetDatabaseService
+import com.snapdex.app.data.service.SetResolver
+import com.snapdex.app.data.service.PHashService
+import com.snapdex.app.domain.model.SetEntry
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,13 +29,14 @@ import org.junit.Test
 class BadDataAgentTest {
 
     private val mockSetDb = mockk<SetDatabaseService>()
+    private val mockPHash = mockk<PHashService>(relaxed = true)
     private val sv1 = SetEntry("sv1", "Scarlet & Violet", total = 198, printedTotal = 198, releaseYear = 2023, series = "SV", language = "english")
     private lateinit var service: CardIdentificationService
 
     @Before
     fun setUp() {
         every { mockSetDb.sets } returns MutableStateFlow(listOf(sv1))
-        service = CardIdentificationService(mockSetDb, SetResolver())
+        service = CardIdentificationService(mockSetDb, SetResolver(), mockk<PHashService>(relaxed = true))
     }
 
     // ---- Null / empty inputs ----

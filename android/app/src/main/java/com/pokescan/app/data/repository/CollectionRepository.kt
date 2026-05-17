@@ -1,12 +1,12 @@
-package com.pokescan.app.data.repository
+package com.snapdex.app.data.repository
 
 import android.util.Log
-import com.pokescan.app.data.local.dao.CardRecordDao
-import com.pokescan.app.data.local.entity.CardRecordEntity
-import com.pokescan.app.data.local.entity.toEntity
-import com.pokescan.app.data.remote.ApiService
-import com.pokescan.app.data.remote.dto.CardInDto
-import com.pokescan.app.domain.model.Card
+import com.snapdex.app.data.local.dao.CardRecordDao
+import com.snapdex.app.data.local.entity.CardRecordEntity
+import com.snapdex.app.data.local.entity.toEntity
+import com.snapdex.app.data.remote.ApiService
+import com.snapdex.app.data.remote.dto.CardInDto
+import com.snapdex.app.domain.model.Card
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope

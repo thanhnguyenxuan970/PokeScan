@@ -1,4 +1,4 @@
-package com.pokescan.app.data.repository
+package com.snapdex.app.data.repository
 
 import android.app.Activity
 import android.content.Context
@@ -13,8 +13,8 @@ import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
-import com.pokescan.app.data.remote.ApiService
-import com.pokescan.app.data.remote.dto.AndroidVerifyReceiptRequest
+import com.snapdex.app.data.remote.ApiService
+import com.snapdex.app.data.remote.dto.AndroidVerifyReceiptRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -192,7 +192,7 @@ class BillingRepository @Inject constructor(
 
     private companion object {
         const val TAG = "BillingRepository"
-        const val PRODUCT_MONTHLY = "com.pokescan.app.pro.monthly"
-        const val PRODUCT_ANNUAL = "com.pokescan.app.pro.annual"
+        const val PRODUCT_MONTHLY = "com.snapdex.app.pro.monthly"
+        const val PRODUCT_ANNUAL = "com.snapdex.app.pro.annual"
     }
 }

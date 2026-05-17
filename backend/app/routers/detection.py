@@ -9,25 +9,22 @@ from app.database import get_db
 router = APIRouter(prefix="/detection", tags=["detection"])
 
 
-class AuthenticityRequest(BaseModel):
-    card_sku: str
-    card_name: str
-    set_number: str
-    market_price: float
-    listed_price: float
-    scan_confidence: float = 1.0
+class ChecklistItem(BaseModel):
+    id: str
+    title: str
+    description: str
+    category: str
 
 
-class AuthenticityResponse(BaseModel):
-    risk_level: str
-    risk_score: float
-    flags: list[str]
-    recommendation: str
+class ChecklistResponse(BaseModel):
+    items: list[ChecklistItem]
+    # Backward compat for iOS v1.x clients that decode risk_level/risk_score
+    risk_level: str = "none"
+    risk_score: float = 0.0
 
 
-@router.post("/authenticity", response_model=AuthenticityResponse)
-async def check_authenticity(
-    body: AuthenticityRequest,
+@router.post("/authenticity", response_model=ChecklistResponse)
+async def get_authenticity_checklist(
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
@@ -35,12 +32,5 @@ async def check_authenticity(
     if user.tier != "pro":
         raise HTTPException(status_code=403, detail="Pro tier required")
 
-    result = auth_svc.check_authenticity(
-        card_sku=body.card_sku,
-        card_name=body.card_name,
-        set_number=body.set_number,
-        market_price=body.market_price,
-        listed_price=body.listed_price,
-        scan_confidence=body.scan_confidence,
-    )
-    return AuthenticityResponse(**result)
+    items = [ChecklistItem(**item) for item in auth_svc.get_inspection_checklist()]
+    return ChecklistResponse(items=items)

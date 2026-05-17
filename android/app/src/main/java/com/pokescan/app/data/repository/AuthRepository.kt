@@ -1,11 +1,11 @@
-package com.pokescan.app.data.repository
+package com.snapdex.app.data.repository
 
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.pokescan.app.data.local.SecureStorage
-import com.pokescan.app.data.local.dao.CardRecordDao
-import com.pokescan.app.data.remote.ApiService
-import com.pokescan.app.data.remote.dto.GoogleSignInRequest
-import com.pokescan.app.data.service.ScanCounterService
+import com.snapdex.app.data.local.SecureStorage
+import com.snapdex.app.data.local.dao.CardRecordDao
+import com.snapdex.app.data.remote.ApiService
+import com.snapdex.app.data.remote.dto.GoogleSignInRequest
+import com.snapdex.app.data.service.ScanCounterService
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume

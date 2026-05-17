@@ -1,4 +1,4 @@
-package com.pokescan.app.data.service
+package com.snapdex.app.data.service
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

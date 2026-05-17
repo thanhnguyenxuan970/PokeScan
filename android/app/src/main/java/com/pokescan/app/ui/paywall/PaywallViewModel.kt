@@ -1,8 +1,8 @@
-package com.pokescan.app.ui.paywall
+package com.snapdex.app.ui.paywall
 
 import android.app.Activity
 import com.android.billingclient.api.ProductDetails
-import com.pokescan.app.data.repository.BillingRepository
+import com.snapdex.app.data.repository.BillingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import androidx.lifecycle.ViewModel

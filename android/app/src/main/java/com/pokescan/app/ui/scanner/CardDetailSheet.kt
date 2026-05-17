@@ -1,4 +1,4 @@
-package com.pokescan.app.ui.scanner
+package com.snapdex.app.ui.scanner
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -32,11 +32,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pokescan.app.domain.model.Card
-import com.pokescan.app.domain.model.CardLanguage
-import com.pokescan.app.domain.model.PriceSource
-import com.pokescan.app.ui.theme.PokeScanGold
-import com.pokescan.app.ui.theme.PokeScanRed
+import com.snapdex.app.domain.model.Card
+import com.snapdex.app.domain.model.CardLanguage
+import com.snapdex.app.domain.model.PriceSource
+import com.snapdex.app.ui.theme.SnapDexGold
+import com.snapdex.app.ui.theme.SnapDexRed
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,7 +86,7 @@ fun CardDetailSheet(
                         )
                         .background(
                             brush = Brush.verticalGradient(
-                                colors = listOf(PokeScanRed, Color(0xFFAA0000))
+                                colors = listOf(SnapDexRed, Color(0xFFAA0000))
                             )
                         )
                 )
@@ -236,14 +236,14 @@ fun CardDetailSheet(
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Surface(
-                            color = PokeScanGold.copy(alpha = 0.15f),
+                            color = SnapDexGold.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(999.dp),
                         ) {
                             Text(
                                 text = "PRO",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = PokeScanGold,
+                                color = SnapDexGold,
                                 fontWeight = FontWeight.Bold,
                             )
                         }

@@ -1,4 +1,4 @@
-package com.pokescan.app.ui.auth
+package com.snapdex.app.ui.auth
 
 import android.app.Activity
 import android.content.Intent
@@ -42,8 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.pokescan.app.R
-import com.pokescan.app.config.AppConfig
+import com.snapdex.app.R
+import com.snapdex.app.config.AppConfig
 
 @Composable
 fun SignInScreen(

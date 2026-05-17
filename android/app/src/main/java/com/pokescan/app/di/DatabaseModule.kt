@@ -1,10 +1,10 @@
-package com.pokescan.app.di
+package com.snapdex.app.di
 
 import android.content.Context
 import androidx.room.Room
-import com.pokescan.app.data.local.AppDatabase
-import com.pokescan.app.data.local.dao.CardRecordDao
-import com.pokescan.app.data.local.dao.SetEntryDao
+import com.snapdex.app.data.local.AppDatabase
+import com.snapdex.app.data.local.dao.CardRecordDao
+import com.snapdex.app.data.local.dao.SetEntryDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
