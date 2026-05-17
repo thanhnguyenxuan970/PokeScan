@@ -39,6 +39,7 @@ class CollectionViewModel @Inject constructor(
     }
 
     fun refresh() {
+        if (_syncState.value is SyncState.Loading) return
         viewModelScope.launch {
             _syncState.value = SyncState.Loading
             try {
