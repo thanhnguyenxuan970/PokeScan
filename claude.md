@@ -39,6 +39,26 @@ Replaces the 5-command manual ADB loop. Run from `android/` directory.
 
 Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
 
+### Next Session — Android (updated 2026-05-17, bug fixes — sign-out lag + session leak + UI overlap)
+
+**Completed this session (2026-05-17) — Bug fixes — sign-out lag, cross-account session leak, scanner UI overlap:**
+- ✅ `android/.../AuthRepository.kt` — `withTimeoutOrNull(3_000L)` wraps `pushPending()`; caps sign-out block at 3s (was unbounded N×~500ms per card)
+- ✅ `android/.../AuthRepository.kt` — `withTimeoutOrNull(2_000L)` wraps Google `signOut()` GMS callback; total max sign-out ≤5s
+- ✅ `android/.../AuthRepository.kt` — `deleteAllSynced()` → `deleteAll()`; fixes cross-account data leak where unsynced cards (serverID=null) persisted in Room and were pushed to new account's JWT on next login
+- ✅ `android/.../ScannerScreen.kt` — `ScanCounterPill` modifier: `padding(top=60.dp)` → `.statusBarsPadding().padding(top=8.dp)`; pill now below status bar, no overlap with reticle
+- ✅ `android/.../ScannerScreen.kt` — `ReticleOverlay` modifier: `padding(bottom=96.dp)` → `padding(top=80.dp, bottom=96.dp)`; reticle centers in lower portion, 24dp+ gap from pill on all screen sizes
+- ✅ `android/CLAUDE.md` — 4 Key Decisions added for `deleteAll()`, `withTimeoutOrNull`, `statusBarsPadding`, and `padding(top=80.dp)` rationale
+- **Tests: all 100 passing (no new tests needed — behavior covered by manual E2E verification)**
+
+### Next Session — Android (updated 2026-05-17, bug fixes — sign-out perf + data persistence + scanner layout)
+
+**Completed this session (2026-05-17) — Bug fixes — sign-out performance, data persistence, scanner UI layout:**
+- ✅ `android/.../CollectionRepository.kt` — `pushPending()` parallelized with `coroutineScope { async }` + `awaitAll()`; N cards push concurrently instead of sequentially; sign-out time ≈ 1× network round-trip (was N×)
+- ✅ `android/.../CardRecordDao.kt` — `deleteAllSynced()` added: `DELETE FROM card_records WHERE serverID IS NOT NULL`; only removes cards confirmed on server
+- ✅ `android/.../AuthRepository.kt` — `signOut()` calls `deleteAllSynced()` instead of `deleteAll()`; unsynced cards survive sign-out in Room, pushed by `syncAll()` on next login
+- ✅ `android/.../ScannerScreen.kt` — `ReticleOverlay` gets `Modifier.fillMaxSize().padding(bottom = 96.dp)`; reticle frame shifts up, clear 96dp gap between reticle bottom and Scan button
+- **Tests: all passing, BUILD SUCCESSFUL**
+
 ### Next Session — Android (updated 2026-05-17, bug fixes — sync + paywall + delete UX)
 
 **Completed this session (2026-05-17) — Bug fixes + test corrections:**
@@ -608,6 +628,16 @@ Env flags:
 
 ---
 
+## Key Decisions Made (Bug Fixes 2026-05-17 — sign-out perf + data persistence + scanner layout)
+
+| Decision | Rationale |
+|---|---|
+| `pushPending()` parallelized with `coroutineScope { async } + awaitAll()` | Sequential for-loop caused N×~500ms sign-out block. Each `async` block catches internally — `awaitAll()` never rethrows, `coroutineScope` always completes. Room serializes concurrent `upsert` calls via its own executor — no additional locking needed. |
+| `deleteAllSynced()` (WHERE serverID IS NOT NULL) replaces `deleteAll()` on sign-out | `deleteAll()` wiped cards that failed to push (no `serverID`) — permanently lost on re-login since `pullFromServer()` only restores server-side cards. `deleteAllSynced()` preserves unsynced cards in Room through sign-out; `syncAll()` on next login picks them up automatically. Trade-off: on shared devices with multiple accounts, prior account's unsynced cards persist until next login. Acceptable for single-user-per-device design. |
+| `padding(bottom = 96.dp)` applied to `ReticleOverlay` modifier, not the outer `Box` | Adding padding to the outer `Box` would shift `ScanButton` up too (all siblings move). Adding it only to `ReticleOverlay` narrows the reticle render area — button stays at `BottomCenter` with its own `padding(bottom = 64.dp)`. Result: 96dp clear gap between reticle bottom and button top on all screen sizes. |
+
+---
+
 ## Key Decisions Made (Bug Fixes 2026-05-17)
 
 | Decision | Rationale |
@@ -618,6 +648,10 @@ Env flags:
 | `ButtonDefaults.buttonColors(disabled*)` override on `ScanButton` | Material3 default disabled colors (`onSurface.copy(alpha=0.38f)` text, `onSurface.copy(alpha=0.12f)` container) resolve to near-invisible on `Color(0xFF0A0A0A)` dark scanner background. `Color.White.copy(alpha=0.15f)` container + `Color.White.copy(alpha=0.75f)` text maintain visible contrast without suggesting the button is active. |
 | `IconButton` declared AFTER `Column` in PaywallScreen `Box` | Compose draws `Box` children in declaration order — later children are topmost and receive touch events first. With `IconButton` before `Column`, the scrollable `Column` was on top and intercepted all taps — close button was unreachable. Moving it after `Column` puts it on the topmost layer. |
 | `windowInsetsPadding(WindowInsets.systemBars)` on PaywallScreen `Box` | Without insets, `Box` starts at y=0 behind the device status bar on edge-to-edge displays. Padding pushes content + `IconButton` below the status bar — close button was partially hidden by status bar. `WindowInsets.systemBars` covers both status bar and navigation bar. |
+| `signOut()` calls `deleteAll()` (not `deleteAllSynced()`) | `deleteAllSynced()` left unsynced cards (serverID = null) in Room. On account switch, `CollectionViewModel.init` → `syncAll()` → `pushPending()` posted those orphaned cards under the new user's JWT — cross-account data leak. `deleteAll()` ensures complete Room isolation on sign-out. Trade-off: unsynced cards lost; mitigated by 3s best-effort `withTimeoutOrNull` push before deletion. |
+| `withTimeoutOrNull(3_000L)` on `pushPending()` + `withTimeoutOrNull(2_000L)` on Google `signOut()` | `pushPending()` was unbounded — N cards × ~500ms = 5–10s block before Login appears. Google `signOut()` suspends 1–3s. Both are best-effort: token clear + Room wipe happen regardless of timeout. Max sign-out duration: ~5s (was unbounded). |
+| `ScanCounterPill` uses `.statusBarsPadding()` + `padding(top=8.dp)` (was `padding(top=60.dp)`) | Fixed 60dp top padding had no status bar awareness. On edge-to-edge displays, pill was partially behind the status bar. On 640dp screens, reticle top = 58dp, pill bottom = 96dp → 38dp overlap with reticle frame. `statusBarsPadding()` pushes pill below status bar; `padding(top=8.dp)` gives 8dp breathing room. |
+| `ReticleOverlay` gains `padding(top=80.dp)` (was `padding(bottom=96.dp)` only) | Reticle centered in full height minus bottom padding put it too high on small screens, colliding with counter pill. Adding 80dp top padding shifts the reticle center down — 80dp gap filled by the outer Box's dark `0xFF0A0A0A` background (visually identical to dim overlay; no camera preview in mock phase). |
 
 ---
 
