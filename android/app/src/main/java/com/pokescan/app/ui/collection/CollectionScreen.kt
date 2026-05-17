@@ -1,6 +1,5 @@
 package com.pokescan.app.ui.collection
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,12 +23,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +52,7 @@ fun CollectionScreen(
     val cards by viewModel.cards.collectAsStateWithLifecycle()
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showAuthSignOutDialog by remember { mutableStateOf(false) }
+    var cardToDelete by remember { mutableStateOf<CardRecordEntity?>(null) }
 
     if (showAuthSignOutDialog) {
         AlertDialog(
@@ -93,6 +90,27 @@ fun CollectionScreen(
         )
     }
 
+    cardToDelete?.let { card ->
+        AlertDialog(
+            onDismissRequest = { cardToDelete = null },
+            title = { Text("Delete card?") },
+            text = { Text("Are you sure you want to delete ${card.name}?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteCard(card)
+                    cardToDelete = null
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { cardToDelete = null }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text("Collection") },
@@ -120,9 +138,9 @@ fun CollectionScreen(
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(cards, key = { it.id }) { card ->
-                    SwipeToDeleteCard(
+                    CardRow(
                         card = card,
-                        onDelete = { viewModel.deleteCard(card) },
+                        onDeleteClick = { cardToDelete = card },
                     )
                 }
             }
@@ -204,57 +222,16 @@ private fun StatCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SwipeToDeleteCard(
+private fun CardRow(
     card: CardRecordEntity,
-    onDelete: () -> Unit,
+    onDeleteClick: () -> Unit = {},
 ) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                onDelete()
-                true
-            } else false
-        }
-    )
-
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = false,
-        backgroundContent = {
-            val color by animateColorAsState(
-                if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart)
-                    MaterialTheme.colorScheme.errorContainer
-                else Color.Transparent,
-                label = "swipe-bg",
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(color)
-                    .padding(end = 16.dp),
-                contentAlignment = Alignment.CenterEnd,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.onErrorContainer,
-                )
-            }
-        },
-    ) {
-        CardRow(card = card)
-    }
-}
-
-@Composable
-private fun CardRow(card: CardRecordEntity) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -274,6 +251,13 @@ private fun CardRow(card: CardRecordEntity) {
                 text = "$${String.format("%.2f", card.marketPrice)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        IconButton(onClick = onDeleteClick) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Delete",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
