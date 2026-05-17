@@ -1,19 +1,10 @@
 package com.pokescan.app.ui.scanner
 
-import android.Manifest
-import android.app.Activity
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
-import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,19 +20,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pokescan.app.data.service.ScanCounterService
@@ -57,27 +43,6 @@ fun ScannerScreen(
     val scansThisMonth by viewModel.scansThisMonth.collectAsStateWithLifecycle(initialValue = 0)
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val context = LocalContext.current
-    var hasCameraPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
-                == PackageManager.PERMISSION_GRANTED
-        )
-    }
-    var permissionPermanentlyDenied by remember { mutableStateOf(false) }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        hasCameraPermission = granted
-        if (!granted) {
-            val activity = context as? Activity ?: return@rememberLauncherForActivityResult
-            permissionPermanentlyDenied = !ActivityCompat.shouldShowRequestPermissionRationale(
-                activity, Manifest.permission.CAMERA
-            )
-        }
-    }
-
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
@@ -90,73 +55,41 @@ fun ScannerScreen(
         }
     }
 
-    LaunchedEffect("permission") {
-        if (!hasCameraPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0A0A0A)),
     ) {
-        if (hasCameraPermission) {
-            CameraPreview(
-                modifier = Modifier.fillMaxSize(),
-                onTextDetected = {},
-            )
-            ReticleOverlay(state = state, modifier = Modifier.fillMaxSize())
-            ScanCounterPill(
-                scansUsed = scansThisMonth,
-                limit = ScanCounterService.FREE_MONTHLY_LIMIT,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(top = 60.dp, start = 16.dp),
-            )
-            ScanButton(
-                state = state,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 64.dp),
-                onScan = { viewModel.startScan() },
+        ReticleOverlay(state = state, modifier = Modifier.fillMaxSize())
+        ScanCounterPill(
+            scansUsed = scansThisMonth,
+            limit = ScanCounterService.FREE_MONTHLY_LIMIT,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 60.dp, start = 16.dp),
+        )
+        ScanButton(
+            state = state,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 64.dp),
+            onScan = { viewModel.startScan() },
+            onReset = { viewModel.resetScan() },
+        )
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 140.dp),
+        )
+        if (state is ScanState.Result) {
+            CardDetailSheet(
+                card = (state as ScanState.Result).card,
+                isPro = isPro,
+                onDismiss = { viewModel.resetScan() },
                 onReset = { viewModel.resetScan() },
+                onSaveToCollection = onSaveToCollection,
             )
-            SnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 140.dp),
-            )
-            if (state is ScanState.Result) {
-                CardDetailSheet(
-                    card = (state as ScanState.Result).card,
-                    isPro = isPro,
-                    onDismiss = { viewModel.resetScan() },
-                    onReset = { viewModel.resetScan() },
-                    onSaveToCollection = onSaveToCollection,
-                )
-            }
-        } else {
-            Column(
-                modifier = Modifier.align(Alignment.Center),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text("Camera access required to scan cards.", color = Color.White)
-                if (permissionPermanentlyDenied) {
-                    Button(onClick = {
-                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.fromParts("package", context.packageName, null)
-                        }
-                        context.startActivity(intent)
-                    }) {
-                        Text("Open Settings")
-                    }
-                } else {
-                    Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
-                        Text("Grant Permission")
-                    }
-                }
-            }
         }
     }
 }
@@ -183,11 +116,14 @@ private fun ScanCounterPill(
 
 @Composable
 private fun ReticleOverlay(state: ScanState, modifier: Modifier = Modifier) {
-    val borderColor = when (state) {
-        is ScanState.Idle -> Color.White
-        is ScanState.Scanning -> Color.Yellow
-        is ScanState.Result -> Color.Green
-    }
+    val borderColor by animateColorAsState(
+        targetValue = when (state) {
+            is ScanState.Idle -> Color.White
+            is ScanState.Scanning -> MaterialTheme.colorScheme.primary
+            is ScanState.Result -> Color(0xFF22C55E)
+        },
+        label = "reticle-border",
+    )
     val dimColor = Color(0x73000000)
     val reticleWidthFraction = 0.85f
     val cardAspect = 2.5f / 3.5f
@@ -211,7 +147,7 @@ private fun ReticleOverlay(state: ScanState, modifier: Modifier = Modifier) {
                 .aspectRatio(cardAspect)
                 .align(Alignment.Center)
                 .border(
-                    width = 2.dp,
+                    width = 3.dp,
                     color = borderColor,
                     shape = RoundedCornerShape(12.dp),
                 )

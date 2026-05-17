@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-16, mock scan bypass + scan count reset fix)
+## Android Migration Status (updated 2026-05-17, UI/UX polish — camera bypass + reticle)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -25,6 +25,13 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 | A3 | Scanner — CameraX, ML Kit, ScannerViewModel, ScannerScreen | `android/` (7 new + 2 modified) | ✅ Done |
 | A4 | Full features — networking, collection, billing, paywall | `android/` (10 new + 8 modified), `backend/app/routers/auth.py` | ✅ Done |
 | A5 | Polish — ProGuard, navigation gating, permission rationale | `android/` (1 new + 9 modified) | ✅ Done |
+
+### Next Session — Android (updated 2026-05-17, UI/UX polish — camera bypass + reticle)
+
+**Completed this session (2026-05-17) — Camera bypass + reticle polish:**
+- ✅ `android/.../ScannerScreen.kt` — all camera permission logic removed (no permission request, no `CameraPreview`, no permission-denied fallback); dark background + reticle + scan UI always visible on Scanner tab entry; "Scan" button directly triggers ViewModel `startScan()` → 1.8s mock delay → `CardDetailSheet`
+- ✅ `android/.../ScannerScreen.kt` — `ReticleOverlay` reticle border upgraded: `Color.Yellow` → `animateColorAsState` with `MaterialTheme.colorScheme.primary` (brand blue `#2563EB`) for Scanning state, `Color(0xFF22C55E)` (green-500) for Result state; border width 2dp → 3dp; `import androidx.compose.animation.animateColorAsState` added
+- ✅ Swipe-to-delete (`SwipeToDismissBox` in `CollectionScreen.kt`) — confirmed already fully implemented; no changes needed
 
 ### Next Session — Android (updated 2026-05-16, mock scan bypass + scan count reset fix)
 
@@ -562,6 +569,16 @@ Env flags:
 | `onTextDetected = {}` in `ScannerScreen` (no-op lambda) | Real `onFrameAnalyzed()` pipeline was running in parallel with mock `startScan()` — could emit `NoCardDetected` snackbar or preempt mock result by cancelling `scanJob`. Disconnect at call site (ScannerScreen) rather than in ViewModel to keep ViewModel wiring intact for future real-pipeline restore. ML Kit still runs frames inside CameraPreviewComposable (unavoidable at this layer) but results are silently discarded. |
 | `resetCount()` not guarded by mutex in `ScanCounterService` | `canScan()` / `recordScan()` use mutex for read-check-write atomicity. `resetCount()` is only called from `signOut()` which kills the scanner coroutine scope first — no concurrent `recordScan()` in flight. DataStore serializes writes internally preventing corruption. Adding mutex would be over-engineering for this call pattern. |
 | `scanCounterService.resetCount()` in `AuthRepository.signOut()` (not NavGraph) | Counter reset is a data-layer concern — keeping it in the repository matches existing pattern (`cardRecordDao.deleteAll()` and `secureStorage.clearToken()` are also in `signOut()`). NavGraph's `handleSignOut` routes both authenticated and guest sign-out through `authRepository.signOut()`, so single callsite covers both cases. |
+
+## Key Decisions Made (UI/UX Polish 2026-05-17)
+
+| Decision | Rationale |
+|---|---|
+| Camera permission + `CameraPreview` removed entirely from `ScannerScreen` (not just bypassed) | Mock-only scan phase has no need for camera access — removing all permission code eliminates the permission dialog on first launch, dead imports, and the permission-denied fallback branch. Cleaner than a feature flag or conditional bypass. Real pipeline restore: re-add `CameraPreview` + permission logic when OCR is wired back. |
+| `animateColorAsState` for reticle border (not plain `val`) | State transitions (Idle→Scanning, Scanning→Result) are instantaneous without animation — border color jumps abruptly. `animateColorAsState` gives a smooth ~300ms cross-fade that matches Material motion principles. Zero API version concern: compose-animation is in BOM. |
+| Scanning border color `MaterialTheme.colorScheme.primary` (brand blue) not `Color.Yellow` | `Color.Yellow` is raw Android `FFFF00` — not in the design system, clashes with the `#0A0A0A` dark background at full saturation. `primary = #2563EB` is high-contrast on dark, used consistently across OnboardingScreen and SignInScreen. Single source of truth — follows theme if primary ever changes. |
+| Result border color `Color(0xFF22C55E)` (Tailwind green-500) not `Color.Green` | `Color.Green` is `#00FF00` — neon, off-brand. `0xFF22C55E` is a muted, professional green visible on dark backgrounds without clashing with brand blue. Consistent with color palette already used in UI (`0xFFFEF3C7` amber-100 used in OnboardingScreen). |
+| Border width 2dp → 3dp | 2dp reticle border is barely visible against the dim overlay on a physical device screen. 3dp maintains card-frame readability without looking heavy on 1x or high-density screens. |
 
 ---
 
