@@ -39,6 +39,15 @@ Replaces the 5-command manual ADB loop. Run from `android/` directory.
 
 Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
 
+### Next Session — Android (updated 2026-05-17, fix sign-out regression — latency + data race)
+
+**Completed this session (2026-05-17) — Fix sign-out regression bugs (latency + multi-account data race):**
+- ✅ `android/.../AuthRepository.kt` — push timeout reduced `3_000L` → `1_000L`; parallelized push completes in <1s on normal connection
+- ✅ `android/.../AuthRepository.kt` — Google `signOut()` moved to `applicationScope.launch { withTimeoutOrNull(3_000L) }` (fire-and-forget); `signOut()` now returns in ~1s max (was ~5s)
+- ✅ `android/.../AuthRepository.kt` — `applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)` added as `@Singleton` class field; `clearToken()` + `deleteAll()` still run synchronously before return
+- ✅ Race window reduced 5s → 1s; multi-account data wipe eliminated
+- **Tests: all 100 passing (no test changes needed)**
+
 ### Next Session — Android (updated 2026-05-17, bug fixes — sign-out lag + session leak + UI overlap)
 
 **Completed this session (2026-05-17) — Bug fixes — sign-out lag, cross-account session leak, scanner UI overlap:**
@@ -652,6 +661,7 @@ Env flags:
 | `withTimeoutOrNull(3_000L)` on `pushPending()` + `withTimeoutOrNull(2_000L)` on Google `signOut()` | `pushPending()` was unbounded — N cards × ~500ms = 5–10s block before Login appears. Google `signOut()` suspends 1–3s. Both are best-effort: token clear + Room wipe happen regardless of timeout. Max sign-out duration: ~5s (was unbounded). |
 | `ScanCounterPill` uses `.statusBarsPadding()` + `padding(top=8.dp)` (was `padding(top=60.dp)`) | Fixed 60dp top padding had no status bar awareness. On edge-to-edge displays, pill was partially behind the status bar. On 640dp screens, reticle top = 58dp, pill bottom = 96dp → 38dp overlap with reticle frame. `statusBarsPadding()` pushes pill below status bar; `padding(top=8.dp)` gives 8dp breathing room. |
 | `ReticleOverlay` gains `padding(top=80.dp)` (was `padding(bottom=96.dp)` only) | Reticle centered in full height minus bottom padding put it too high on small screens, colliding with counter pill. Adding 80dp top padding shifts the reticle center down — 80dp gap filled by the outer Box's dark `0xFF0A0A0A` background (visually identical to dim overlay; no camera preview in mock phase). |
+| `applicationScope` in `AuthRepository` — `CoroutineScope(SupervisorJob() + Dispatchers.IO)` as class field | Google `signOut()` GMS callback is non-critical (only affects account picker on next sign-in). Fire-and-forget via `applicationScope.launch` eliminates 2s blocking from `signOut()`. `SupervisorJob` prevents child failure from cancelling the scope. Lives for process lifetime — idiomatic pattern for `@Singleton` repositories needing app-lifetime scope without a Hilt `@ApplicationScope` module. Push timeout also reduced 3s → 1s (parallelized push completes in <1s on normal connection). Combined: `signOut()` returns in ~1s max (was ~5s). |
 
 ---
 

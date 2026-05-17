@@ -9,6 +9,10 @@ import com.pokescan.app.data.service.ScanCounterService
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -21,19 +25,23 @@ class AuthRepository @Inject constructor(
     private val scanCounterService: ScanCounterService,
     private val collectionRepository: CollectionRepository,
 ) {
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     suspend fun signInWithGoogle(idToken: String) {
         val response = apiService.signInWithGoogle(GoogleSignInRequest(idToken))
         secureStorage.saveToken(response.token)
     }
 
     suspend fun signOut() {
-        runCatching { withTimeoutOrNull(3_000L) { collectionRepository.pushPending() } }
+        runCatching { withTimeoutOrNull(1_000L) { collectionRepository.pushPending() } }
         secureStorage.clearToken()
         cardRecordDao.deleteAll()
         scanCounterService.resetCount()
-        withTimeoutOrNull(2_000L) {
-            suspendCancellableCoroutine<Unit> { cont ->
-                googleSignInClient.signOut().addOnCompleteListener { cont.resume(Unit) }
+        applicationScope.launch {
+            withTimeoutOrNull(3_000L) {
+                suspendCancellableCoroutine<Unit> { cont ->
+                    googleSignInClient.signOut().addOnCompleteListener { cont.resume(Unit) }
+                }
             }
         }
     }
