@@ -53,7 +53,7 @@ function Do-Connect {
     if ($state -eq 'device') {
         Write-Host "$(ts) Device connected." -ForegroundColor Green
     } else {
-        Write-Host "$(ts) Still not ready — state: '$state'. Check USB/wireless connection." -ForegroundColor Red
+        Write-Host "$(ts) Still not ready -- state: '$state'. Check USB/wireless connection." -ForegroundColor Red
     }
 }
 
@@ -119,9 +119,9 @@ switch ($Command) {
     'connect' { Do-Connect }
     default {
         Write-Host 'PokeScan Android dev script'
-        Write-Host '  .\dev.ps1 install  — incremental build + install (keeps app data)'
-        Write-Host '  .\dev.ps1 launch   — install + launch app on device'
-        Write-Host '  .\dev.ps1 watch    — auto-rebuild on file change (Ctrl+C to stop)'
-        Write-Host '  .\dev.ps1 connect  — check/fix ADB device connection'
+        Write-Host '  .\dev.ps1 install  -- incremental build + install (keeps app data)'
+        Write-Host '  .\dev.ps1 launch   -- install + launch app on device'
+        Write-Host '  .\dev.ps1 watch    -- auto-rebuild on file change (Ctrl+C to stop)'
+        Write-Host '  .\dev.ps1 connect  -- check/fix ADB device connection'
     }
 }

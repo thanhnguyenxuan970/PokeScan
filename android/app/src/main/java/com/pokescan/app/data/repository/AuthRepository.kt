@@ -27,7 +27,7 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun signOut() {
-        withTimeoutOrNull(3_000L) { collectionRepository.pushPending() }
+        runCatching { withTimeoutOrNull(3_000L) { collectionRepository.pushPending() } }
         secureStorage.clearToken()
         cardRecordDao.deleteAll()
         scanCounterService.resetCount()
