@@ -34,8 +34,8 @@ class PowerUserAgentTest {
     // ---- Scan limit business rules ----
 
     @Test
-    fun `free tier monthly limit is exactly 20`() {
-        assertEquals(20, ScanCounterService.FREE_MONTHLY_LIMIT)
+    fun `free tier monthly limit is exactly 10`() {
+        assertEquals(10, ScanCounterService.FREE_MONTHLY_LIMIT)
     }
 
     @Test

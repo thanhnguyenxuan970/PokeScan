@@ -23,63 +23,63 @@ class SetResolverTest {
 
     @Test
     fun `single candidate resolves directly`() {
-        assertEquals("neo2", resolver.resolve(listOf(neo2), "025/075", CardLanguage.ENGLISH))
+        assertEquals("neo2", resolver.resolve(listOf(neo2), "025/075", CardLanguage.ENGLISH).setCode)
     }
 
     @Test
     fun `sv1 198-card set resolves correctly`() {
-        assertEquals("sv1", resolver.resolve(listOf(sv1), "025/198", CardLanguage.ENGLISH))
+        assertEquals("sv1", resolver.resolve(listOf(sv1), "025/198", CardLanguage.ENGLISH).setCode)
     }
 
     @Test
     fun `base1 vs ex5 — printedTotal disambiguates to base1`() {
-        assertEquals("base1", resolver.resolve(listOf(base1, ex5), "025/102", CardLanguage.ENGLISH))
+        assertEquals("base1", resolver.resolve(listOf(base1, ex5), "025/102", CardLanguage.ENGLISH).setCode)
     }
 
     @Test
     fun `base1 vs ex5 — card 101 still resolves to base1`() {
-        assertEquals("base1", resolver.resolve(listOf(base1, ex5), "101/102", CardLanguage.ENGLISH))
+        assertEquals("base1", resolver.resolve(listOf(base1, ex5), "101/102", CardLanguage.ENGLISH).setCode)
     }
 
     @Test
     fun `collision without printedTotal — newest wins`() {
         val b = base1.copy(printedTotal = null)
         val e = ex5.copy(printedTotal = null)
-        assertEquals("ex5", resolver.resolve(listOf(b, e), "025/102", CardLanguage.ENGLISH))
+        assertEquals("ex5", resolver.resolve(listOf(b, e), "025/102", CardLanguage.ENGLISH).setCode)
     }
 
     @Test
     fun `collision partial printedTotal — newest wins`() {
         val b = base1.copy(printedTotal = null)
-        assertEquals("ex5", resolver.resolve(listOf(b, ex5), "025/102", CardLanguage.ENGLISH))
+        assertEquals("ex5", resolver.resolve(listOf(b, ex5), "025/102", CardLanguage.ENGLISH).setCode)
     }
 
     @Test
     fun `english and japanese entries with same total are isolated by language`() {
-        assertEquals("base1", resolver.resolve(listOf(base1, jpBase), "025/102", CardLanguage.ENGLISH))
+        assertEquals("base1", resolver.resolve(listOf(base1, jpBase), "025/102", CardLanguage.ENGLISH).setCode)
     }
 
     @Test
     fun `japanese query resolves jp set`() {
-        assertEquals("base1-jp", resolver.resolve(listOf(base1, jpBase), "025/102", CardLanguage.JAPANESE))
+        assertEquals("base1-jp", resolver.resolve(listOf(base1, jpBase), "025/102", CardLanguage.JAPANESE).setCode)
     }
 
     @Test
     fun `unknown returned for bad format`() {
-        assertEquals("unknown", resolver.resolve(listOf(base1), "025", CardLanguage.ENGLISH))
-        assertEquals("unknown", resolver.resolve(listOf(base1), "abc/102", CardLanguage.ENGLISH))
-        assertEquals("unknown", resolver.resolve(listOf(base1), "025/xyz", CardLanguage.ENGLISH))
+        assertEquals("unknown", resolver.resolve(listOf(base1), "025", CardLanguage.ENGLISH).setCode)
+        assertEquals("unknown", resolver.resolve(listOf(base1), "abc/102", CardLanguage.ENGLISH).setCode)
+        assertEquals("unknown", resolver.resolve(listOf(base1), "025/xyz", CardLanguage.ENGLISH).setCode)
     }
 
     @Test
     fun `unknown returned for no matching total`() {
-        assertEquals("unknown", resolver.resolve(listOf(base1), "025/999", CardLanguage.ENGLISH))
+        assertEquals("unknown", resolver.resolve(listOf(base1), "025/999", CardLanguage.ENGLISH).setCode)
     }
 
     @Test
     fun `card number exceeding all candidate totals returns unknown`() {
         val b = base1.copy(printedTotal = null)
         val e = ex5.copy(printedTotal = null)
-        assertEquals("unknown", resolver.resolve(listOf(b, e), "103/102", CardLanguage.ENGLISH))
+        assertEquals("unknown", resolver.resolve(listOf(b, e), "103/102", CardLanguage.ENGLISH).setCode)
     }
 }

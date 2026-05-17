@@ -34,8 +34,8 @@ class ScanCounterServiceTest {
     }
 
     @Test
-    fun `FREE_MONTHLY_LIMIT constant is 20`() {
-        assertEquals(20, ScanCounterService.FREE_MONTHLY_LIMIT)
+    fun `FREE_MONTHLY_LIMIT constant is 10`() {
+        assertEquals(10, ScanCounterService.FREE_MONTHLY_LIMIT)
     }
 
     private fun isSameMonth(storedMs: Long, nowMs: Long): Boolean {
