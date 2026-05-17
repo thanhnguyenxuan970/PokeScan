@@ -39,6 +39,15 @@ Replaces the 5-command manual ADB loop. Run from `android/` directory.
 
 Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
 
+### Next Session — Android (updated 2026-05-18, fix server sync + multi-account isolation)
+
+**Completed this session (2026-05-18) — Fix server sync + multi-account isolation (client-side Android only):**
+- ✅ `android/.../CollectionRepository.kt` — removed outer `try/catch` from `pullFromServer()`; network/HTTP errors now propagate to ViewModel instead of being silently swallowed
+- ✅ `android/.../CollectionViewModel.kt` — added `SyncState` sealed class (Idle/Loading/Success/Error); exposed `syncState: StateFlow`; replaced fire-and-forget `syncAll()` with `refresh()` that tracks state and catches errors; `init` calls `refresh()` only when token present
+- ✅ `android/.../CollectionScreen.kt` — observes `syncState`; shows `CircularProgressIndicator` when loading+empty; shows error banner + "Retry" button on failure; shows "No cards yet" only on Success+empty; shows cards on Success+non-empty
+- **Backend untouched** — isolation confirmed clean (JWT→user_id FK, get_or_create_user correct)
+- **Tests: all 100 passing (no new tests needed)**
+
 ### Next Session — Android (updated 2026-05-17, fix sign-out regression — latency + data race)
 
 **Completed this session (2026-05-17) — Fix sign-out regression bugs (latency + multi-account data race):**
@@ -634,6 +643,19 @@ Env flags:
 | Result border color `Color(0xFF22C55E)` (Tailwind green-500) not `Color.Green` | `Color.Green` is `#00FF00` — neon, off-brand. `0xFF22C55E` is a muted, professional green visible on dark backgrounds without clashing with brand blue. Consistent with color palette already used in UI (`0xFFFEF3C7` amber-100 used in OnboardingScreen). |
 | Border width 2dp → 3dp | 2dp reticle border is barely visible against the dim overlay on a physical device screen. 3dp maintains card-frame readability without looking heavy on 1x or high-density screens. |
 | `dev.ps1` uses `& .\gradlew.bat ... \| Out-Host` not bare `& .\gradlew.bat` | In PowerShell, a native executable's stdout inside a function goes to the function's pipeline. Without `\| Out-Host`, callers that capture the return value get all Gradle output lines mixed with the return value — `$LASTEXITCODE` check logic breaks. `\| Out-Host` routes stdout to the console while keeping the function pipeline clean; callers check `$LASTEXITCODE` directly. |
+
+---
+
+## Key Decisions Made (Bug Fixes 2026-05-18 — server sync + multi-account isolation)
+
+| Decision | Rationale |
+|---|---|
+| `pullFromServer()` outer try/catch removed — let it throw | Silent swallow was root cause of "no cards on account switch". ViewModel is the correct error-handling layer (has UI state); Repository should propagate. Per-card parse fallback (scannedAtMs) retained — transient date parse failure ≠ network error. |
+| `SyncState` sealed class top-level in `CollectionViewModel.kt` | Same package as `CollectionScreen` — no import needed. Standard Kotlin sealed class placement. `Idle/Loading/Success/Error` covers all 4 observable states from a single async operation. |
+| Error state shows "Couldn't load collection" (hardcoded) not `e.message` | `e.message` may contain internal network details (OkHttp URLs, server stack traces). Hardcoded user-friendly string + log to Logcat via `Log.w` follows existing pattern in codebase. |
+| `SyncState.Error` hides cached cards (shows error banner instead of list) | Primary fix case is Account B first login (no Room cache). Showing error over cached cards is a known UX tradeoff — acceptable for v1. Future improvement: show inline error banner above card list when `cards.isNotEmpty() && syncState is Error`. |
+| `refresh()` public — callable from Retry button | Exposes sync trigger to UI without leaking Repository. Concurrent calls safe: both coroutines run, last to complete wins; Room upserts are idempotent. |
+| Guest users skip `refresh()` entirely (no token → no sync) | No token → `syncAll()` → 401 → `AuthEventBus` → auth loop. Guard matches pre-existing `CollectionViewModel` init guard pattern. Guest users see local Room cards without any network call. |
 
 ---
 
