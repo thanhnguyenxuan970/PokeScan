@@ -7,6 +7,9 @@ import com.pokescan.app.data.local.entity.toEntity
 import com.pokescan.app.data.remote.ApiService
 import com.pokescan.app.data.remote.dto.CardInDto
 import com.pokescan.app.domain.model.Card
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 import java.util.UUID
@@ -38,23 +41,27 @@ class CollectionRepository @Inject constructor(
 
     suspend fun pushPending() {
         val pending = dao.getPendingSync()
-        for (entity in pending) {
-            try {
-                val dto = CardInDto(
-                    cardSku = "${entity.setCode}-${entity.setNumber.replace("/", "-")}",
-                    name = entity.name,
-                    setCode = entity.setCode,
-                    setNumber = entity.setNumber,
-                    language = entity.language,
-                    marketPrice = entity.marketPrice,
-                    priceSource = entity.priceSource,
-                    scannedAt = Instant.ofEpochMilli(entity.scannedAt).toString(),
-                )
-                val response = apiService.postCard(dto)
-                dao.upsert(entity.copy(syncedAt = System.currentTimeMillis(), serverID = response.serverId))
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to push card ${entity.id}: ${e.message}")
-            }
+        coroutineScope {
+            pending.map { entity ->
+                async {
+                    try {
+                        val dto = CardInDto(
+                            cardSku = "${entity.setCode}-${entity.setNumber.replace("/", "-")}",
+                            name = entity.name,
+                            setCode = entity.setCode,
+                            setNumber = entity.setNumber,
+                            language = entity.language,
+                            marketPrice = entity.marketPrice,
+                            priceSource = entity.priceSource,
+                            scannedAt = Instant.ofEpochMilli(entity.scannedAt).toString(),
+                        )
+                        val response = apiService.postCard(dto)
+                        dao.upsert(entity.copy(syncedAt = System.currentTimeMillis(), serverID = response.serverId))
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to push card ${entity.id}: ${e.message}")
+                    }
+                }
+            }.awaitAll()
         }
     }
 

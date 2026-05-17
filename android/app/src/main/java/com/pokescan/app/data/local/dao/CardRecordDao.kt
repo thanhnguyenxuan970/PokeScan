@@ -28,4 +28,7 @@ interface CardRecordDao {
 
     @Query("DELETE FROM card_records")
     suspend fun deleteAll()
+
+    @Query("DELETE FROM card_records WHERE serverID IS NOT NULL")
+    suspend fun deleteAllSynced()
 }

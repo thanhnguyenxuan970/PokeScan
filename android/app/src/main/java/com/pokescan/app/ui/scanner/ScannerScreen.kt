@@ -61,7 +61,7 @@ fun ScannerScreen(
             .fillMaxSize()
             .background(Color(0xFF0A0A0A)),
     ) {
-        ReticleOverlay(state = state, modifier = Modifier.fillMaxSize())
+        ReticleOverlay(state = state, modifier = Modifier.fillMaxSize().padding(bottom = 96.dp))
         ScanCounterPill(
             scansUsed = scansThisMonth,
             limit = ScanCounterService.FREE_MONTHLY_LIMIT,

@@ -28,7 +28,7 @@ class AuthRepository @Inject constructor(
     suspend fun signOut() {
         collectionRepository.pushPending()   // push while token is still valid
         secureStorage.clearToken()
-        cardRecordDao.deleteAll()
+        cardRecordDao.deleteAllSynced()
         scanCounterService.resetCount()
         suspendCancellableCoroutine<Unit> { cont ->
             googleSignInClient.signOut().addOnCompleteListener { cont.resume(Unit) }
