@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-17, UI/UX polish — camera bypass + reticle)
+## Android Migration Status (updated 2026-05-17, dev workflow automation)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -25,6 +25,19 @@ Kotlin + Jetpack Compose + Material 3, CameraX, ML Kit Text Recognition v2, Retr
 | A3 | Scanner — CameraX, ML Kit, ScannerViewModel, ScannerScreen | `android/` (7 new + 2 modified) | ✅ Done |
 | A4 | Full features — networking, collection, billing, paywall | `android/` (10 new + 8 modified), `backend/app/routers/auth.py` | ✅ Done |
 | A5 | Polish — ProGuard, navigation gating, permission rationale | `android/` (1 new + 9 modified) | ✅ Done |
+
+### Dev Workflow — `android/dev.ps1` (added 2026-05-17)
+
+Replaces the 5-command manual ADB loop. Run from `android/` directory.
+
+```powershell
+.\dev.ps1 install   # incremental build + install (keeps Room/SharedPrefs data)
+.\dev.ps1 launch    # install + launch app
+.\dev.ps1 watch     # auto-rebuild on any .kt/.xml/.json save (Ctrl+C to stop)
+.\dev.ps1 connect   # check/fix ADB device connection (non-destructive)
+```
+
+Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
 
 ### Next Session — Android (updated 2026-05-17, UI/UX polish — camera bypass + reticle)
 
@@ -579,6 +592,7 @@ Env flags:
 | Scanning border color `MaterialTheme.colorScheme.primary` (brand blue) not `Color.Yellow` | `Color.Yellow` is raw Android `FFFF00` — not in the design system, clashes with the `#0A0A0A` dark background at full saturation. `primary = #2563EB` is high-contrast on dark, used consistently across OnboardingScreen and SignInScreen. Single source of truth — follows theme if primary ever changes. |
 | Result border color `Color(0xFF22C55E)` (Tailwind green-500) not `Color.Green` | `Color.Green` is `#00FF00` — neon, off-brand. `0xFF22C55E` is a muted, professional green visible on dark backgrounds without clashing with brand blue. Consistent with color palette already used in UI (`0xFFFEF3C7` amber-100 used in OnboardingScreen). |
 | Border width 2dp → 3dp | 2dp reticle border is barely visible against the dim overlay on a physical device screen. 3dp maintains card-frame readability without looking heavy on 1x or high-density screens. |
+| `dev.ps1` uses `& .\gradlew.bat ... \| Out-Host` not bare `& .\gradlew.bat` | In PowerShell, a native executable's stdout inside a function goes to the function's pipeline. Without `\| Out-Host`, callers that capture the return value get all Gradle output lines mixed with the return value — `$LASTEXITCODE` check logic breaks. `\| Out-Host` routes stdout to the console while keeping the function pipeline clean; callers check `$LASTEXITCODE` directly. |
 
 ---
 
