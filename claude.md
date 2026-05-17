@@ -39,6 +39,18 @@ Replaces the 5-command manual ADB loop. Run from `android/` directory.
 
 Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
 
+### Next Session — Android (updated 2026-05-17, bug fixes — sync + paywall + delete UX)
+
+**Completed this session (2026-05-17) — Bug fixes + test corrections:**
+- ✅ `android/.../AuthRepository.kt` — `CollectionRepository` injected; `signOut()` calls `collectionRepository.pushPending()` as first action before `clearToken()` + `deleteAll()` + `resetCount()` + Google session clear; prevents collection loss on logout
+- ✅ `android/.../AuthRepositoryTest.kt` (new) — `coVerifyOrder` test verifies `pushPending()` precedes `clearToken()` in `signOut()`
+- ✅ `android/.../PaywallScreen.kt` — `windowInsetsPadding(WindowInsets.systemBars)` on outer `Box`; `IconButton` close moved AFTER `Column` (Compose z-order fix); "No ads" added as second entry in `proFeatures`
+- ✅ `android/.../ScannerScreen.kt` — `ButtonDefaults.buttonColors(disabledContainerColor = Color.White.copy(alpha=0.15f), disabledContentColor = Color.White.copy(alpha=0.75f))` on `ScanButton`; "Scanning…" text now readable on `#0A0A0A` background
+- ✅ `android/.../CollectionScreen.kt` — `SwipeToDismissBox` + `SwipeToDeleteCard` removed; `cardToDelete` state + `AlertDialog` added; `CardRow` gets trash `IconButton` + `onDeleteClick` param
+- ✅ `android/test/.../SetResolverTest.kt` — all 11 assertions updated to `.setCode` (`SetResolver` returns `ResolvedSet`, not `String`)
+- ✅ `android/test/.../ScanCounterServiceTest.kt` + `PowerUserAgentTest.kt` — `FREE_MONTHLY_LIMIT` assertions updated 20 → 10
+- **Tests: 100 passing, 0 failures**
+
 ### Next Session — Android (updated 2026-05-17, UI/UX polish — camera bypass + reticle)
 
 **Completed this session (2026-05-17) — Camera bypass + reticle polish:**
@@ -593,6 +605,19 @@ Env flags:
 | Result border color `Color(0xFF22C55E)` (Tailwind green-500) not `Color.Green` | `Color.Green` is `#00FF00` — neon, off-brand. `0xFF22C55E` is a muted, professional green visible on dark backgrounds without clashing with brand blue. Consistent with color palette already used in UI (`0xFFFEF3C7` amber-100 used in OnboardingScreen). |
 | Border width 2dp → 3dp | 2dp reticle border is barely visible against the dim overlay on a physical device screen. 3dp maintains card-frame readability without looking heavy on 1x or high-density screens. |
 | `dev.ps1` uses `& .\gradlew.bat ... \| Out-Host` not bare `& .\gradlew.bat` | In PowerShell, a native executable's stdout inside a function goes to the function's pipeline. Without `\| Out-Host`, callers that capture the return value get all Gradle output lines mixed with the return value — `$LASTEXITCODE` check logic breaks. `\| Out-Host` routes stdout to the console while keeping the function pipeline clean; callers check `$LASTEXITCODE` directly. |
+
+---
+
+## Key Decisions Made (Bug Fixes 2026-05-17)
+
+| Decision | Rationale |
+|---|---|
+| `collectionRepository.pushPending()` is first call in `signOut()` before `clearToken()` | Token must be valid when `pushPending()` fires — `ApiService` attaches Bearer JWT per-request. Calling `clearToken()` first makes the push unauthenticated → 401. Single ordering constraint covers both authenticated and guest-sign-out paths routed through `signOut()`. |
+| `CollectionRepository` injected into `AuthRepository` (not called in NavGraph) | Sign-out is a repository-layer concern. `CollectionRepository` only depends on `CardRecordDao` + `ApiService` — no back-reference to `AuthRepository`, no circular DI. Follows existing pattern: `GoogleSignInClient` and `ScanCounterService` are already injected into `AuthRepository`. |
+| `SwipeToDismissBox` replaced with trash `IconButton` + `AlertDialog` | Swipe is easy to accidentally trigger in a vertical-scroll `LazyColumn`. Trash icon + confirmation dialog requires deliberate action — prevents accidental deletion of G9-critical collection data. No API change: `viewModel.deleteCard()` and `CardRecordEntity` model unchanged. |
+| `ButtonDefaults.buttonColors(disabled*)` override on `ScanButton` | Material3 default disabled colors (`onSurface.copy(alpha=0.38f)` text, `onSurface.copy(alpha=0.12f)` container) resolve to near-invisible on `Color(0xFF0A0A0A)` dark scanner background. `Color.White.copy(alpha=0.15f)` container + `Color.White.copy(alpha=0.75f)` text maintain visible contrast without suggesting the button is active. |
+| `IconButton` declared AFTER `Column` in PaywallScreen `Box` | Compose draws `Box` children in declaration order — later children are topmost and receive touch events first. With `IconButton` before `Column`, the scrollable `Column` was on top and intercepted all taps — close button was unreachable. Moving it after `Column` puts it on the topmost layer. |
+| `windowInsetsPadding(WindowInsets.systemBars)` on PaywallScreen `Box` | Without insets, `Box` starts at y=0 behind the device status bar on edge-to-edge displays. Padding pushes content + `IconButton` below the status bar — close button was partially hidden by status bar. `WindowInsets.systemBars` covers both status bar and navigation bar. |
 
 ---
 
