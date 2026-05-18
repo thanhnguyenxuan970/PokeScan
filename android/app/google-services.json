@@ -9,12 +9,49 @@
       "client_info": {
         "mobilesdk_app_id": "1:203923012561:android:557dba81aea65ad4c0fef0",
         "android_client_info": {
-          "package_name": "com.snapdex.app"
+          "package_name": "com.pokescan.app"
         }
       },
       "oauth_client": [
         {
           "client_id": "203923012561-9tqsr62c7rf6rle99kp9823b7svln4uf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.pokescan.app",
+            "certificate_hash": "1838b7bc9e952498edfe5b71a4f274fe4f197091"
+          }
+        },
+        {
+          "client_id": "203923012561-4l9vu2khmccsbjmpuej9pqln6rbr395c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUlZEkqRvxqUeTxVgdx21ykOJqc9jhz-0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "203923012561-4l9vu2khmccsbjmpuej9pqln6rbr395c.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:203923012561:android:36296f53040ec5c0c0fef0",
+        "android_client_info": {
+          "package_name": "com.snapdex.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "203923012561-8fk3acmmeincfpsh5tu3emb7kd0mdhq5.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.snapdex.app",
