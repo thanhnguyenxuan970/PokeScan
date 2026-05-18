@@ -72,7 +72,7 @@ ksp {
 
 tasks.register("checkPrivacyUrl") {
     doLast {
-        val appConfig = file("src/main/java/com/pokescan/app/config/AppConfig.kt")
+        val appConfig = file("src/main/java/com/snapdex/app/config/AppConfig.kt")
         val text = appConfig.readText()
         if (text.contains("REPLACE_ME")) {
             throw GradleException("Privacy URL not configured — create github.io/snapdex-privacy repo before release")
