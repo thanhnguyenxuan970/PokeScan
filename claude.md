@@ -61,6 +61,17 @@ Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without 
 - **[NEEDS USER ACTION]:** Xcode GUI: Project → Target → Build Phases → + → Run Script: `grep -q "REPLACE_ME" "$SRCROOT/PokeScan/Config/AppConfig.swift" && echo "error: Privacy policy URL not configured" && exit 1; exit 0`
 - **Tests: 100 passing (pHash path inactive in all tests — frame=null)**
 
+### Next Session — Android (updated 2026-05-18, T5-5 bug fixes — 401 cold-start + sign-out lag)
+
+**Completed this session (2026-05-18) — T5-5 bug fixes:**
+- ✅ `backend/app/services/auth.py` — `warmup_google_auth()` added; pre-warms shared `_http = urllib3.PoolManager()` at startup via `asyncio.to_thread`; retry sleep increased 300ms → 600ms
+- ✅ `backend/app/main.py` — `@app.on_event("startup")` fires `asyncio.create_task(warmup_google_auth())`; non-blocking; `import asyncio` added at module level
+- ✅ `android/.../AuthRepository.kt` — `cardRecordDao.deleteAll()` + `scanCounterService.resetCount()` moved to fire-and-forget `applicationScope.launch`; `signOut()` returns in ~1s max (was ~1.5s)
+- ✅ `android/app/build.gradle.kts` — `tasks.named("assembleRelease")` → `tasks.matching { ... }.configureEach`; fixes BUILD FAILED when running unit tests (pre-existing bug)
+- ✅ `android/.../OfflineAgentTest.kt` — 3 tests updated to match `pullFromServer()` propagate-not-swallow contract from previous session; assertion messages improved
+- ✅ `android/app/google-services.json` — package name `com.pokescan.app` → `com.snapdex.app` (unblocks test runner; user still needs Firebase Console update for real device Google Sign-In)
+- **Tests: 99 passing, 0 failures** (was 96 passing / 3 failing before this session)
+
 ### Next Session — Android (updated 2026-05-18, fix server sync + multi-account isolation)
 
 **Completed this session (2026-05-18) — Fix server sync + multi-account isolation (client-side Android only):**
