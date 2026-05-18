@@ -15,7 +15,9 @@ class AuthAuthenticator @Inject constructor(
     override fun authenticate(route: Route?, response: Response): Request? {
         if (response.request.url.encodedPath.contains("/auth/")) return null
 
-        val requestToken = response.request.header("Authorization")?.removePrefix("Bearer ")
+        val requestToken = response.request.header("Authorization")
+            ?.removePrefix("Bearer ")
+            ?.takeIf { it.isNotEmpty() }
         val currentToken = secureStorage.getToken()
 
         return when {
