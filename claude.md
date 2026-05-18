@@ -39,6 +39,11 @@ Replaces the 5-command manual ADB loop. Run from `android/` directory.
 
 Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
 
+### Next Session — Android (updated 2026-05-18, auth regression fix — empty Bearer guard)
+
+**Completed this session (2026-05-18) — Auth regression fix:**
+- ✅ `backend/app/routers/auth.py` — guard against empty string from malformed Bearer header (commit `a33c155`)
+
 ### Next Session — Android (updated 2026-05-18, multi-account regression fix — userId isolation)
 
 **Completed this session (2026-05-18) — Multi-account regression: userId isolation + CollectionScreen UX fix:**
@@ -63,7 +68,7 @@ Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without 
 - ✅ **Branding**: Confirmed complete — zero "PokeScan" occurrences in user-visible strings. `strings.xml` = `SnapDex`, `themes.xml` = `Theme.SnapDex`, all `.kt`/`.swift` files clean. No action needed.
 - ✅ **Auth diagnosis**: Root cause identified — `google-services.json` `com.snapdex.app` entry has type 3 web oauth client but **no type 1 Android client** (no SHA-1). Firebase plugin correctly auto-generates `default_web_client_id` from type 3 client (manually adding it to `strings.xml` would cause Duplicate resources build error). Google Play Services rejects sign-in because APK signing certificate has no registered SHA-1 for `com.snapdex.app` → `idToken = null`.
 - **No code changes** — `strings.xml` unchanged (already correct).
-- **[NEEDS USER ACTION]:** Firebase Console (`pokescan-7f2a6`) → Project Settings → Your apps → Add app → Android → package `com.snapdex.app` → SHA-1 `1838b7bc9e952498edfe5b71a4f274fe4f197091` → download new `google-services.json` → replace `android/app/google-services.json`. **Without this, Google Sign-in remains broken on physical devices.**
+- **[RESOLVED 2026-05-18]:** Firebase SHA-1 registered for `com.snapdex.app`. `google-services.json` updated — both `client_type: 1` (Android OAuth) and `client_type: 3` (Web OAuth) present for `com.snapdex.app`. Google Sign-In unblocked.
 
 ### Next Session — Android (updated 2026-05-18, regression fixes — OkHttp Authenticator + branding)
 
@@ -97,7 +102,7 @@ Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without 
 - ✅ **Task 4 (Privacy URL guards):** iOS `AppConfig.swift` — non-crashing fallback + `LAUNCH_BLOCKER` comment. Android `AppConfig.kt` — `LAUNCH_BLOCKER` comment. `build.gradle.kts` — `checkPrivacyUrl` Gradle task wired to `assembleRelease`.
 - ✅ **Task 5 (Skill):** `C:\Users\Admin\.claude\skills\audit-against-claude-md.md` created.
 - **[NEEDS USER ACTION]:** Firebase Console: update package name to `com.snapdex.app` → re-download `google-services.json` → replace `android/app/google-services.json`. Without this, Google Sign-In silently fails.
-- **[NEEDS USER ACTION]:** Run `python backend/scripts/build_phash_db.py` (requires `pip install requests Pillow`) → copy `set_phashes.json` to `android/app/src/main/assets/` and `PokeScan/Resources/`.
+- **[DONE 2026-05-18]:** `set_phashes.json` deployed to both `android/app/src/main/assets/set_phashes.json` and `PokeScan/Resources/set_phashes.json`.
 - **[NEEDS USER ACTION]:** Xcode GUI: Project → Target → Build Phases → + → Run Script: `grep -q "REPLACE_ME" "$SRCROOT/PokeScan/Config/AppConfig.swift" && echo "error: Privacy policy URL not configured" && exit 1; exit 0`
 - **Tests: 100 passing (pHash path inactive in all tests — frame=null)**
 
