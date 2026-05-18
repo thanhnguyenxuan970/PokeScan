@@ -69,6 +69,19 @@ class AuthAuthenticatorTest {
     }
 
     @Test
+    fun `no auth header on request — current token present — retry with current token`() {
+        every { secureStorage.getToken() } returns "current-token"
+        val response = makeResponse(requestToken = null)
+
+        val retryRequest = authenticator.authenticate(null, response)
+
+        assertNotNull(retryRequest)
+        assertEquals("Bearer current-token", retryRequest!!.header("Authorization"))
+        verify(exactly = 0) { secureStorage.clearToken() }
+        verify(exactly = 0) { authEventBus.emitUnauthorized() }
+    }
+
+    @Test
     fun `auth endpoint 401 — skip — return null`() {
         every { secureStorage.getToken() } returns "some-token"
         val response = makeResponse(requestToken = "some-token", path = "/auth/google")
