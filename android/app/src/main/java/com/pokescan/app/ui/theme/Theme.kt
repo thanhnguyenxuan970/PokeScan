@@ -1,7 +1,6 @@
 package com.snapdex.app.ui.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
@@ -10,32 +9,18 @@ private val LightColorScheme = lightColorScheme(
     onPrimary = SnapDexWhite,
     primaryContainer = SnapDexBlueTint,
     onPrimaryContainer = SnapDexBlue,
+    error = SnapDexDanger,
+    onError = SnapDexWhite,
     surface = SnapDexSurface,
     onSurface = SnapDexBlack,
-    background = SnapDexWhite,
+    background = SnapDexSurface,
     onBackground = SnapDexBlack,
 )
 
-private val DarkColorScheme = darkColorScheme(
-    primary = SnapDexBlue,
-    onPrimary = SnapDexWhite,
-    primaryContainer = SnapDexBlueDark,
-    onPrimaryContainer = SnapDexWhite,
-    surface = SnapDexSurfaceDark,
-    onSurface = SnapDexWhite,
-    background = SnapDexBlack,
-    onBackground = SnapDexWhite,
-)
-
 @Composable
-fun SnapDexTheme(
-    darkTheme: Boolean = false,
-    content: @Composable () -> Unit
-) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-
+fun SnapDexTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = LightColorScheme,
         typography = SnapDexTypography,
         content = content
     )
