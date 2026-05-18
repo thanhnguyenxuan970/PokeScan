@@ -66,10 +66,21 @@
     <path
         android:pathData="M498,488 A10,10,0,1,1,498,508 A10,10,0,1,1,498,488 Z"
         android:fillColor="#FFFFFF"/>
+    <!-- Secondary catch-light (r=4 at 528,525) — lens reflection -->
+    <path
+        android:pathData="M524,521 A4,4,0,1,1,524,529 A4,4,0,1,1,524,521 Z"
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.50"/>
 
-    <!-- Scan beam (ink blue line across equator) -->
+    <!-- Scan beam (ink blue lines across equator) -->
+    <!-- Primary beam -->
     <path
         android:pathData="M80,520 H944 V526 H80 Z"
         android:fillColor="#2563EB"/>
+    <!-- Secondary beam (55% opacity, matches SVG) -->
+    <path
+        android:pathData="M80,496 H944 V502 H80 Z"
+        android:fillColor="#2563EB"
+        android:fillAlpha="0.55"/>
 
 </vector>
