@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Optional
@@ -16,7 +17,7 @@ from app.routers import collection as collection_router
 from app.routers import detection as detection_router
 from app.routers import grading as grading_router
 from app.services.aggregator import aggregate
-from app.services.auth import decode_server_token
+from app.services.auth import decode_server_token, warmup_google_auth
 from app.services.ebay import fetch_completed_sale_price as ebay_fetch
 from app.services.tcgplayer import fetch_completed_sale_price as tcg_fetch
 
@@ -40,6 +41,11 @@ app.include_router(auth_router.router)
 app.include_router(collection_router.router)
 app.include_router(grading_router.router)
 app.include_router(detection_router.router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(warmup_google_auth())
 
 
 @app.get("/health")

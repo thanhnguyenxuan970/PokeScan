@@ -112,16 +112,17 @@ class OfflineAgentTest {
     }
 
     @Test
-    fun `pullFromServer — network failure returns silently without crash`() = runTest {
+    fun `pullFromServer — network failure propagates to caller (ViewModel handles it)`() = runTest {
         coEvery { mockApi.getCollection() } throws IOException("offline")
-        // Should complete without throwing
-        collectionRepo.pullFromServer()
+        val error = runCatching { collectionRepo.pullFromServer() }.exceptionOrNull()
+        assertTrue("Expected IOException, got ${error?.javaClass?.simpleName}", error is IOException)
     }
 
     @Test
-    fun `pullFromServer — SocketTimeout returns silently`() = runTest {
+    fun `pullFromServer — SocketTimeout propagates to caller`() = runTest {
         coEvery { mockApi.getCollection() } throws SocketTimeoutException("timeout")
-        collectionRepo.pullFromServer()
+        val error = runCatching { collectionRepo.pullFromServer() }.exceptionOrNull()
+        assertTrue(error is SocketTimeoutException)
     }
 
     @Test

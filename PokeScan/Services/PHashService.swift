@@ -6,6 +6,7 @@ final class PHashService {
     static let shared = PHashService()
 
     private var setHashes: [String: UInt64] = [:]
+    private let ciContext = CIContext()
 
     private init() {
         loadHashes()
@@ -25,8 +26,7 @@ final class PHashService {
 
     func computeHash(from pixelBuffer: CVPixelBuffer) -> UInt64? {
         let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        let context = CIContext()
-        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else { return nil }
+        guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else { return nil }
         return computeHash(from: UIImage(cgImage: cgImage))
     }
 
@@ -96,7 +96,7 @@ final class PHashService {
 
     /// Returns best-matching setCode from candidates, or nil if no match within threshold.
     func findBestMatch(hash: UInt64, candidates: [String]) -> String? {
-        var bestCode: String? = nil
+        var bestCode: String?
         var bestDist = Int.max
         for code in candidates {
             guard let candidateHash = setHashes[code] else { continue }

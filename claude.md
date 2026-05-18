@@ -39,6 +39,15 @@ Replaces the 5-command manual ADB loop. Run from `android/` directory.
 
 Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
 
+### Next Session — Android (updated 2026-05-18, post-rebrand code review fixes)
+
+**Completed this session (2026-05-18) — Code review fixes from caveman-review of 6ea0aca:**
+- ✅ `backend/scripts/build_phash_db.py` — replaced `imagehash.phash()` with `_compute_phash_compat()`: exact match to `PHashService.kt` DCT algorithm (BT.601 luminance → 32×32 → normalized 8×8 DCT-II, cu/cv factors, ÷4 → mean of 63 AC only). Removed `imagehash` dep; collision verification uses `_hamming()`. `pip install requests Pillow` now sufficient.
+- ✅ `PokeScan/Services/PHashService.swift` — `CIContext()` moved to `private let ciContext` stored property (was per-call, ~3–10ms GPU allocation cost each frame).
+- ✅ `PokeScan/Services/PHashService.swift` — `var bestCode: String? = nil` → `var bestCode: String?` (Swift idiom).
+- ✅ `android/app/build.gradle.kts` — removed dead `text.contains("pokescan-privacy")` from `checkPrivacyUrl` task (URL already updated to `snapdex-privacy`; only `REPLACE_ME` check remains).
+- **Skipped (correct as-is):** `detection.py` `db: AsyncSession` — review flagged as unused but IS used by `col_svc.get_or_create_user(db, user_id)`.
+
 ### Next Session — Android (updated 2026-05-18, SnapDex rebrand + pHash + checklist)
 
 **Completed this session (2026-05-18) — SnapDex rebrand + pHash disambiguation + fake detection rewrite:**
@@ -48,7 +57,7 @@ Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without 
 - ✅ **Task 4 (Privacy URL guards):** iOS `AppConfig.swift` — non-crashing fallback + `LAUNCH_BLOCKER` comment. Android `AppConfig.kt` — `LAUNCH_BLOCKER` comment. `build.gradle.kts` — `checkPrivacyUrl` Gradle task wired to `assembleRelease`.
 - ✅ **Task 5 (Skill):** `C:\Users\Admin\.claude\skills\audit-against-claude-md.md` created.
 - **[NEEDS USER ACTION]:** Firebase Console: update package name to `com.snapdex.app` → re-download `google-services.json` → replace `android/app/google-services.json`. Without this, Google Sign-In silently fails.
-- **[NEEDS USER ACTION]:** Run `python backend/scripts/build_phash_db.py` (requires `pip install imagehash requests Pillow`) → copy `set_phashes.json` to `android/app/src/main/assets/` and `PokeScan/Resources/`.
+- **[NEEDS USER ACTION]:** Run `python backend/scripts/build_phash_db.py` (requires `pip install requests Pillow`) → copy `set_phashes.json` to `android/app/src/main/assets/` and `PokeScan/Resources/`.
 - **[NEEDS USER ACTION]:** Xcode GUI: Project → Target → Build Phases → + → Run Script: `grep -q "REPLACE_ME" "$SRCROOT/PokeScan/Config/AppConfig.swift" && echo "error: Privacy policy URL not configured" && exit 1; exit 0`
 - **Tests: 100 passing (pHash path inactive in all tests — frame=null)**
 
@@ -659,6 +668,17 @@ Env flags:
 
 ---
 
+## Key Decisions Made (Bug Fixes 2026-05-18 — T5-5: 401 cold-start + sign-out lag)
+
+| Decision | Rationale |
+|---|---|
+| `deleteAll()` + `resetCount()` moved to fire-and-forget `applicationScope.launch` on sign-out | Both are idempotent and have no ordering constraint after `clearToken()`. Reduces `signOut()` blocking from ~1.5s to ~1s (pushPending timeout dominates). Room upserts by serverID — no collision risk with new account's cards if deleteAll lags briefly behind the next `syncAll()`. |
+| JWKS pre-warm via `asyncio.create_task(warmup_google_auth())` at backend startup | `google.auth.transport.urllib3.Request` uses a module-level `urllib3.PoolManager` (`_http`). On cold start, DNS + TCP + TLS to `www.googleapis.com` can exceed the retry sleep → 401. `warmup_google_auth()` in `auth.py` fires a GET through the same `_http` pool at startup, warming both DNS cache and the pool itself. Non-blocking (`create_task`), best-effort (exception swallowed). |
+| Retry sleep increased 300ms → 600ms in `verify_google_token` | Belt-and-suspenders alongside the pre-warm. If startup warmup is still in-flight when first login hits, 600ms sleep gives the pool more recovery time between retry attempts. |
+| `warmup_google_auth()` defined in `auth.py` (not `main.py`) | The `_http = urllib3.PoolManager()` singleton lives in `auth.py`. Warming from `main.py` via a different HTTP client would use a different pool and have no effect on `verify_google_token`'s transport. |
+
+---
+
 ## Key Decisions Made (Bug Fixes 2026-05-18 — server sync + multi-account isolation)
 
 | Decision | Rationale |
@@ -716,6 +736,17 @@ Env flags:
 | `POST /detection/authenticity` no longer takes a request body | Old body (`listed_price`, `market_price`) was only used by the now-deleted scoring function. Static checklist needs no input. FastAPI silently ignores extra fields when no request body model is declared — iOS v1.x clients posting the old body continue to work and receive backward-compat `risk_level: "none"` + `risk_score: 0.0` in the response. |
 | `AppConfig.privacyPolicyURL` — `?? URL(string: "https://example.com")!` fallback | iOS `URL(string:)` returns `nil` on invalid URLs (including `REPLACE_ME` placeholder). Force-unwrap on nil crashes at launch. `example.com` is a valid URL per IANA; fallback is harmless (user taps Privacy Policy → `example.com` loads) and prevents crash until real UUID is substituted. Xcode run script (Build Phases) blocks Archive on `REPLACE_ME` — fallback is only a dev-time safety net. |
 | `checkPrivacyUrl` Gradle task hooked to `assembleRelease` (not `assembleDebug`) | `REPLACE_ME` check should not block daily development builds. `assembleRelease` is only run when preparing a production APK — correct gate for a launch blocker. Task reads `AppConfig.kt` at build time; no runtime overhead. |
+
+---
+
+## Key Decisions Made (post-rebrand code review fixes — 2026-05-18)
+
+| Decision | Rationale |
+|---|---|
+| `build_phash_db.py` reimplements DCT manually (no `imagehash` dep) | `imagehash.phash()` uses unnormalized `scipy.fft.dct` + mean over all 64 values including DC[0,0]. App uses normalized DCT (cu/cv factors) + mean over 63 AC only. Interior AC bits agree, but first-row/col AC (14 bits) and DC bit differ → up to 15/64 bits wrong → same-set Hamming distance exceeds threshold → `findBestMatch` returns null for all inputs → pHash disambiguation silently non-functional. Manual `_compute_phash_compat()` mirrors app algorithm step-for-step. |
+| `CIContext()` stored as `private let` on `PHashService` (not per-call) | `CIContext()` allocates GPU command queue per creation (~3–10ms). `computeHash(from: CVPixelBuffer)` is called per scan frame on the collision path. Per-call allocation adds latency and puts pressure on the GPU allocator. Singleton stored on the `PHashService` singleton is the correct pattern — one allocation for the process lifetime. |
+| `checkPrivacyUrl` `pokescan-privacy` check removed | After rebrand, `AppConfig.kt` URL changed to `snapdex-privacy`. `text.contains("pokescan-privacy")` could never be true on any future file state. Dead condition cluttered the guard; only `REPLACE_ME` sentinel is meaningful. |
+| `detection.py` `db: AsyncSession` dependency retained | Review flagged as unused, but `col_svc.get_or_create_user(db, user_id)` requires it for the Pro-tier check. Removing it would break the endpoint. |
 
 ---
 

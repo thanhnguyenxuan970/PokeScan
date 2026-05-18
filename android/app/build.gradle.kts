@@ -74,12 +74,12 @@ tasks.register("checkPrivacyUrl") {
     doLast {
         val appConfig = file("src/main/java/com/pokescan/app/config/AppConfig.kt")
         val text = appConfig.readText()
-        if (text.contains("pokescan-privacy") || text.contains("REPLACE_ME")) {
+        if (text.contains("REPLACE_ME")) {
             throw GradleException("Privacy URL not configured — create github.io/snapdex-privacy repo before release")
         }
     }
 }
-tasks.named("assembleRelease") { dependsOn("checkPrivacyUrl") }
+tasks.matching { it.name == "assembleRelease" }.configureEach { dependsOn("checkPrivacyUrl") }
 
 dependencies {
     // Compose BOM — version-manages compose-ui, compose-material3, compose-ui-tooling*

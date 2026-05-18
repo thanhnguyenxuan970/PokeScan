@@ -56,8 +56,21 @@ async def verify_google_token(id_token: str) -> str:
         except Exception as exc:
             last_exc = exc
             if attempt == 0:
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(0.6)
     raise ValueError(f"Google token verification failed: {last_exc}") from last_exc
+
+
+async def warmup_google_auth() -> None:
+    """Pre-warm the shared urllib3 pool used by verify_google_token. Best-effort."""
+    try:
+        await asyncio.to_thread(
+            _http.request,
+            "GET",
+            "https://www.googleapis.com/oauth2/v3/certs",
+            timeout=5.0,
+        )
+    except Exception:
+        pass
 
 
 def create_server_token(apple_user_id: str) -> str:

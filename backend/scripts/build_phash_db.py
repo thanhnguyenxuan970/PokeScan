@@ -2,23 +2,25 @@
 Build perceptual hash database for set symbol disambiguation.
 
 Usage:
-    pip install imagehash requests Pillow
+    pip install requests Pillow
     python build_phash_db.py
 
 Output:
     set_phashes.json  -- copy to android/app/src/main/assets/ and PokeScan/Resources/
 
 Each entry: {"setCode": "hex64bitHash", ...}
-Hash computed from bottom-right 15% crop of first card image per set.
+Hash algorithm mirrors PHashService.kt/PHashService.swift exactly:
+  BT.601 luminance -> 32x32 -> normalized 8x8 DCT-II (cu/cv factors, /4) ->
+  mean of 63 AC coefficients (exclude DC[0,0]) -> 64-bit hash.
 Hamming distance <= 10 = same set; > 15 = different set.
 """
 
 import json
+import math
 import time
 from io import BytesIO
 from pathlib import Path
 
-import imagehash
 import requests
 from PIL import Image
 
@@ -29,6 +31,58 @@ IOS_RESOURCES = Path(__file__).parent.parent.parent / "PokeScan/Resources/set_ph
 
 API_BASE = "https://api.pokemontcg.io/v2"
 RATE_LIMIT_DELAY = 0.5  # seconds between requests (avoid 429)
+
+_INV_SQRT2 = 1.0 / math.sqrt(2.0)
+_PI_OVER_64 = math.pi / 64.0
+
+
+def _compute_phash_compat(image: Image.Image) -> str:
+    """
+    Mirrors PHashService.kt computeHash() and PHashService.swift computeHash(from:UIImage) exactly.
+    BT.601 luminance -> 32x32 -> normalized 8x8 DCT-II (cu/cv, /4) ->
+    mean of 63 AC values (exclude DC[0,0]) -> 64-bit hash as 16-char hex string.
+    """
+    resized = image.convert("RGB").resize((32, 32), Image.LANCZOS)
+
+    # BT.601 luminance, normalized to [0, 1] — matches Kotlin LUMINANCE_BT601 constants
+    pixels: list[float] = []
+    for y in range(32):
+        for x in range(32):
+            r, g, b = resized.getpixel((x, y))
+            pixels.append((0.299 * r + 0.587 * g + 0.114 * b) / 255.0)
+
+    # Normalized 8x8 DCT-II over the 32x32 block — same formula as app
+    dct = [[0.0] * 8 for _ in range(8)]
+    for u in range(8):
+        for v in range(8):
+            s = 0.0
+            for x in range(32):
+                for y in range(32):
+                    s += (pixels[y * 32 + x]
+                          * math.cos((2 * x + 1) * u * _PI_OVER_64)
+                          * math.cos((2 * y + 1) * v * _PI_OVER_64))
+            cu = _INV_SQRT2 if u == 0 else 1.0
+            cv = _INV_SQRT2 if v == 0 else 1.0
+            dct[u][v] = s * cu * cv * 0.25
+
+    # Mean of 63 AC coefficients (exclude [0,0]) — same exclusion as app
+    ac_sum = sum(dct[u][v] for u in range(8) for v in range(8) if u != 0 or v != 0)
+    mean = ac_sum / 63.0
+
+    # 64-bit hash — same bit ordering as app
+    hash_val = 0
+    bit = 0
+    for u in range(8):
+        for v in range(8):
+            if dct[u][v] > mean:
+                hash_val |= 1 << bit
+            bit += 1
+
+    return format(hash_val, "016x")
+
+
+def _hamming(hex_a: str, hex_b: str) -> int:
+    return bin(int(hex_a, 16) ^ int(hex_b, 16)).count("1")
 
 
 def compute_phash(image_url: str) -> str | None:
@@ -43,8 +97,7 @@ def compute_phash(image_url: str) -> str | None:
         crop_y = int(h * 0.85)
         cropped = img.crop((crop_x, crop_y, w, h))
 
-        phash = imagehash.phash(cropped)
-        return str(phash)
+        return _compute_phash_compat(cropped)
     except Exception as e:
         print(f"  ERROR computing hash from {image_url}: {e}")
         return None
@@ -116,9 +169,7 @@ def main():
     for pair in [("base1", "ex5"), ("base2-jp", "base3-jp")]:
         a, b = pair
         if a in hashes and b in hashes:
-            ha = imagehash.hex_to_hash(hashes[a])
-            hb = imagehash.hex_to_hash(hashes[b])
-            dist = ha - hb
+            dist = _hamming(hashes[a], hashes[b])
             print(f"  {a} vs {b}: Hamming distance = {dist} ({'DISTINCT ✓' if dist > 10 else 'COLLISION WARNING'})")
 
 
