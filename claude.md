@@ -80,6 +80,17 @@ Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without 
 - ✅ `android/app/google-services.json` — package name `com.pokescan.app` → `com.snapdex.app` (unblocks test runner; user still needs Firebase Console update for real device Google Sign-In)
 - **Tests: 99 passing, 0 failures** (was 96 passing / 3 failing before this session)
 
+### Next Session — Android (updated 2026-05-18, auth 401 + collection cache bugs + global rename)
+
+**Completed this session (2026-05-18) — Auth 401 on account switch, collection cache bug, pokescan → snapdex rename:**
+- ✅ `android/.../AuthInterceptor.kt` — added token-identity check in 401 handler: compares `token` (captured at request time) vs `secureStorage.getToken()` (at 401 time); only clears + emits if they match; stale OkHttp requests from previous session no longer wipe new session's token
+- ✅ `android/.../AuthRepository.kt` — `cardRecordDao.deleteAll()` + `scanCounterService.resetCount()` moved out of fire-and-forget `applicationScope.launch`; now called synchronously before Google sign-out; eliminates race where Acc1's cleanup wiped Acc2's freshly synced cards
+- ✅ **iOS user-visible:** `OnboardingView.swift` `"PokeScan"` → `"SnapDex"`; `ScannerView.swift` `"→ PokeScan →"` → `"→ SnapDex →"`
+- ✅ **Backend:** `main.py` title + CORS origin; `auth.py` IAP product IDs (`com.pokescan.app.pro.*` → `com.snapdex.app.pro.*`); `config.py` `pokescan_use_mock` → `use_mock`; `tcgplayer.py` reference; `.env` `APPLE_BUNDLE_ID` + `POKESCAN_USE_MOCK` key
+- ✅ **Android storage keys:** `SecureStorage.kt` `"pokescan_secure"` → `"snapdex_secure"`; `ScanCounterService.kt` DataStore keys; `DatabaseModule.kt` Room DB name `"pokescan.db"` → `"snapdex.db"`; `settings.gradle.kts` `rootProject.name`
+- ✅ **iOS storage keys:** `ScanCounterService.swift` UserDefaults keys; `SetDatabaseService.swift` lastRefreshKey; `KeychainKeys.swift` serverToken + appleUserID; `CameraViewModel.swift` queue label + `POKESCAN_USE_MOCK` env var
+- **Tests: 34/34 passing (--rerun-tasks confirmed)**
+
 ### Next Session — Android (updated 2026-05-18, fix server sync + multi-account isolation)
 
 **Completed this session (2026-05-18) — Fix server sync + multi-account isolation (client-side Android only):**
@@ -360,6 +371,8 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 | `OnboardingScreen` ⚡ row uses `primaryContainer` not `primary` | `primary` (solid blue) made the first feature row too heavy. `primaryContainer` gives the light tonal blue shown in the prototype. `Surface(color=primaryContainer)` sets `LocalContentColor = onPrimaryContainer` (dark navy); emoji ⚡ renders with native color regardless, but container contrast is correct. |
 | `OnboardingScreen` ★ row uses `Color(0xFFFEF3C7)` (fully opaque light amber) | Previous `Color(0x1AF59B0B)` at 10% opacity was near-invisible on white background. `0xFFFEF3C7` is Tailwind amber-100 equivalent — fully opaque, warm, and readable. `iconColor = Color(0xFFF59B0B)` explicitly sets gold star regardless of `LocalContentColor` from the custom-color Surface. |
 | `ValuePropRow` description uses `onSurfaceVariant` not `onSurface` | `onSurface` in Material3 is near-black — made description same visual weight as title. Prototype shows descriptions as clearly lighter secondary text. `onSurfaceVariant` (medium gray) gives correct two-level hierarchy. Was previously changed to `onSurface` for contrast; reverted to match prototype after pixel comparison. |
+| `AuthInterceptor` 401 handler compares `token == secureStorage.getToken()` before acting | OkHttp requests cannot be cancelled by Kotlin coroutine timeout. Stale requests from previous session return 401 after new session starts. Token-identity check prevents wiping new session's token. |
+| `deleteAll()` + `resetCount()` synchronous in `signOut()` (not fire-and-forget) | Fire-and-forget could race with new account's `pullFromServer()` and wipe freshly synced cards. Operations take <10ms; synchronous execution adds negligible sign-out latency. |
 
 ---
 

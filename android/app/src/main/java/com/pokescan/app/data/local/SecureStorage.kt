@@ -12,7 +12,7 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
 
     private val prefs = EncryptedSharedPreferences.create(
         context,
-        "pokescan_secure",
+        "snapdex_secure",
         MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM

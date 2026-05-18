@@ -6,8 +6,8 @@ final class ScanCounterService {
     static let freeMonthlyLimit = 20
 
     private let defaults: UserDefaults
-    private let countKey = "pokescan.scanCount"
-    private let resetDateKey = "pokescan.scanCountResetDate"
+    private let countKey = "snapdex.scanCount"
+    private let resetDateKey = "snapdex.scanCountResetDate"
 
     private(set) var scansThisMonth: Int = 0
 

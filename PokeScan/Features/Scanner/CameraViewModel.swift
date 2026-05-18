@@ -15,13 +15,13 @@ final class CameraViewModel: NSObject, ObservableObject {
 
     let session = AVCaptureSession()
     private let output = AVCaptureVideoDataOutput()
-    private let sessionQueue = DispatchQueue(label: "com.pokescan.camera")
+    private let sessionQueue = DispatchQueue(label: "com.snapdex.camera")
     private let visionService = VisionService()
     private var cardService: CardIdentificationService
     private var cancellables = Set<AnyCancellable>()
     private var pricingService: PricingService = {
         #if DEBUG
-        if ProcessInfo.processInfo.environment["POKESCAN_USE_MOCK"] == "1" {
+        if ProcessInfo.processInfo.environment["SNAPDEX_USE_MOCK"] == "1" {
             return MockPricingService()
         }
         #endif

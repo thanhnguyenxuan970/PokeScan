@@ -1,6 +1,6 @@
 import Foundation
 
 enum KeychainKeys {
-    static let serverToken = "pokescan.serverToken"
-    static let appleUserID = "pokescan.appleUserID"
+    static let serverToken = "snapdex.serverToken"
+    static let appleUserID = "snapdex.appleUserID"
 }

@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "PokeScan"
+rootProject.name = "SnapDex"
 include(":app")

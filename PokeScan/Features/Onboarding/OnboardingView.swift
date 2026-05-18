@@ -12,7 +12,7 @@ struct OnboardingView: View {
                     .font(.system(size: 72))
                     .foregroundStyle(.yellow)
 
-                Text("PokeScan")
+                Text("SnapDex")
                     .font(.largeTitle.bold())
 
                 Text("Real-time prices for every card you own")

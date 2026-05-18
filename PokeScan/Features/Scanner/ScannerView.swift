@@ -28,7 +28,7 @@ struct ScannerView: View {
             } else {
                 ZStack {
                     Color.black.ignoresSafeArea()
-                    Text("Camera access required.\nGo to Settings → PokeScan → Camera.")
+                    Text("Camera access required.\nGo to Settings → SnapDex → Camera.")
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.white)
                         .padding()

@@ -35,11 +35,8 @@ class AuthRepository @Inject constructor(
     suspend fun signOut() {
         runCatching { withTimeoutOrNull(1_000L) { collectionRepository.pushPending() } }
         secureStorage.clearToken()
-        applicationScope.launch {
-            // fire-and-forget cleanup — no ordering constraint after clearToken()
-            cardRecordDao.deleteAll()
-            scanCounterService.resetCount()
-        }
+        cardRecordDao.deleteAll()
+        scanCounterService.resetCount()
         applicationScope.launch {
             withTimeoutOrNull(3_000L) {
                 suspendCancellableCoroutine<Unit> { cont ->

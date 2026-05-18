@@ -26,13 +26,13 @@ logger = logging.getLogger(__name__)
 limiter = Limiter(key_func=get_remote_address)
 _optional_bearer = HTTPBearer(auto_error=False)
 
-app = FastAPI(title="PokeScan Backend", version="0.4.0")
+app = FastAPI(title="SnapDex Backend", version="0.4.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://pokescan.app"],
+    allow_origins=["https://snapdex.app"],
     allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )

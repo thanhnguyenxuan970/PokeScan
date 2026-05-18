@@ -63,7 +63,7 @@ async def fetch_completed_sale_price(card_sku: str) -> dict:
     Returns marketPrice from completed sales. G3: NEVER use lowPrice (listing price).
     card_sku format: "{setCode}-{cardNum}-{total}" e.g. "base1-025-102"
     """
-    if settings.pokescan_use_mock:
+    if settings.use_mock:
         return {
             "market_price": 4.99,
             "price_source": "tcgplayer_mock",

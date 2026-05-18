@@ -9,7 +9,7 @@ final class SetDatabaseService: ObservableObject {
 
     private let apiURL = URL(string: "https://api.pokemontcg.io/v2/sets")!
     private let refreshInterval: TimeInterval = 86400  // 24h
-    private let lastRefreshKey = "pokescan.setDBLastRefresh"
+    private let lastRefreshKey = "snapdex.setDBLastRefresh"
 
     private var cacheURL: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]

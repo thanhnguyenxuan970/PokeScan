@@ -16,8 +16,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private val Context.scanDataStore by preferencesDataStore(name = "scan_counter_prefs")
-private val SCAN_COUNT_KEY = intPreferencesKey("pokescan.scanCount")
-private val SCAN_RESET_DATE_KEY = longPreferencesKey("pokescan.scanCountResetDate")
+private val SCAN_COUNT_KEY = intPreferencesKey("snapdex.scanCount")
+private val SCAN_RESET_DATE_KEY = longPreferencesKey("snapdex.scanCountResetDate")
 
 @Singleton
 class ScanCounterService @Inject constructor(

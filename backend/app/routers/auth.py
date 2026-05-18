@@ -98,8 +98,8 @@ async def verify_android_receipt(
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
     valid_ids = {
-        "com.pokescan.app.pro.monthly",
-        "com.pokescan.app.pro.annual",
+        "com.snapdex.app.pro.monthly",
+        "com.snapdex.app.pro.annual",
     }
     if body.product_id not in valid_ids:
         raise HTTPException(status_code=400, detail="Unknown product")
