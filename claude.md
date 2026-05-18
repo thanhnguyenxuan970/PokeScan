@@ -39,6 +39,21 @@ Replaces the 5-command manual ADB loop. Run from `android/` directory.
 
 Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
 
+### Next Session — Android (updated 2026-05-18, post-rebrand audit fixes)
+
+**Completed this session (2026-05-18) — Post-rebrand audit fix plan (9/9 tasks):**
+- ✅ `backend/.env.example` — `ENVIRONMENT` → `SNAPDEX_ENV`, `com.yourname.snapdex` → `com.snapdex.app`, added `POSTGRES_USER/PASSWORD/DB`
+- ✅ `android/app/google-services.json` — removed stale `com.pokescan.app` client entry; only `com.snapdex.app` remains (both `client_type: 1` + `client_type: 3`)
+- ✅ `backend/tests/conftest.py` — `pokescan_test` → `snapdex_test`
+- ✅ `android/.../config/AppConfig.kt` + `ui/auth/SignInScreen.kt` — added `TOS_URL` constant; TOS annotation now routes to `TOS_URL` (was incorrectly using `PRIVACY_POLICY_URL`)
+- ✅ `android/.../ui/theme/Color.kt` — fixed 3 token values (`SnapDexBlack` `#0A0A0A`, `SnapDexGray` `#6E6E73`, `SnapDexGold` `#D97706`); added 5 missing tokens (`SnapDexDanger`, `SnapDexTextTertiary`, `SnapDexSunken`, `SnapDexBorderHairline`, `SnapDexBorderDefault`); removed `SnapDexSurfaceDark`
+- ✅ `android/.../ui/theme/Theme.kt` — removed `DarkColorScheme`; removed `darkTheme` param; added `error = SnapDexDanger`; `background` → `SnapDexSurface`
+- ✅ `android/.../res/drawable/ic_launcher_foreground.xml` — added secondary scan beam (y=496, alpha=0.55) + secondary catch-light (r=4, alpha=0.50)
+- ✅ CLAUDE.md — Firebase SHA-1 marked resolved; `a33c155` session note added; pHash build marked done
+- **m1 + m3**: no-ops (cruft files already gone, `.idea/` already gitignored + untracked)
+- **C1 (iOS privacy URL)**: still BLOCKED — user must supply termly.io UUID
+- **Tests: 102 passing** (Android unit tests — run `.\gradlew.bat :app:testDebugUnitTest`)
+
 ### Next Session — Android (updated 2026-05-18, auth regression fix — empty Bearer guard)
 
 **Completed this session (2026-05-18) — Auth regression fix:**
