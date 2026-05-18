@@ -2,7 +2,7 @@ import os
 
 # Must be set before any app import — pydantic-settings reads env at Settings() construction
 # and SQLAlchemy create_async_engine validates URL at module load time in database.py.
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://test:test@localhost:5432/pokescan_test")
+os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://test:test@localhost:5432/snapdex_test")
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret-minimum-32-chars-ok!")
 
 import pytest
