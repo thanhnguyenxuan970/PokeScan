@@ -122,7 +122,7 @@ class OfflineAgentTest {
     fun `pullFromServer — SocketTimeout propagates to caller`() = runTest {
         coEvery { mockApi.getCollection() } throws SocketTimeoutException("timeout")
         val error = runCatching { collectionRepo.pullFromServer() }.exceptionOrNull()
-        assertTrue(error is SocketTimeoutException)
+        assertTrue("Expected SocketTimeoutException, got ${error?.javaClass?.simpleName}", error is SocketTimeoutException)
     }
 
     @Test
@@ -137,9 +137,10 @@ class OfflineAgentTest {
     }
 
     @Test
-    fun `syncAll — full outage completes without crash`() = runTest {
+    fun `syncAll — full outage propagates IOException to caller (ViewModel handles it)`() = runTest {
         coEvery { mockDao.getPendingSync() } returns emptyList()
         coEvery { mockApi.getCollection() } throws IOException("total outage")
-        collectionRepo.syncAll()
+        val error = runCatching { collectionRepo.syncAll() }.exceptionOrNull()
+        assertTrue("Expected IOException, got ${error?.javaClass?.simpleName}", error is IOException)
     }
 }
