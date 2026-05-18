@@ -47,6 +47,20 @@ Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without 
 - **No code changes** — `strings.xml` unchanged (already correct).
 - **[NEEDS USER ACTION]:** Firebase Console (`pokescan-7f2a6`) → Project Settings → Your apps → Add app → Android → package `com.snapdex.app` → SHA-1 `1838b7bc9e952498edfe5b71a4f274fe4f197091` → download new `google-services.json` → replace `android/app/google-services.json`. **Without this, Google Sign-in remains broken on physical devices.**
 
+### Next Session — Android (updated 2026-05-18, regression fixes — OkHttp Authenticator + branding)
+
+**Completed this session (2026-05-18) — Three regression fixes:**
+- ✅ `android/.../AuthAuthenticator.kt` (NEW) — OkHttp `Authenticator` implementation: stale request (old token ≠ current token) → retry transparently with fresh token; genuine 401 (tokens match) → `clearToken()` + `emitUnauthorized()`; `/auth/*` endpoints → skip. Fixes "Couldn't load collection" on account switch.
+- ✅ `android/.../AuthInterceptor.kt` — 401 logic and `authEventBus` dependency removed; simplified to token-attachment only.
+- ✅ `android/.../NetworkModule.kt` — `AuthAuthenticator` provider added; `provideOkHttpClient` wired with `.authenticator(authAuthenticator)`.
+- ✅ `android/.../AuthAuthenticatorTest.kt` (NEW) — 5 unit tests covering: stale token retry, fresh 401 clear+emit, signed-out no-op, null-header retry, auth-endpoint skip.
+- ✅ `android/app/build.gradle.kts` — `checkPrivacyUrl` task path: `com/pokescan/app/` → `com/snapdex/app/` (would have caused silent CI failure).
+- ✅ `backend/.env.example` — `APPLE_BUNDLE_ID` → `com.yourname.snapdex`, `DATABASE_URL` → snapdex, `POKESCAN_USE_MOCK` → `USE_MOCK`, added missing `GOOGLE_CLIENT_ID` field.
+- ✅ `backend/.env.production.example` — `POKESCAN_USE_MOCK` → `USE_MOCK` (local only, gitignored).
+- ✅ `CLAUDE.md` — stale `AuthInterceptor 401 handler compares token` key decision replaced with `AuthAuthenticator` entry.
+- **Commits:** `05d7529` (auth fix), `532468e` (branding fix), plus test file + .env.example updated post-commit via process pipeline.
+- **[NEEDS USER ACTION]:** Firebase Console: register SHA-1 for `com.snapdex.app` → re-download `google-services.json` (blocks Google Sign-In on physical devices — unchanged from prior session).
+
 ### Next Session — Android (updated 2026-05-18, post-rebrand code review fixes)
 
 **Completed this session (2026-05-18) — Code review fixes from caveman-review of 6ea0aca:**
@@ -371,7 +385,7 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 | `OnboardingScreen` ⚡ row uses `primaryContainer` not `primary` | `primary` (solid blue) made the first feature row too heavy. `primaryContainer` gives the light tonal blue shown in the prototype. `Surface(color=primaryContainer)` sets `LocalContentColor = onPrimaryContainer` (dark navy); emoji ⚡ renders with native color regardless, but container contrast is correct. |
 | `OnboardingScreen` ★ row uses `Color(0xFFFEF3C7)` (fully opaque light amber) | Previous `Color(0x1AF59B0B)` at 10% opacity was near-invisible on white background. `0xFFFEF3C7` is Tailwind amber-100 equivalent — fully opaque, warm, and readable. `iconColor = Color(0xFFF59B0B)` explicitly sets gold star regardless of `LocalContentColor` from the custom-color Surface. |
 | `ValuePropRow` description uses `onSurfaceVariant` not `onSurface` | `onSurface` in Material3 is near-black — made description same visual weight as title. Prototype shows descriptions as clearly lighter secondary text. `onSurfaceVariant` (medium gray) gives correct two-level hierarchy. Was previously changed to `onSurface` for contrast; reverted to match prototype after pixel comparison. |
-| `AuthInterceptor` 401 handler compares `token == secureStorage.getToken()` before acting | OkHttp requests cannot be cancelled by Kotlin coroutine timeout. Stale requests from previous session return 401 after new session starts. Token-identity check prevents wiping new session's token. |
+| `AuthAuthenticator` (OkHttp `Authenticator`) replaces 401 logic in `AuthInterceptor` | `Authenticator` is OkHttp's purpose-built interface for 401/retry; intercepts before the response reaches the application layer. Returning a new `Request` triggers a transparent retry; `null` propagates the 401. Eliminates the class of bug where token-identity check correctly identifies stale request but still returns 401 to the caller. |
 | `deleteAll()` + `resetCount()` synchronous in `signOut()` (not fire-and-forget) | Fire-and-forget could race with new account's `pullFromServer()` and wipe freshly synced cards. Operations take <10ms; synchronous execution adds negligible sign-out latency. |
 
 ---
