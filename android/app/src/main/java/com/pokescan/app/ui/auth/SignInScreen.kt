@@ -176,7 +176,7 @@ private fun TermsFooter(onOpenUrl: (String) -> Unit) {
     val baseColor = MaterialTheme.colorScheme.onSurfaceVariant
     val annotated = buildAnnotatedString {
         withStyle(SpanStyle(color = baseColor)) { append("By continuing you agree to our ") }
-        pushStringAnnotation(tag = "TOS", annotation = AppConfig.PRIVACY_POLICY_URL) // TODO: replace with ToS URL when available
+        pushStringAnnotation(tag = "TOS", annotation = AppConfig.TOS_URL)
         withStyle(SpanStyle(color = linkColor)) { append("Terms of Service") }
         pop()
         withStyle(SpanStyle(color = baseColor)) { append(" and ") }
