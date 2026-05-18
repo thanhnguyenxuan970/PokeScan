@@ -39,6 +39,14 @@ Replaces the 5-command manual ADB loop. Run from `android/` directory.
 
 Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
 
+### Next Session — Android (updated 2026-05-18, Quick Fix: Branding + Auth diagnosis)
+
+**Completed this session (2026-05-18) — Branding confirmed, Google Sign-in root cause diagnosed:**
+- ✅ **Branding**: Confirmed complete — zero "PokeScan" occurrences in user-visible strings. `strings.xml` = `SnapDex`, `themes.xml` = `Theme.SnapDex`, all `.kt`/`.swift` files clean. No action needed.
+- ✅ **Auth diagnosis**: Root cause identified — `google-services.json` `com.snapdex.app` entry has type 3 web oauth client but **no type 1 Android client** (no SHA-1). Firebase plugin correctly auto-generates `default_web_client_id` from type 3 client (manually adding it to `strings.xml` would cause Duplicate resources build error). Google Play Services rejects sign-in because APK signing certificate has no registered SHA-1 for `com.snapdex.app` → `idToken = null`.
+- **No code changes** — `strings.xml` unchanged (already correct).
+- **[NEEDS USER ACTION]:** Firebase Console (`pokescan-7f2a6`) → Project Settings → Your apps → Add app → Android → package `com.snapdex.app` → SHA-1 `1838b7bc9e952498edfe5b71a4f274fe4f197091` → download new `google-services.json` → replace `android/app/google-services.json`. **Without this, Google Sign-in remains broken on physical devices.**
+
 ### Next Session — Android (updated 2026-05-18, post-rebrand code review fixes)
 
 **Completed this session (2026-05-18) — Code review fixes from caveman-review of 6ea0aca:**
@@ -687,6 +695,7 @@ Env flags:
 | JWKS pre-warm via `asyncio.create_task(warmup_google_auth())` at backend startup | `google.auth.transport.urllib3.Request` uses a module-level `urllib3.PoolManager` (`_http`). On cold start, DNS + TCP + TLS to `www.googleapis.com` can exceed the retry sleep → 401. `warmup_google_auth()` in `auth.py` fires a GET through the same `_http` pool at startup, warming both DNS cache and the pool itself. Non-blocking (`create_task`), best-effort (exception swallowed). |
 | Retry sleep increased 300ms → 600ms in `verify_google_token` | Belt-and-suspenders alongside the pre-warm. If startup warmup is still in-flight when first login hits, 600ms sleep gives the pool more recovery time between retry attempts. |
 | `warmup_google_auth()` defined in `auth.py` (not `main.py`) | The `_http = urllib3.PoolManager()` singleton lives in `auth.py`. Warming from `main.py` via a different HTTP client would use a different pool and have no effect on `verify_google_token`'s transport. |
+| `default_web_client_id` NOT manually added to `strings.xml` | Firebase Gradle plugin auto-generates `default_web_client_id` from the type 3 oauth_client in the `com.snapdex.app` json entry. Manual addition causes `Duplicate resources` build error. Root cause of broken sign-in is missing type 1 Android OAuth client in Firebase Console — a code-side fix cannot address this. |
 
 ---
 
