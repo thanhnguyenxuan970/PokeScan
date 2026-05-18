@@ -7,6 +7,7 @@ import com.snapdex.app.data.local.SecureStorage
 import com.snapdex.app.data.local.dao.CardRecordDao
 import com.snapdex.app.data.remote.ApiService
 import com.snapdex.app.data.service.ScanCounterService
+import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
@@ -46,5 +47,21 @@ class AuthRepositoryTest {
             collectionRepository.pushPending()
             secureStorage.clearToken()
         }
+    }
+
+    @Test
+    fun `signOut — deleteByUserId called with current uid when signed in`() = runTest {
+        every { secureStorage.getUserId() } returns "user-abc"
+        val mockTask = mockk<Task<Void>>()
+        every { mockTask.addOnCompleteListener(any()) } answers {
+            firstArg<OnCompleteListener<Void>>().onComplete(mockTask)
+            mockTask
+        }
+        every { googleSignInClient.signOut() } returns mockTask
+
+        authRepository.signOut()
+
+        coVerify(exactly = 1) { cardRecordDao.deleteByUserId("user-abc") }
+        coVerify(exactly = 0) { cardRecordDao.deleteAll() }
     }
 }

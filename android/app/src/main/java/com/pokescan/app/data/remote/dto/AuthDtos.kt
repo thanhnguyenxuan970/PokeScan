@@ -7,5 +7,6 @@ data class GoogleSignInRequest(
 )
 
 data class GoogleSignInResponse(
-    val token: String
+    val token: String,
+    @Json(name = "user_id") val userId: String,
 )

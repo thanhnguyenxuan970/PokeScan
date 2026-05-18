@@ -31,4 +31,13 @@ interface CardRecordDao {
 
     @Query("DELETE FROM card_records WHERE serverID IS NOT NULL")
     suspend fun deleteAllSynced()
+
+    @Query("SELECT * FROM card_records WHERE userId = :userId ORDER BY scannedAt DESC")
+    fun observeByUserId(userId: String): Flow<List<CardRecordEntity>>
+
+    @Query("SELECT * FROM card_records WHERE userId = :userId AND syncedAt IS NULL")
+    suspend fun getPendingSyncByUserId(userId: String): List<CardRecordEntity>
+
+    @Query("DELETE FROM card_records WHERE userId = :userId")
+    suspend fun deleteByUserId(userId: String)
 }

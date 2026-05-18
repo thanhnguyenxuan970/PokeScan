@@ -37,14 +37,19 @@ class GoogleSignInRequest(BaseModel):
     id_token: str
 
 
-@router.post("/google", response_model=AppleSignInResponse)
-async def sign_in_with_google(body: GoogleSignInRequest) -> AppleSignInResponse:
+class GoogleSignInResponse(BaseModel):
+    token: str
+    user_id: str
+
+
+@router.post("/google", response_model=GoogleSignInResponse)
+async def sign_in_with_google(body: GoogleSignInRequest) -> GoogleSignInResponse:
     """Verifies Google ID token and returns a server JWT."""
     try:
         user_id = await verify_google_token(body.id_token)
     except ValueError as exc:
         raise HTTPException(status_code=401, detail=str(exc))
-    return AppleSignInResponse(token=create_server_token(user_id))
+    return GoogleSignInResponse(token=create_server_token(user_id), user_id=user_id)
 
 
 _bearer = HTTPBearer()

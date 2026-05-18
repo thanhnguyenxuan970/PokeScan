@@ -136,6 +136,33 @@ fun CollectionScreen(
                     CircularProgressIndicator()
                 }
             }
+            cards.isNotEmpty() -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    if (syncState is SyncState.Error) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Couldn't sync",
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = { viewModel.refresh() }) { Text("Retry") }
+                        }
+                    }
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(cards, key = { it.id }) { card ->
+                            CardRow(
+                                card = card,
+                                onDeleteClick = { cardToDelete = card },
+                            )
+                        }
+                    }
+                }
+            }
             syncState is SyncState.Error -> {
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -151,7 +178,7 @@ fun CollectionScreen(
                     Button(onClick = { viewModel.refresh() }) { Text("Retry") }
                 }
             }
-            cards.isEmpty() -> {
+            else -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
@@ -161,16 +188,6 @@ fun CollectionScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
-            }
-            else -> {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(cards, key = { it.id }) { card ->
-                        CardRow(
-                            card = card,
-                            onDeleteClick = { cardToDelete = card },
-                        )
-                    }
                 }
             }
         }

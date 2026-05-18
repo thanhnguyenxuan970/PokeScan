@@ -29,6 +29,7 @@ data class CardRecordEntity(
     val gradeRoiPsaGrade: Int? = null,
     val gradeRoiSellValue: Double? = null,
     val gradeRoiNetProfit: Double? = null,
+    val userId: String = "",
 )
 
 fun CardRecordEntity.toDomain(): Card = Card(

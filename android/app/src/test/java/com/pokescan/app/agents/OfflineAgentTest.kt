@@ -1,5 +1,6 @@
 package com.snapdex.app.agents
 
+import com.snapdex.app.data.local.SecureStorage
 import com.snapdex.app.data.local.dao.CardRecordDao
 import com.snapdex.app.data.remote.ApiService
 import com.snapdex.app.data.local.entity.CardRecordEntity
@@ -9,6 +10,7 @@ import com.snapdex.app.data.service.PricingService
 import com.snapdex.app.domain.model.CardLanguage
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertTrue
@@ -32,6 +34,7 @@ class OfflineAgentTest {
 
     private val mockApi = mockk<ApiService>()
     private val mockDao = mockk<CardRecordDao>(relaxed = true)
+    private val mockSecureStorage = mockk<SecureStorage>(relaxed = true)
     private lateinit var pricingService: PricingService
     private lateinit var collectionRepo: CollectionRepository
 
@@ -57,8 +60,9 @@ class OfflineAgentTest {
 
     @Before
     fun setUp() {
+        every { mockSecureStorage.getUserId() } returns "test-user-id"
         pricingService = PricingService(mockApi)
-        collectionRepo = CollectionRepository(mockDao, mockApi)
+        collectionRepo = CollectionRepository(mockDao, mockApi, mockSecureStorage)
     }
 
     // ---- PricingService offline tests ----
@@ -102,7 +106,7 @@ class OfflineAgentTest {
 
     @Test
     fun `pushPending — server failure does NOT wipe local record`() = runTest {
-        coEvery { mockDao.getPendingSync() } returns listOf(testEntity)
+        coEvery { mockDao.getPendingSyncByUserId("test-user-id") } returns listOf(testEntity)
         coEvery { mockApi.postCard(any()) } throws IOException("offline")
 
         collectionRepo.pushPending()
@@ -138,7 +142,7 @@ class OfflineAgentTest {
 
     @Test
     fun `syncAll — full outage propagates IOException to caller (ViewModel handles it)`() = runTest {
-        coEvery { mockDao.getPendingSync() } returns emptyList()
+        coEvery { mockDao.getPendingSyncByUserId("test-user-id") } returns emptyList()
         coEvery { mockApi.getCollection() } throws IOException("total outage")
         val error = runCatching { collectionRepo.syncAll() }.exceptionOrNull()
         assertTrue("Expected IOException, got ${error?.javaClass?.simpleName}", error is IOException)

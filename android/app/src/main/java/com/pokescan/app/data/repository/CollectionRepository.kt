@@ -1,6 +1,7 @@
 package com.snapdex.app.data.repository
 
 import android.util.Log
+import com.snapdex.app.data.local.SecureStorage
 import com.snapdex.app.data.local.dao.CardRecordDao
 import com.snapdex.app.data.local.entity.CardRecordEntity
 import com.snapdex.app.data.local.entity.toEntity
@@ -20,12 +21,17 @@ import javax.inject.Singleton
 class CollectionRepository @Inject constructor(
     private val dao: CardRecordDao,
     private val apiService: ApiService,
+    private val secureStorage: SecureStorage,
 ) {
 
-    fun observeAll(): Flow<List<CardRecordEntity>> = dao.observeAll()
+    fun observeAll(): Flow<List<CardRecordEntity>> {
+        val uid = secureStorage.getUserId() ?: return dao.observeByUserId("")
+        return dao.observeByUserId(uid)
+    }
 
     suspend fun saveLocal(card: Card) {
-        dao.upsert(card.toEntity())
+        val uid = secureStorage.getUserId() ?: ""
+        dao.upsert(card.toEntity().copy(userId = uid))
     }
 
     suspend fun delete(entity: CardRecordEntity) {
@@ -40,7 +46,8 @@ class CollectionRepository @Inject constructor(
     }
 
     suspend fun pushPending() {
-        val pending = dao.getPendingSync()
+        val uid = secureStorage.getUserId() ?: return
+        val pending = dao.getPendingSyncByUserId(uid)
         coroutineScope {
             pending.map { entity ->
                 async {
@@ -66,6 +73,7 @@ class CollectionRepository @Inject constructor(
     }
 
     suspend fun pullFromServer() {
+        val uid = secureStorage.getUserId() ?: return
         val dtos = apiService.getCollection()
         for (dto in dtos) {
             val existing = dao.getByServerId(dto.serverId)
@@ -85,6 +93,7 @@ class CollectionRepository @Inject constructor(
                 scannedAt = scannedAtMs,
                 syncedAt = System.currentTimeMillis(),
                 serverID = dto.serverId,
+                userId = uid,
             )
             dao.upsert(entity)
         }

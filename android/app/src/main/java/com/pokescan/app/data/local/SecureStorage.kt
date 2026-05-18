@@ -24,7 +24,14 @@ class SecureStorage @Inject constructor(@ApplicationContext context: Context) {
 
     fun clearToken() = prefs.edit().remove(KEY_TOKEN).apply()
 
+    fun saveUserId(id: String) = prefs.edit().putString(KEY_USER_ID, id).apply()
+
+    fun getUserId(): String? = prefs.getString(KEY_USER_ID, null)
+
+    fun clearUserId() = prefs.edit().remove(KEY_USER_ID).apply()
+
     companion object {
         private const val KEY_TOKEN = "server_jwt"
+        private const val KEY_USER_ID = "server_user_id"
     }
 }

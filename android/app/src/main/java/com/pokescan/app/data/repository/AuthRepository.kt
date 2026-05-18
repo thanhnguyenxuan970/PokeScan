@@ -30,12 +30,15 @@ class AuthRepository @Inject constructor(
     suspend fun signInWithGoogle(idToken: String) {
         val response = apiService.signInWithGoogle(GoogleSignInRequest(idToken))
         secureStorage.saveToken(response.token)
+        secureStorage.saveUserId(response.userId)
     }
 
     suspend fun signOut() {
         runCatching { withTimeoutOrNull(1_000L) { collectionRepository.pushPending() } }
+        val uid = secureStorage.getUserId() ?: ""
         secureStorage.clearToken()
-        cardRecordDao.deleteAll()
+        secureStorage.clearUserId()
+        if (uid.isNotEmpty()) cardRecordDao.deleteByUserId(uid) else cardRecordDao.deleteAll()
         scanCounterService.resetCount()
         applicationScope.launch {
             withTimeoutOrNull(3_000L) {

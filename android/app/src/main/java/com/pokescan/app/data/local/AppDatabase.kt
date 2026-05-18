@@ -11,7 +11,7 @@ import com.snapdex.app.data.local.entity.SetEntryEntity
 
 @Database(
     entities = [CardRecordEntity::class, SetEntryEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -36,6 +36,14 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL("ALTER TABLE card_records ADD COLUMN gradeRoiPsaGrade INTEGER")
                 database.execSQL("ALTER TABLE card_records ADD COLUMN gradeRoiSellValue REAL")
                 database.execSQL("ALTER TABLE card_records ADD COLUMN gradeRoiNetProfit REAL")
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE card_records ADD COLUMN userId TEXT NOT NULL DEFAULT ''"
+                )
             }
         }
     }

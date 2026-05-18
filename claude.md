@@ -39,6 +39,24 @@ Replaces the 5-command manual ADB loop. Run from `android/` directory.
 
 Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
 
+### Next Session — Android (updated 2026-05-18, multi-account regression fix — userId isolation)
+
+**Completed this session (2026-05-18) — Multi-account regression: userId isolation + CollectionScreen UX fix:**
+- ✅ `android/.../CollectionScreen.kt` — `when` block reordered: `cards.isNotEmpty()` checked before `SyncState.Error`; non-empty cache shows with inline "Couldn't sync" banner + Retry; full-screen error only when no cached cards exist
+- ✅ `backend/app/routers/auth.py` — `GoogleSignInResponse` class added with `user_id` field; `POST /auth/google` returns `{"token": "...", "user_id": "..."}` (was reusing `AppleSignInResponse` with token only)
+- ✅ `android/.../dto/AuthDtos.kt` — `GoogleSignInResponse` gains `@Json(name = "user_id") val userId: String`
+- ✅ `android/.../SecureStorage.kt` — `saveUserId / getUserId / clearUserId` added; key `"server_user_id"`
+- ✅ `android/.../entity/CardRecordEntity.kt` — `val userId: String = ""` added (default for guest + migration compat)
+- ✅ `android/.../AppDatabase.kt` — version 3→4; `MIGRATION_3_4`: `ALTER TABLE card_records ADD COLUMN userId TEXT NOT NULL DEFAULT ''`
+- ✅ `android/.../di/DatabaseModule.kt` — `MIGRATION_3_4` wired
+- ✅ `android/.../dao/CardRecordDao.kt` — `observeByUserId`, `getPendingSyncByUserId`, `deleteByUserId` added (existing methods kept)
+- ✅ `android/.../repository/CollectionRepository.kt` — `SecureStorage` injected; all queries scoped to `getUserId()`; `pushPending`/`pullFromServer` guard on null userId
+- ✅ `android/.../repository/AuthRepository.kt` — `signInWithGoogle()` saves userId; `signOut()` reads uid before clear, calls `deleteByUserId(uid)` when signed in, `deleteAll()` when guest
+- ✅ `android/test/.../AuthRepositoryTest.kt` — new test: `signOut — deleteByUserId called with current uid when signed in`
+- ✅ `android/test/.../OfflineAgentTest.kt` — constructor + stubs updated for new `SecureStorage` param + `getPendingSyncByUserId`
+- **Tests: 102 expected passing** (2 new tests added; run `.\gradlew.bat :app:testDebugUnitTest` to verify)
+- **[NEEDS USER ACTION]:** Firebase Console: register SHA-1 for `com.snapdex.app` → re-download `google-services.json` (blocks Google Sign-In on physical devices — unchanged from prior sessions)
+
 ### Next Session — Android (updated 2026-05-18, Quick Fix: Branding + Auth diagnosis)
 
 **Completed this session (2026-05-18) — Branding confirmed, Google Sign-in root cause diagnosed:**
@@ -387,6 +405,18 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 | `ValuePropRow` description uses `onSurfaceVariant` not `onSurface` | `onSurface` in Material3 is near-black — made description same visual weight as title. Prototype shows descriptions as clearly lighter secondary text. `onSurfaceVariant` (medium gray) gives correct two-level hierarchy. Was previously changed to `onSurface` for contrast; reverted to match prototype after pixel comparison. |
 | `AuthAuthenticator` (OkHttp `Authenticator`) replaces 401 logic in `AuthInterceptor` | `Authenticator` is OkHttp's purpose-built interface for 401/retry; intercepts before the response reaches the application layer. Returning a new `Request` triggers a transparent retry; `null` propagates the 401. Eliminates the class of bug where token-identity check correctly identifies stale request but still returns 401 to the caller. |
 | `deleteAll()` + `resetCount()` synchronous in `signOut()` (not fire-and-forget) | Fire-and-forget could race with new account's `pullFromServer()` and wipe freshly synced cards. Operations take <10ms; synchronous execution adds negligible sign-out latency. |
+
+---
+
+## Key Decisions Made (Multi-account regression fix — 2026-05-18)
+
+| Decision | Rationale |
+|---|---|
+| `CollectionScreen when` block: `cards.isNotEmpty()` before `SyncState.Error` | Old order showed full-screen error even when Room had cached cards — masked the collection after any sync failure. New order: non-empty cache always wins; inline error banner + Retry shown when `syncState is Error && cards.isNotEmpty()`. Full-screen error reserved for empty cache + error (Acc2 first login scenario). |
+| `userId: String = ""` default in `CardRecordEntity`; `MIGRATION_3_4` uses `DEFAULT ''` | Empty string is the natural sentinel for "pre-migration / guest / unknown owner." Using `NOT NULL DEFAULT ''` in SQLite migration ensures existing rows stay valid without a data-rewrite migration pass. Kotlin default `""` ensures code outside the migration path also compiles without requiring the field. |
+| `CollectionRepository.observeAll()` captures uid at call time (not reactive `flatMap`) | A reactive `flatMap(userId) → observeByUserId` would require `SecureStorage` to expose `userId` as a `Flow<String?>`, which it doesn't (synchronous `EncryptedSharedPreferences`). Capture at call time is safe because `CollectionViewModel` is recreated on every auth transition (`popUpTo(0) { inclusive = true }` in NavGraph destroys MAIN completely). |
+| `pushPending()`/`pullFromServer()` guard on `getUserId() ?: return` | Guest users (no userId) have no server session — attempting push/pull would hit 401 → `AuthEventBus` → auth loop. Guard skips sync silently; guest cards remain visible in Room via `userId = ""` filter. |
+| `signOut()` reads `getUserId()` between `pushPending()` and `clearUserId()` | `pushPending()` itself reads `getUserId()` internally — uid still valid during push window. Capturing `uid` after push completes but before `clearUserId()` ensures the correct user's records are deleted. `deleteByUserId(uid)` on signed-in path; `deleteAll()` on guest path (uid empty → no per-user rows to target). |
 
 ---
 
