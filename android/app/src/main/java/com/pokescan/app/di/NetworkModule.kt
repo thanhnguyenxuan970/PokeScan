@@ -4,6 +4,7 @@ import com.snapdex.app.BuildConfig
 import com.snapdex.app.config.AppConfig
 import com.snapdex.app.data.local.SecureStorage
 import com.snapdex.app.data.remote.ApiService
+import com.snapdex.app.data.remote.AuthAuthenticator
 import com.snapdex.app.data.remote.AuthEventBus
 import com.snapdex.app.data.remote.AuthInterceptor
 import com.squareup.moshi.Moshi
@@ -39,9 +40,13 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient =
+    fun provideOkHttpClient(
+        authInterceptor: AuthInterceptor,
+        authAuthenticator: AuthAuthenticator,
+    ): OkHttpClient =
         OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
+            .authenticator(authAuthenticator)
             .addInterceptor(HttpLoggingInterceptor().apply {
                 level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
                         else HttpLoggingInterceptor.Level.NONE
@@ -66,10 +71,15 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideAuthInterceptor(
+    fun provideAuthInterceptor(secureStorage: SecureStorage): AuthInterceptor =
+        AuthInterceptor(secureStorage)
+
+    @Provides
+    @Singleton
+    fun provideAuthAuthenticator(
         secureStorage: SecureStorage,
         authEventBus: AuthEventBus,
-    ): AuthInterceptor = AuthInterceptor(secureStorage, authEventBus)
+    ): AuthAuthenticator = AuthAuthenticator(secureStorage, authEventBus)
 
     @Provides
     @Singleton

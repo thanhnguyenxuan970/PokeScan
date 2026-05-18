@@ -7,7 +7,6 @@ import javax.inject.Inject
 
 class AuthInterceptor @Inject constructor(
     private val secureStorage: SecureStorage,
-    private val authEventBus: AuthEventBus,
 ) : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
@@ -19,15 +18,6 @@ class AuthInterceptor @Inject constructor(
         } else {
             chain.request()
         }
-        val response = chain.proceed(request)
-        if (response.code == 401 && !request.url.encodedPath.contains("/auth/")) {
-            val currentToken = secureStorage.getToken()
-            if (token != null && token == currentToken) {
-                secureStorage.clearToken()
-                authEventBus.emitUnauthorized()
-            }
-            // else: stale request from previous session — do not disrupt current session
-        }
-        return response
+        return chain.proceed(request)
     }
 }
