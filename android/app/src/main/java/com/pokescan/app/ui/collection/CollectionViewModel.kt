@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -84,7 +87,9 @@ class CollectionViewModel @Inject constructor(
     fun deleteSelected() {
         val ids = _selectedIds.value
         viewModelScope.launch {
-            cards.value.filter { it.id in ids }.forEach { collectionRepository.delete(it) }
+            coroutineScope {
+                cards.value.filter { it.id in ids }.map { async { collectionRepository.delete(it) } }.awaitAll()
+            }
             clearSelectMode()
         }
     }
