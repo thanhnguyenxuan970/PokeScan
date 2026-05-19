@@ -10,7 +10,6 @@ import com.snapdex.app.data.service.PricingService
 import com.snapdex.app.data.service.ScanCounterService
 import com.snapdex.app.domain.model.Card
 import com.snapdex.app.domain.model.CardLanguage
-import com.snapdex.app.domain.model.PriceSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -66,18 +65,22 @@ class ScannerViewModel @Inject constructor(
             _state.value = ScanState.Scanning
             delay(1_800)
             if (_state.value !is ScanState.Scanning) { isProcessing = false; return@launch }
-            val now = System.currentTimeMillis()
-            val card = MOCK_CARDS.random().copy(
-                id = java.util.UUID.randomUUID().toString(),
-                scannedAt = now,
-                priceUpdatedAt = now,
-            )
-            isProcessing = false
-            scanCounterService.recordScan(isPro = billingRepository.isPro.value)
-            _state.value = ScanState.Result(card)
-            viewModelScope.launch {
-                try { collectionRepository.saveLocal(card) }
-                catch (e: Exception) { Log.w("ScannerViewModel", "saveLocal failed", e) }
+            try {
+                val card = pricingService.fetchPrice(
+                    MOCK_IDENTIFIED.random(),
+                    billingRepository.isPro.value,
+                )
+                scanCounterService.recordScan(isPro = billingRepository.isPro.value)
+                _state.value = ScanState.Result(card)
+                viewModelScope.launch {
+                    try { collectionRepository.saveLocal(card) }
+                    catch (e: Exception) { Log.w("ScannerViewModel", "saveLocal failed", e) }
+                }
+            } catch (e: Exception) {
+                _events.emit(ScanEvent.NoCardDetected)
+                resetScan()
+            } finally {
+                isProcessing = false
             }
         }
     }
@@ -122,54 +125,30 @@ class ScannerViewModel @Inject constructor(
     }
 
     companion object {
-        private val MOCK_CARDS = listOf(
-            Card(
-                id = "mock-charizard",
-                name = "Charizard ex",
+        private val MOCK_IDENTIFIED = listOf(
+            CardIdentificationService.IdentifiedCard(
+                cardName = "Charizard ex",
                 setNumber = "125/091",
                 setCode = "sv3pt5",
                 language = CardLanguage.ENGLISH,
-                marketPrice = 45.99,
-                priceSource = PriceSource.AGGREGATED,
-                scannedAt = 0L,
-                tcgPlayerPrice = 44.50,
-                ebayPrice = 47.48,
                 setName = "Paldean Fates",
                 setYear = 2024,
-                isAuthentic = true,
-                priceUpdatedAt = 0L,
             ),
-            Card(
-                id = "mock-pikachu",
-                name = "Pikachu ex",
+            CardIdentificationService.IdentifiedCard(
+                cardName = "Pikachu ex",
                 setNumber = "030/159",
                 setCode = "sv1",
                 language = CardLanguage.ENGLISH,
-                marketPrice = 12.50,
-                priceSource = PriceSource.AGGREGATED,
-                scannedAt = 0L,
-                tcgPlayerPrice = 11.99,
-                ebayPrice = 13.01,
                 setName = "Scarlet & Violet",
                 setYear = 2023,
-                isAuthentic = true,
-                priceUpdatedAt = 0L,
             ),
-            Card(
-                id = "mock-mewtwo",
-                name = "Mewtwo ex",
+            CardIdentificationService.IdentifiedCard(
+                cardName = "Mewtwo ex",
                 setNumber = "089/165",
                 setCode = "sv2a",
                 language = CardLanguage.ENGLISH,
-                marketPrice = 8.25,
-                priceSource = PriceSource.AGGREGATED,
-                scannedAt = 0L,
-                tcgPlayerPrice = 7.99,
-                ebayPrice = 8.51,
                 setName = "151",
                 setYear = 2023,
-                isAuthentic = true,
-                priceUpdatedAt = 0L,
             ),
         )
     }
