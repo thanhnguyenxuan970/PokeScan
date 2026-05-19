@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.snapdex.app.data.local.SecureStorage
 import com.snapdex.app.data.local.entity.CardRecordEntity
+import com.snapdex.app.data.repository.BillingRepository
 import com.snapdex.app.data.repository.CollectionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -26,6 +28,7 @@ sealed class SyncState {
 class CollectionViewModel @Inject constructor(
     private val collectionRepository: CollectionRepository,
     private val secureStorage: SecureStorage,
+    private val billingRepository: BillingRepository,
 ) : ViewModel() {
 
     val cards: StateFlow<List<CardRecordEntity>> = collectionRepository.observeAll()
@@ -33,6 +36,14 @@ class CollectionViewModel @Inject constructor(
 
     private val _syncState = MutableStateFlow<SyncState>(SyncState.Idle)
     val syncState: StateFlow<SyncState> = _syncState.asStateFlow()
+
+    val isPro: StateFlow<Boolean> = billingRepository.isPro
+
+    private val _isSelectMode = MutableStateFlow(false)
+    val isSelectMode: StateFlow<Boolean> = _isSelectMode.asStateFlow()
+
+    private val _selectedIds = MutableStateFlow<Set<String>>(emptySet())
+    val selectedIds: StateFlow<Set<String>> = _selectedIds.asStateFlow()
 
     init {
         if (secureStorage.getToken() != null) refresh()
@@ -54,6 +65,28 @@ class CollectionViewModel @Inject constructor(
 
     fun deleteCard(entity: CardRecordEntity) {
         viewModelScope.launch { collectionRepository.delete(entity) }
+    }
+
+    fun enterSelectMode(firstId: String) {
+        _isSelectMode.value = true
+        _selectedIds.value = setOf(firstId)
+    }
+
+    fun toggleSelection(id: String) {
+        _selectedIds.update { if (id in it) it - id else it + id }
+    }
+
+    fun clearSelectMode() {
+        _isSelectMode.value = false
+        _selectedIds.value = emptySet()
+    }
+
+    fun deleteSelected() {
+        val ids = _selectedIds.value
+        viewModelScope.launch {
+            cards.value.filter { it.id in ids }.forEach { collectionRepository.delete(it) }
+            clearSelectMode()
+        }
     }
 
     private companion object {

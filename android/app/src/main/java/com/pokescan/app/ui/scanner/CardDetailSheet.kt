@@ -45,7 +45,7 @@ fun CardDetailSheet(
     isPro: Boolean,
     onDismiss: () -> Unit,
     onReset: () -> Unit,
-    onSaveToCollection: () -> Unit,
+    onSaveToCollection: (() -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -283,20 +283,29 @@ fun CardDetailSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            Button(
-                onClick = onSaveToCollection,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Save to Collection")
-            }
+            if (onSaveToCollection != null) {
+                Button(
+                    onClick = onSaveToCollection,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Save to Collection")
+                }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedButton(
-                onClick = onReset,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Scan another")
+                OutlinedButton(
+                    onClick = onReset,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Scan another")
+                }
+            } else {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Close")
+                }
             }
         }
     }

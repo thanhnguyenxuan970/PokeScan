@@ -1,6 +1,8 @@
 package com.snapdex.app.ui.collection
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +22,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -37,11 +41,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.snapdex.app.data.local.entity.CardRecordEntity
+import com.snapdex.app.data.local.entity.toDomain
+import com.snapdex.app.domain.model.Card
+import com.snapdex.app.ui.scanner.CardDetailSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,9 +61,15 @@ fun CollectionScreen(
 ) {
     val cards by viewModel.cards.collectAsStateWithLifecycle()
     val syncState by viewModel.syncState.collectAsStateWithLifecycle()
+    val isSelectMode by viewModel.isSelectMode.collectAsStateWithLifecycle()
+    val selectedIds by viewModel.selectedIds.collectAsStateWithLifecycle()
+    val isPro by viewModel.isPro.collectAsStateWithLifecycle()
+
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showAuthSignOutDialog by remember { mutableStateOf(false) }
     var cardToDelete by remember { mutableStateOf<CardRecordEntity?>(null) }
+    var showBatchDeleteDialog by remember { mutableStateOf(false) }
+    var detailCard by remember { mutableStateOf<Card?>(null) }
 
     if (showAuthSignOutDialog) {
         AlertDialog(
@@ -114,6 +128,37 @@ fun CollectionScreen(
         )
     }
 
+    if (showBatchDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showBatchDeleteDialog = false },
+            title = { Text("Delete ${selectedIds.size} cards?") },
+            text = { Text("This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteSelected()
+                    showBatchDeleteDialog = false
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBatchDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
+    detailCard?.let { card ->
+        CardDetailSheet(
+            card = card,
+            isPro = isPro,
+            onDismiss = { detailCard = null },
+            onReset = { detailCard = null },
+            onSaveToCollection = null,
+        )
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text("Collection") },
@@ -126,6 +171,33 @@ fun CollectionScreen(
 
         StatRow(cards = cards)
         HorizontalDivider()
+
+        if (isSelectMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = { viewModel.clearSelectMode() }) { Text("Cancel") }
+                Text(
+                    text = "${selectedIds.size} selected",
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                TextButton(
+                    onClick = { if (selectedIds.isNotEmpty()) showBatchDeleteDialog = true },
+                    enabled = selectedIds.isNotEmpty(),
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                        disabledContentColor = MaterialTheme.colorScheme.error.copy(alpha = 0.38f),
+                    ),
+                ) {
+                    Text("Delete")
+                }
+            }
+        }
 
         when {
             syncState is SyncState.Loading && cards.isEmpty() -> {
@@ -157,6 +229,13 @@ fun CollectionScreen(
                         items(cards, key = { it.id }) { card ->
                             CardRow(
                                 card = card,
+                                isSelectMode = isSelectMode,
+                                isSelected = card.id in selectedIds,
+                                onLongPress = {
+                                    if (isSelectMode) viewModel.toggleSelection(card.id)
+                                    else viewModel.enterSelectMode(card.id)
+                                },
+                                onClick = { detailCard = card.toDomain() },
                                 onDeleteClick = { cardToDelete = card },
                             )
                         }
@@ -268,14 +347,23 @@ private fun StatCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CardRow(
     card: CardRecordEntity,
+    isSelectMode: Boolean = false,
+    isSelected: Boolean = false,
+    onLongPress: () -> Unit = {},
+    onClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .combinedClickable(
+                onClick = { if (isSelectMode) onLongPress() else onClick() },
+                onLongClick = { if (!isSelectMode) onLongPress() },
+            )
             .background(MaterialTheme.colorScheme.surface)
             .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -299,12 +387,19 @@ private fun CardRow(
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-        IconButton(onClick = onDeleteClick) {
-            Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = "Delete",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        if (isSelectMode) {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = { onLongPress() },
             )
+        } else {
+            IconButton(onClick = onDeleteClick) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
