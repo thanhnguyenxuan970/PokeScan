@@ -45,6 +45,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.snapdex.app.data.service.ScanCounterService
 
@@ -78,6 +80,10 @@ fun ScannerScreen(
 
     LaunchedEffect("permission") {
         if (!hasCameraPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
+    }
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        hasCameraPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
     }
 
     LaunchedEffect(Unit) {
@@ -123,12 +129,6 @@ fun ScannerScreen(
                 onScan = { viewModel.startScan() },
                 onReset = { viewModel.resetScan() },
             )
-            SnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 140.dp),
-            )
             if (state is ScanState.Result) {
                 CardDetailSheet(
                     card = (state as ScanState.Result).card,
@@ -167,6 +167,12 @@ fun ScannerScreen(
                 }
             }
         }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 140.dp),
+        )
     }
 }
 

@@ -25,6 +25,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.TriStateCheckbox
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,11 +61,12 @@ fun CollectionScreen(
     onCreateAccount: () -> Unit = {},
     viewModel: CollectionViewModel = hiltViewModel(),
 ) {
-    val cards by viewModel.cards.collectAsStateWithLifecycle()
+    val cards by viewModel.displayCards.collectAsStateWithLifecycle()
     val syncState by viewModel.syncState.collectAsStateWithLifecycle()
     val isSelectMode by viewModel.isSelectMode.collectAsStateWithLifecycle()
     val selectedIds by viewModel.selectedIds.collectAsStateWithLifecycle()
     val isPro by viewModel.isPro.collectAsStateWithLifecycle()
+    val allSelected by viewModel.allSelected.collectAsStateWithLifecycle()
 
     val domainCards = remember(cards) { cards.map { it.toDomain() } }
 
@@ -184,6 +187,15 @@ fun CollectionScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 TextButton(onClick = { viewModel.clearSelectMode() }) { Text("Cancel") }
+                val checkboxState = when {
+                    allSelected -> ToggleableState.On
+                    selectedIds.isEmpty() -> ToggleableState.Off
+                    else -> ToggleableState.Indeterminate
+                }
+                TriStateCheckbox(
+                    state = checkboxState,
+                    onClick = { if (allSelected) viewModel.deselectAll() else viewModel.selectAll() },
+                )
                 Text(
                     text = "${selectedIds.size} selected",
                     modifier = Modifier.weight(1f),

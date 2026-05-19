@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.async
@@ -47,6 +48,16 @@ class CollectionViewModel @Inject constructor(
 
     private val _selectedIds = MutableStateFlow<Set<String>>(emptySet())
     val selectedIds: StateFlow<Set<String>> = _selectedIds.asStateFlow()
+
+    private val _optimisticDeletedIds = MutableStateFlow<Set<String>>(emptySet())
+
+    val displayCards: StateFlow<List<CardRecordEntity>> = combine(cards, _optimisticDeletedIds) { all, removed ->
+        if (removed.isEmpty()) all else all.filter { it.id !in removed }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val allSelected: StateFlow<Boolean> = combine(displayCards, _selectedIds) { all, selected ->
+        all.isNotEmpty() && selected.size == all.size
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     init {
         if (secureStorage.getToken() != null) refresh()
@@ -84,13 +95,23 @@ class CollectionViewModel @Inject constructor(
         _selectedIds.value = emptySet()
     }
 
+    fun selectAll() {
+        _selectedIds.value = displayCards.value.map { it.id }.toSet()
+    }
+
+    fun deselectAll() {
+        _selectedIds.value = emptySet()
+    }
+
     fun deleteSelected() {
         val ids = _selectedIds.value
+        _optimisticDeletedIds.value = ids
+        clearSelectMode()
         viewModelScope.launch {
             coroutineScope {
                 cards.value.filter { it.id in ids }.map { async { collectionRepository.delete(it) } }.awaitAll()
             }
-            clearSelectMode()
+            _optimisticDeletedIds.value = emptySet()
         }
     }
 
