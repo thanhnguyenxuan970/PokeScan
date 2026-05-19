@@ -39,6 +39,16 @@ Replaces the 5-command manual ADB loop. Run from `android/` directory.
 
 Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
 
+### Next Session — Android (updated 2026-05-19, T7-2 fix — network failure graceful handling)
+
+**Completed this session (2026-05-19) — T7-2: mock scan path fails gracefully on network error:**
+- ✅ `android/.../ui/scanner/ScannerViewModel.kt` — `startScan()` mock path: replaced `MOCK_CARDS.random().copy()` with `pricingService.fetchPrice(MOCK_IDENTIFIED.random(), isPro)`; wrapped in try/catch; catch emits `ScanEvent.NoCardDetected` + calls `resetScan()`; `isProcessing = false` in `finally` only
+- ✅ `MOCK_CARDS` companion list deleted — no longer referenced
+- ✅ `MOCK_IDENTIFIED` companion list added (3 `IdentifiedCard` entries: Charizard ex sv3pt5, Pikachu ex sv1, Mewtwo ex sv2a) — passed to `pricingService.fetchPrice()`
+- ✅ `PriceSource` import removed — unused after `MOCK_CARDS` deletion
+- **T7-2 result:** airplane mode ON → `pricingService.fetchPrice()` throws `IOException` → catch → snackbar "No card detected" → Idle state. No crash, no indefinite spinner.
+- **Tests: 102 passing** (no new tests; `.\gradlew.bat :app:testDebugUnitTest`)
+
 ### Next Session — Android (updated 2026-05-19, T6 auth edge case verification)
 
 **Completed this session (2026-05-19) — T6 auth edge cases verified (no code changes):**
@@ -433,6 +443,8 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 | `ValuePropRow` description uses `onSurfaceVariant` not `onSurface` | `onSurface` in Material3 is near-black — made description same visual weight as title. Prototype shows descriptions as clearly lighter secondary text. `onSurfaceVariant` (medium gray) gives correct two-level hierarchy. Was previously changed to `onSurface` for contrast; reverted to match prototype after pixel comparison. |
 | `AuthAuthenticator` (OkHttp `Authenticator`) replaces 401 logic in `AuthInterceptor` | `Authenticator` is OkHttp's purpose-built interface for 401/retry; intercepts before the response reaches the application layer. Returning a new `Request` triggers a transparent retry; `null` propagates the 401. Eliminates the class of bug where token-identity check correctly identifies stale request but still returns 401 to the caller. |
 | `deleteAll()` + `resetCount()` synchronous in `signOut()` (not fire-and-forget) | Fire-and-forget could race with new account's `pullFromServer()` and wipe freshly synced cards. Operations take <10ms; synchronous execution adds negligible sign-out latency. |
+| `startScan()` mock path calls `pricingService.fetchPrice(MOCK_IDENTIFIED.random(), isPro)` instead of `MOCK_CARDS.random().copy()` | `MOCK_CARDS` bypassed all network calls — T7-2 (airplane mode graceful failure) always passed because there was nothing to fail. `MOCK_IDENTIFIED` + `fetchPrice` makes a real HTTP call that throws `IOException` in airplane mode, which the catch block converts to `ScanEvent.NoCardDetected` → snackbar. Mirrors the pattern already used in `onFrameAnalyzed()`. |
+| `isProcessing = false` in `finally` only (removed from try block in `startScan()`) | `finally` always runs — covers both success and exception paths. Having it in both try and finally was redundant noise. Matches `onFrameAnalyzed()` pattern which only uses `finally`. |
 
 ---
 
