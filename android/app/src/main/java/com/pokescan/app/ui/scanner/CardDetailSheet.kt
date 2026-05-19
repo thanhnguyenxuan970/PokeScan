@@ -73,22 +73,14 @@ fun CardDetailSheet(
             )
 
             if (allCards != null) {
-                val pagerState = rememberPagerState(
-                    initialPage = initialIndex,
-                    pageCount = { allCards.size },
+                PagedCardDetailContent(
+                    allCards = allCards,
+                    initialIndex = initialIndex,
+                    isPro = isPro,
+                    onDismiss = onDismiss,
+                    onReset = onReset,
+                    onSaveToCollection = onSaveToCollection,
                 )
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxWidth(),
-                ) { page ->
-                    CardDetailContent(
-                        card = allCards[page],
-                        isPro = isPro,
-                        onDismiss = onDismiss,
-                        onReset = onReset,
-                        onSaveToCollection = onSaveToCollection,
-                    )
-                }
             } else {
                 CardDetailContent(
                     card = card,
@@ -99,6 +91,33 @@ fun CardDetailSheet(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun PagedCardDetailContent(
+    allCards: List<Card>,
+    initialIndex: Int,
+    isPro: Boolean,
+    onDismiss: () -> Unit,
+    onReset: () -> Unit,
+    onSaveToCollection: (() -> Unit)?,
+) {
+    val pagerState = rememberPagerState(
+        initialPage = initialIndex,
+        pageCount = { allCards.size },
+    )
+    HorizontalPager(
+        state = pagerState,
+        modifier = Modifier.fillMaxWidth(),
+    ) { page ->
+        CardDetailContent(
+            card = allCards[page],
+            isPro = isPro,
+            onDismiss = onDismiss,
+            onReset = onReset,
+            onSaveToCollection = onSaveToCollection,
+        )
     }
 }
 
