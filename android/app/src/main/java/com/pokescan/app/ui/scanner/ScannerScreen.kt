@@ -1,10 +1,20 @@
 package com.snapdex.app.ui.scanner
 
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,14 +32,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.snapdex.app.data.service.ScanCounterService
@@ -44,6 +58,20 @@ fun ScannerScreen(
     val isPro by viewModel.isPro.collectAsStateWithLifecycle()
     val scansThisMonth by viewModel.scansThisMonth.collectAsStateWithLifecycle(initialValue = 0)
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+                == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> hasCameraPermission = granted }
+
+    LaunchedEffect("permission") {
+        if (!hasCameraPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
+    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -66,37 +94,59 @@ fun ScannerScreen(
             .fillMaxSize()
             .background(Color(0xFF0A0A0A)),
     ) {
-        ReticleOverlay(state = state, modifier = Modifier.fillMaxSize().padding(top = 80.dp, bottom = 96.dp))
-        ScanCounterPill(
-            scansUsed = scansThisMonth,
-            limit = ScanCounterService.FREE_MONTHLY_LIMIT,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .statusBarsPadding()
-                .padding(top = 8.dp, start = 16.dp),
-        )
-        ScanButton(
-            state = state,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 64.dp),
-            onScan = { viewModel.startScan() },
-            onReset = { viewModel.resetScan() },
-        )
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 140.dp),
-        )
-        if (state is ScanState.Result) {
-            CardDetailSheet(
-                card = (state as ScanState.Result).card,
-                isPro = isPro,
-                onDismiss = { viewModel.resetScan() },
-                onReset = { viewModel.resetScan() },
-                onSaveToCollection = onSaveToCollection,
+        if (hasCameraPermission) {
+            CameraPreview(
+                modifier = Modifier.fillMaxSize(),
+                onTextDetected = { lines -> viewModel.onFrameAnalyzed(lines) },
             )
+            ReticleOverlay(state = state, modifier = Modifier.fillMaxSize().padding(top = 80.dp, bottom = 96.dp))
+            ScanCounterPill(
+                scansUsed = scansThisMonth,
+                limit = ScanCounterService.FREE_MONTHLY_LIMIT,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .statusBarsPadding()
+                    .padding(top = 8.dp, start = 16.dp),
+            )
+            ScanButton(
+                state = state,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 64.dp),
+                onScan = { viewModel.startScan() },
+                onReset = { viewModel.resetScan() },
+            )
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 140.dp),
+            )
+            if (state is ScanState.Result) {
+                CardDetailSheet(
+                    card = (state as ScanState.Result).card,
+                    isPro = isPro,
+                    onDismiss = { viewModel.resetScan() },
+                    onReset = { viewModel.resetScan() },
+                    onSaveToCollection = onSaveToCollection,
+                )
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Text(
+                        text = "Camera access required",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
+                        Text("Grant Permission")
+                    }
+                }
+            }
         }
     }
 }
