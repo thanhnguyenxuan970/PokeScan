@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-19, process.md — persistent issues + code review fix)
+## Android Migration Status (updated 2026-05-19, OCR pipeline restore)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -38,6 +38,14 @@ Replaces the 5-command manual ADB loop. Run from `android/` directory.
 ```
 
 Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
+
+### Next Session — Android (updated 2026-05-19, OCR pipeline restore — Item 2 of roadmap checklist)
+
+**Completed this session (2026-05-19) — Restored real OCR pipeline (Item 2 of 5-item roadmap checklist):**
+- ✅ `android/.../ui/scanner/ScannerScreen.kt` — camera permission state + launcher re-added; `LaunchedEffect("permission")` auto-requests on screen entry; `CameraPreview` + all scanner UI gated behind `hasCameraPermission`; `onTextDetected = { lines -> viewModel.onFrameAnalyzed(lines) }` wired (was no-op `{}`); permanent denial detection via `shouldShowRequestPermissionRationale()` + "Open Settings" deep-link fallback
+- **Tests: 105 passing** (`.\gradlew.bat :app:testDebugUnitTest`)
+- **Roadmap status:** Item 2 ✅ done | Items 1, 3, 4 ❌ external | Item 5 ✅ already done
+- **E2E to verify:** `.\dev.ps1 install` → Scanner tab → permission dialog appears → grant → camera preview visible → point at card → OCR result populates without pressing Scan button; deny permanently → "Open Settings" button navigates to app settings
 
 ### Next Session — Android (updated 2026-05-19, process.md — code review fix)
 
@@ -492,6 +500,18 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 | `saveLocal(card)` awaited before `ScanState.Result` (Issues 5 fix) | Room write completes before state changes to Result — card is in DB when user taps "Save to Collection" nav callback. Previous fire-and-forget left a race window where navigation preceded the DB write by up to ~50ms, causing card to appear missing in CollectionScreen initial load. |
 | `IOException` catch before `Exception` catch for offline detection | `IOException` is a subclass of `Exception`. Catch ordering matters: `IOException` first handles network errors with "No internet" message; `Exception` handles all other failures with "No card detected". Reversed order would eat `IOException` in the broad catch. |
 | `catch (e: CancellationException) { throw e }` before `IOException` catch in both `startScan()` and `onFrameAnalyzed()` | `CancellationException` is a subclass of `Exception`. Without the re-throw, coroutine cancellation (e.g., `scanJob?.cancel()` from `onFrameAnalyzed` success path) is swallowed as a generic error → spurious "No card detected" snackbar. Re-throwing preserves standard Kotlin coroutines cooperative cancellation contract. |
+
+---
+
+## Key Decisions Made (OCR pipeline restore — 2026-05-19)
+
+| Decision | Rationale |
+|---|---|
+| All scanner UI gated inside `if (hasCameraPermission)` block (not just `CameraPreview`) | Showing reticle overlay + scan button over permission-denied message creates confusing UI — dim overlay obscures the message. Full gate gives a clean full-screen fallback with no visual conflicts. Matches prior implementation before mock phase removed it. |
+| `isPermanentlyDenied` flag set in launcher callback via `shouldShowRequestPermissionRationale()` | After "Don't ask again", `permissionLauncher.launch()` silently no-ops — "Grant Permission" button appears active but is dead. `shouldShowRequestPermissionRationale()` returning `false` inside the callback (after denial) is the only reliable signal for permanent denial on Android. Settings deep-link is the only recovery path. |
+| `context as? Activity ?: return@rememberLauncherForActivityResult` nullable cast | `LocalContext.current` in `ComponentActivity`-hosted composables is always the `Activity`, but nullable cast is defensive for edge cases (ContextWrapper, testing). `return@` early exit avoids null crash without requiring a force-cast. |
+| `LaunchedEffect("permission")` keyed on string literal (not `Unit`) | Named key distinguishes it from the event-collector `LaunchedEffect(Unit)` at the same composable level. Both fire once per composition entry; different keys make intent clear to future readers. |
+| `onTextDetected = { lines -> viewModel.onFrameAnalyzed(lines) }` (restore from `= {}` no-op) | `startScan()` mock path and `onFrameAnalyzed()` real pipeline coexist — `isProcessing` @Volatile flag guards against double-trigger. `startScan()` sets `isProcessing = true` before delay; `onFrameAnalyzed()` checks `if (isProcessing) return` at entry. Both paths safe simultaneously. |
 
 ---
 

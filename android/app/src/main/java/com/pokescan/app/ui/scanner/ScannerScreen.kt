@@ -65,9 +65,16 @@ fun ScannerScreen(
                 == PackageManager.PERMISSION_GRANTED
         )
     }
+    var isPermanentlyDenied by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted -> hasCameraPermission = granted }
+    ) { granted ->
+        hasCameraPermission = granted
+        if (!granted) {
+            val activity = context as? Activity ?: return@rememberLauncherForActivityResult
+            isPermanentlyDenied = !activity.shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)
+        }
+    }
 
     LaunchedEffect("permission") {
         if (!hasCameraPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
@@ -142,8 +149,20 @@ fun ScannerScreen(
                         color = Color.White,
                         style = MaterialTheme.typography.bodyLarge,
                     )
-                    Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
-                        Text("Grant Permission")
+                    if (isPermanentlyDenied) {
+                        Button(onClick = {
+                            val intent = Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.fromParts("package", context.packageName, null),
+                            )
+                            context.startActivity(intent)
+                        }) {
+                            Text("Open Settings")
+                        }
+                    } else {
+                        Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
+                            Text("Grant Permission")
+                        }
                     }
                 }
             }
