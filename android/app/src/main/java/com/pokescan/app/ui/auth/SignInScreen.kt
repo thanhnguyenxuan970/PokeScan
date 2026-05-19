@@ -1,8 +1,6 @@
 package com.snapdex.app.ui.auth
 
 import android.app.Activity
-import android.content.Intent
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -31,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -49,10 +46,11 @@ import com.snapdex.app.config.AppConfig
 fun SignInScreen(
     onAuthSuccess: () -> Unit,
     onGuestMode: () -> Unit,
+    onNavigateToPP: () -> Unit = {},
+    onNavigateToToS: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val context = LocalContext.current
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -96,8 +94,8 @@ fun SignInScreen(
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = buildAnnotatedString {
-                    withStyle(SpanStyle(color = Color.Black, fontWeight = FontWeight.Black)) { append("Sign in to Poke") }
-                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black)) { append("Scan") }
+                    withStyle(SpanStyle(color = Color.Black, fontWeight = FontWeight.Black)) { append("Sign in to Snap") }
+                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black)) { append("Dex") }
                 },
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
@@ -144,11 +142,10 @@ fun SignInScreen(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
-            TermsFooter(onOpenUrl = { url ->
-                if (url.isNotBlank()) {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                }
-            })
+            TermsFooter(
+                onNavigateToPP = onNavigateToPP,
+                onNavigateToToS = onNavigateToToS,
+            )
         }
     }
 }
@@ -171,7 +168,10 @@ private fun GoogleSignInButton(onClick: () -> Unit) {
 }
 
 @Composable
-private fun TermsFooter(onOpenUrl: (String) -> Unit) {
+private fun TermsFooter(
+    onNavigateToPP: () -> Unit,
+    onNavigateToToS: () -> Unit,
+) {
     val linkColor = MaterialTheme.colorScheme.primary
     val baseColor = MaterialTheme.colorScheme.onSurfaceVariant
     val annotated = buildAnnotatedString {
@@ -190,7 +190,12 @@ private fun TermsFooter(onOpenUrl: (String) -> Unit) {
         style = MaterialTheme.typography.bodySmall.copy(textAlign = TextAlign.Center),
         onClick = { offset ->
             annotated.getStringAnnotations(start = offset, end = offset)
-                .firstOrNull()?.let { onOpenUrl(it.item) }
+                .firstOrNull()?.let { annotation ->
+                    when (annotation.tag) {
+                        "TOS" -> onNavigateToToS()
+                        "PP" -> onNavigateToPP()
+                    }
+                }
         },
     )
 }

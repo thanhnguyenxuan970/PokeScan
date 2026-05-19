@@ -1,6 +1,5 @@
 package com.snapdex.app.ui.scanner
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.snapdex.app.data.repository.BillingRepository
@@ -11,6 +10,8 @@ import com.snapdex.app.data.service.ScanCounterService
 import com.snapdex.app.domain.model.Card
 import com.snapdex.app.domain.model.CardLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.IOException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -30,6 +31,7 @@ sealed class ScanState {
 sealed class ScanEvent {
     object ShowPaywall : ScanEvent()
     object NoCardDetected : ScanEvent()
+    object NoInternet : ScanEvent()
 }
 
 @HiltViewModel
@@ -71,12 +73,14 @@ class ScannerViewModel @Inject constructor(
                     billingRepository.isPro.value,
                 )
                 if (_state.value !is ScanState.Scanning) return@launch
-                _state.value = ScanState.Result(card)
+                collectionRepository.saveLocal(card)
                 scanCounterService.recordScan(isPro = billingRepository.isPro.value)
-                viewModelScope.launch {
-                    try { collectionRepository.saveLocal(card) }
-                    catch (e: Exception) { Log.w("ScannerViewModel", "saveLocal failed", e) }
-                }
+                _state.value = ScanState.Result(card)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: IOException) {
+                _events.emit(ScanEvent.NoInternet)
+                resetScan()
             } catch (e: Exception) {
                 _events.emit(ScanEvent.NoCardDetected)
                 resetScan()
@@ -99,12 +103,14 @@ class ScannerViewModel @Inject constructor(
             try {
                 val card = pricingService.fetchPrice(identified, billingRepository.isPro.value)
                 if (_state.value !is ScanState.Scanning) return@launch
-                _state.value = ScanState.Result(card)
+                collectionRepository.saveLocal(card)
                 scanCounterService.recordScan(isPro = billingRepository.isPro.value)
-                viewModelScope.launch {
-                    try { collectionRepository.saveLocal(card) }
-                    catch (e: Exception) { Log.w("ScannerViewModel", "saveLocal failed", e) }
-                }
+                _state.value = ScanState.Result(card)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: IOException) {
+                _events.emit(ScanEvent.NoInternet)
+                resetScan()
             } catch (e: Exception) {
                 _events.emit(ScanEvent.NoCardDetected)
                 resetScan()

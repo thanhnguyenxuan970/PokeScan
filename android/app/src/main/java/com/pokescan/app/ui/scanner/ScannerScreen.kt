@@ -53,6 +53,10 @@ fun ScannerScreen(
                     message = "No card detected. Try better lighting or hold card steady.",
                     duration = SnackbarDuration.Short,
                 )
+                ScanEvent.NoInternet -> snackbarHostState.showSnackbar(
+                    message = "No internet connection.",
+                    duration = SnackbarDuration.Short,
+                )
             }
         }
     }

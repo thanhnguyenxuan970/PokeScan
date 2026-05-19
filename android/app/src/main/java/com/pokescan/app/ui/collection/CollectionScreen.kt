@@ -65,11 +65,13 @@ fun CollectionScreen(
     val selectedIds by viewModel.selectedIds.collectAsStateWithLifecycle()
     val isPro by viewModel.isPro.collectAsStateWithLifecycle()
 
+    val domainCards = remember(cards) { cards.map { it.toDomain() } }
+
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showAuthSignOutDialog by remember { mutableStateOf(false) }
     var cardToDelete by remember { mutableStateOf<CardRecordEntity?>(null) }
     var showBatchDeleteDialog by remember { mutableStateOf(false) }
-    var detailCard by remember { mutableStateOf<Card?>(null) }
+    var detailCardIndex by remember { mutableStateOf<Int?>(null) }
 
     if (showAuthSignOutDialog) {
         AlertDialog(
@@ -149,13 +151,15 @@ fun CollectionScreen(
         )
     }
 
-    detailCard?.let { card ->
+    detailCardIndex?.let { idx ->
         CardDetailSheet(
-            card = card,
+            card = domainCards.getOrNull(idx) ?: return@let,
             isPro = isPro,
-            onDismiss = { detailCard = null },
-            onReset = { detailCard = null },
+            onDismiss = { detailCardIndex = null },
+            onReset = { detailCardIndex = null },
             onSaveToCollection = null,
+            allCards = domainCards,
+            initialIndex = idx,
         )
     }
 
@@ -235,7 +239,7 @@ fun CollectionScreen(
                                     if (isSelectMode) viewModel.toggleSelection(card.id)
                                     else viewModel.enterSelectMode(card.id)
                                 },
-                                onClick = { detailCard = card.toDomain() },
+                                onClick = { detailCardIndex = cards.indexOf(card).takeIf { it >= 0 } },
                                 onDeleteClick = { cardToDelete = card },
                             )
                         }

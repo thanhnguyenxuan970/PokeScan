@@ -7,7 +7,7 @@ Stack: Kotlin + Jetpack Compose (Android, active) / SwiftUI (iOS, paused), FastA
 
 ---
 
-## Android Migration Status (updated 2026-05-17, dev workflow automation)
+## Android Migration Status (updated 2026-05-19, process.md — persistent issues + code review fix)
 
 ### Why Android
 Apple Developer registration errors unresolved. Google Play Console: $25 one-time fee, no approval queue. iOS code stays — resume when Apple Dev account resolves.
@@ -38,6 +38,24 @@ Replaces the 5-command manual ADB loop. Run from `android/` directory.
 ```
 
 Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
+
+### Next Session — Android (updated 2026-05-19, process.md — code review fix)
+
+**Completed this session (2026-05-19) — process.md run on 5-issue plan; check_code surfaced 1 WARNING fixed:**
+- ✅ `ScannerViewModel.kt` — `catch (e: CancellationException) { throw e }` added before `catch (e: IOException)` in both `startScan()` and `onFrameAnalyzed()`; prevents coroutine cancellation being swallowed as "No card detected" in real pipeline path; `import kotlinx.coroutines.CancellationException` added
+- **Tests: 105 passing** (unchanged; `.\gradlew.bat :app:testDebugUnitTest`)
+- **E2E to verify:** all 7 E2E checks from prior session still pending (requires `.\dev.ps1 install`)
+
+### Next Session — Android (updated 2026-05-19, persistent issues + UX improvements)
+
+**Completed this session (2026-05-19) — 5 persistent issues fixed:**
+- ✅ **Issue 1 — Branding**: `OnboardingScreen.kt` L70 `"Poke"` → `"Snap"`, L73 `"Scan"` → `"Dex"`; `SignInScreen.kt` L97 `"Sign in to Poke"` → `"Sign in to Snap"`, L98 `"Scan"` → `"Dex"`
+- ✅ **Issue 2 — Privacy Policy in-app**: `android/app/src/main/assets/privacy_policy.html` + `terms_of_service.html` created; `ui/legal/LegalScreen.kt` (AndroidView + WebView, `file:///android_asset/`) created; `NavGraph.kt` — `Routes.PRIVACY_POLICY` + `Routes.TERMS_OF_SERVICE` added + 2 new composable entries; `OnboardingScreen` gets `onNavigateToPP` param; `SignInScreen` gets `onNavigateToPP` + `onNavigateToToS` params; `TermsFooter` changed from `onOpenUrl` → tag-aware `onNavigateToPP`/`onNavigateToToS` callbacks; no external browser calls remain
+- ✅ **Issue 3 — Card swipe navigation**: `CollectionScreen.kt` — `detailCard: Card?` → `detailCardIndex: Int?`; `val domainCards = remember(cards) { cards.map { it.toDomain() } }` hoisted; `onClick` uses `cards.indexOf(card).takeIf { it >= 0 }`; `CardDetailSheet` called with `allCards = domainCards, initialIndex = idx`; `CardDetailSheet.kt` — full restructure: `allCards: List<Card>? = null` + `initialIndex: Int = 0` params added; content extracted to private `CardDetailContent`; `HorizontalPager(rememberPagerState)` wraps paged content; single-card path unchanged (ScannerScreen compat)
+- ✅ **Issue 4 — Offline error**: `ScannerViewModel.kt` — `ScanEvent.NoInternet` added to sealed class; `import java.io.IOException` added; both `startScan()` and `onFrameAnalyzed()` catch blocks split: `IOException` → `NoInternet`, `Exception` → `NoCardDetected`; `ScannerScreen.kt` — `ScanEvent.NoInternet` handler added (snackbar "No internet connection.")
+- ✅ **Issue 5 — Save delay**: `ScannerViewModel.kt` — both `startScan()` and `onFrameAnalyzed()`: fire-and-forget `viewModelScope.launch { saveLocal() }` removed; `saveLocal(card)` now awaited synchronously before `recordScan()` and `ScanState.Result` emission; save failure caught by outer try/catch (propagates to NoCardDetected or NoInternet)
+- **Tests: 105 passing** (3 new tests from previous sessions; `.\gradlew.bat :app:testDebugUnitTest`)
+- **E2E to verify:** Onboarding shows "SnapDex"; SignIn shows "Sign in to SnapDex"; tap Privacy Policy → in-app WebView loads; tap Terms of Service → in-app WebView loads; tap card in collection → detail sheet opens; swipe left/right → adjacent cards navigate; airplane mode ON → tap Scan → snackbar "No internet connection."; scan card → tap "Save to Collection" → Collection tab shows card immediately (no spinner flash)
 
 ### Next Session — Android (updated 2026-05-19, CollectionScreen bulk delete + card detail view)
 
@@ -455,6 +473,25 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 | `deleteAll()` + `resetCount()` synchronous in `signOut()` (not fire-and-forget) | Fire-and-forget could race with new account's `pullFromServer()` and wipe freshly synced cards. Operations take <10ms; synchronous execution adds negligible sign-out latency. |
 | `startScan()` mock path calls `pricingService.fetchPrice(MOCK_IDENTIFIED.random(), isPro)` instead of `MOCK_CARDS.random().copy()` | `MOCK_CARDS` bypassed all network calls — T7-2 (airplane mode graceful failure) always passed because there was nothing to fail. `MOCK_IDENTIFIED` + `fetchPrice` makes a real HTTP call that throws `IOException` in airplane mode, which the catch block converts to `ScanEvent.NoCardDetected` → snackbar. Mirrors the pattern already used in `onFrameAnalyzed()`. |
 | `isProcessing = false` in `finally` only (removed from try block in `startScan()`) | `finally` always runs — covers both success and exception paths. Having it in both try and finally was redundant noise. Matches `onFrameAnalyzed()` pattern which only uses `finally`. |
+
+---
+
+## Key Decisions Made (Persistent issues + UX improvements — 2026-05-19)
+
+| Decision | Rationale |
+|---|---|
+| PP/ToS links open in-app WebView (not external browser) | GitHub Pages repos don't exist → 404. In-app WebView with `file:///android_asset/` loads bundled HTML instantly, zero network dep, no external repo required. |
+| `LegalScreen` uses `AndroidView { WebView }` (not Compose HTML renderer) | No Compose-native HTML renderer exists in M3. `AndroidView` with `WebView` is the standard pattern for HTML content in Compose. `file:///android_asset/` scheme works without internet permission. |
+| PP/ToS routes in outer NavHost (not inner MainScreen NavHost) | PP/ToS must be reachable from Onboarding and SignIn screens which are also in the outer NavHost. Inner NavHost routes are only reachable after authentication (MAIN). |
+| `onNavigateToPP: () -> Unit = {}` default empty lambda (not required param) | Allows `OnboardingScreen` and `SignInScreen` to remain callable without nav context (e.g., tests, previews). NavGraph always passes the real callback. |
+| `TermsFooter` changed from `onOpenUrl: (String) -> Unit` to `onNavigateToPP/onNavigateToToS` | Tag-aware routing: `"TOS"` annotation → ToS nav, `"PP"` annotation → PP nav. Old `onOpenUrl` treated both as generic URL strings — caller had to inspect the URL to distinguish. Tag-based dispatch is more semantic and avoids URL parsing at call site. |
+| `domainCards = remember(cards) { cards.map { it.toDomain() } }` hoisted to top of `CollectionScreen` | `remember(cards)` recomputes only when `cards` changes. Hoisted at top level (not inside `?.let {}`) ensures stable composable call ordering — Compose requires `remember` not to be called conditionally. |
+| `detailCardIndex: Int?` instead of `detailCard: Card?` for swipe pager | Index enables `HorizontalPager` to track adjacent cards from the same `domainCards` list. Storing `Card?` would require passing the entire list separately — index + list is the canonical pager pattern. |
+| `HorizontalPager` inside `ModalBottomSheet` (not a full-screen pager) | ModalBottomSheet uses vertical gestures; HorizontalPager uses horizontal — no gesture axis conflict. Sheet wrapper stays for consistent card detail UX across Scanner (single) and Collection (paged) entry points. |
+| `allCards: List<Card>? = null` optional param (nullable, not overloaded) | Single `CardDetailSheet` composable with optional pager path. `null` = single-card mode (ScannerScreen compat — no change at call site). Non-null = paged mode (CollectionScreen). No function overloading needed. |
+| `saveLocal(card)` awaited before `ScanState.Result` (Issues 5 fix) | Room write completes before state changes to Result — card is in DB when user taps "Save to Collection" nav callback. Previous fire-and-forget left a race window where navigation preceded the DB write by up to ~50ms, causing card to appear missing in CollectionScreen initial load. |
+| `IOException` catch before `Exception` catch for offline detection | `IOException` is a subclass of `Exception`. Catch ordering matters: `IOException` first handles network errors with "No internet" message; `Exception` handles all other failures with "No card detected". Reversed order would eat `IOException` in the broad catch. |
+| `catch (e: CancellationException) { throw e }` before `IOException` catch in both `startScan()` and `onFrameAnalyzed()` | `CancellationException` is a subclass of `Exception`. Without the re-throw, coroutine cancellation (e.g., `scanJob?.cancel()` from `onFrameAnalyzed` success path) is swallowed as a generic error → spurious "No card detected" snackbar. Re-throwing preserves standard Kotlin coroutines cooperative cancellation contract. |
 
 ---
 

@@ -1,7 +1,5 @@
 package com.snapdex.app.ui.onboarding
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -35,11 +32,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.snapdex.app.R
-import com.snapdex.app.config.AppConfig
 
 @Composable
-fun OnboardingScreen(onGetStarted: () -> Unit) {
-    val context = LocalContext.current
+fun OnboardingScreen(
+    onGetStarted: () -> Unit,
+    onNavigateToPP: () -> Unit = {},
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -67,10 +65,10 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
         Text(
             text = buildAnnotatedString {
                 withStyle(SpanStyle(color = Color.Black, fontWeight = FontWeight.Black)) {
-                    append("Poke")
+                    append("Snap")
                 }
                 withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black)) {
-                    append("Scan")
+                    append("Dex")
                 }
             },
             style = MaterialTheme.typography.headlineLarge,
@@ -114,11 +112,7 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
 
         Spacer(modifier = Modifier.weight(1f))
 
-        TextButton(onClick = {
-            if (AppConfig.PRIVACY_POLICY_URL.isNotBlank()) {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AppConfig.PRIVACY_POLICY_URL)))
-            }
-        }) {
+        TextButton(onClick = onNavigateToPP) {
             Text(
                 text = "Privacy Policy",
                 style = MaterialTheme.typography.bodySmall,

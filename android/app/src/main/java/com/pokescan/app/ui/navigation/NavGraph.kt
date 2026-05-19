@@ -26,20 +26,23 @@ import com.snapdex.app.data.remote.AuthEventBus
 import com.snapdex.app.data.repository.AuthRepository
 import com.snapdex.app.ui.auth.SignInScreen
 import com.snapdex.app.ui.collection.CollectionScreen
+import com.snapdex.app.ui.legal.LegalScreen
 import com.snapdex.app.ui.onboarding.OnboardingScreen
 import com.snapdex.app.ui.paywall.PaywallScreen
 import com.snapdex.app.ui.scanner.ScannerScreen
 import kotlinx.coroutines.launch
 
 object Routes {
-    const val ONBOARDING  = "onboarding"
-    const val SIGN_IN     = "sign_in"
-    const val MAIN        = "main"
-    const val SCANNER     = "scanner"
-    const val COLLECTION  = "collection"
-    const val CARD_DETAIL = "card_detail"
-    const val GRADE_ROI   = "grade_roi"
-    const val PAYWALL     = "paywall"
+    const val ONBOARDING       = "onboarding"
+    const val SIGN_IN          = "sign_in"
+    const val MAIN             = "main"
+    const val SCANNER          = "scanner"
+    const val COLLECTION       = "collection"
+    const val CARD_DETAIL      = "card_detail"
+    const val GRADE_ROI        = "grade_roi"
+    const val PAYWALL          = "paywall"
+    const val PRIVACY_POLICY   = "privacy_policy"
+    const val TERMS_OF_SERVICE = "terms_of_service"
 }
 
 @Composable
@@ -90,11 +93,14 @@ fun NavGraph(
             LaunchedEffect(Unit) {
                 prefs.edit().putBoolean("hasSeenOnboarding", true).apply()
             }
-            OnboardingScreen(onGetStarted = {
-                navController.navigate(Routes.SIGN_IN) {
-                    popUpTo(Routes.ONBOARDING) { inclusive = true }
-                }
-            })
+            OnboardingScreen(
+                onGetStarted = {
+                    navController.navigate(Routes.SIGN_IN) {
+                        popUpTo(Routes.ONBOARDING) { inclusive = true }
+                    }
+                },
+                onNavigateToPP = { navController.navigate(Routes.PRIVACY_POLICY) },
+            )
         }
 
         composable(Routes.SIGN_IN) {
@@ -111,6 +117,24 @@ fun NavGraph(
                         popUpTo(0) { inclusive = true }
                     }
                 },
+                onNavigateToPP = { navController.navigate(Routes.PRIVACY_POLICY) },
+                onNavigateToToS = { navController.navigate(Routes.TERMS_OF_SERVICE) },
+            )
+        }
+
+        composable(Routes.PRIVACY_POLICY) {
+            LegalScreen(
+                assetFile = "privacy_policy.html",
+                title = "Privacy Policy",
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.TERMS_OF_SERVICE) {
+            LegalScreen(
+                assetFile = "terms_of_service.html",
+                title = "Terms of Service",
+                onBack = { navController.popBackStack() },
             )
         }
 
