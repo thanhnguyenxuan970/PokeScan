@@ -25,6 +25,5 @@ enum AppConfig {
         ProcessInfo.processInfo.environment["SNAPDEX_VISION_FAST"] == "1" ? .fast : .accurate
     }
 
-    // LAUNCH_BLOCKER: replace REPLACE_ME with real UUID from termly.io before release
-    static let privacyPolicyURL = URL(string: "https://app.termly.io/policy-viewer/policy.html?policyUUID=REPLACE_ME") ?? URL(string: "https://example.com")!
+    static let privacyPolicyURL = URL(string: "https://app.termly.io/policy-viewer/policy.html?policyUUID=a921da63-2d56-452d-a6a8-c8f94daa9bb2")!
 }
