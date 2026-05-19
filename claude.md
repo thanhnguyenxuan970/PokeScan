@@ -65,6 +65,15 @@ Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without 
 - **Tests: 105 passing** (3 new tests from previous sessions; `.\gradlew.bat :app:testDebugUnitTest`)
 - **E2E to verify:** Onboarding shows "SnapDex"; SignIn shows "Sign in to SnapDex"; tap Privacy Policy → in-app WebView loads; tap Terms of Service → in-app WebView loads; tap card in collection → detail sheet opens; swipe left/right → adjacent cards navigate; airplane mode ON → tap Scan → snackbar "No internet connection."; scan card → tap "Save to Collection" → Collection tab shows card immediately (no spinner flash)
 
+### Next Session — Android (updated 2026-05-19, UX/UI improvements — select-all, instant delete, snackbar centering)
+
+**Completed this session (2026-05-19) — 3 UX/UI improvements:**
+- ✅ `android/.../ui/collection/CollectionViewModel.kt` — `import kotlinx.coroutines.flow.combine` added; `_optimisticDeletedIds: MutableStateFlow<Set<String>>` added; `displayCards: StateFlow<List<CardRecordEntity>>` = `combine(cards, _optimisticDeletedIds)` filter added; `allSelected: StateFlow<Boolean>` = `combine(displayCards, _selectedIds)` added; `selectAll()` + `deselectAll()` methods added; `deleteSelected()` rewritten: sets `_optimisticDeletedIds` immediately → `clearSelectMode()` → background deletes → reset `_optimisticDeletedIds`
+- ✅ `android/.../ui/collection/CollectionScreen.kt` — `TriStateCheckbox` + `ToggleableState` imports added; `viewModel.cards` → `viewModel.displayCards`; `allSelected` collected; `TriStateCheckbox` added to action bar between Cancel and "N selected" text
+- ✅ `android/.../ui/scanner/ScannerScreen.kt` — `SnackbarHost` modifier: `Alignment.BottomCenter + padding(bottom=140.dp)` → `Alignment.Center + padding(horizontal=24.dp)`
+- **Tests: 105 passing** (no new tests; `.\gradlew.bat :app:testDebugUnitTest`)
+- **E2E to verify:** long-press card → TriStateCheckbox in action bar → tap → all check → tap → all uncheck; partial selection shows indeterminate; select 3+ → Delete → cards vanish instantly (no lag); airplane mode ON → scan → snackbar centered with 24dp margins
+
 ### Next Session — Android (updated 2026-05-19, CollectionScreen bulk delete + card detail view)
 
 **Completed this session (2026-05-19) — Bulk delete + card detail view + PokeScan regression confirm:**
@@ -514,6 +523,17 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 | `onTextDetected = { lines -> viewModel.onFrameAnalyzed(lines) }` (restore from `= {}` no-op) | `startScan()` mock path and `onFrameAnalyzed()` real pipeline coexist — `isProcessing` @Volatile flag guards against double-trigger. `startScan()` sets `isProcessing = true` before delay; `onFrameAnalyzed()` checks `if (isProcessing) return` at entry. Both paths safe simultaneously. |
 
 ---
+
+## Key Decisions Made (UX/UI improvements — select-all, instant delete, snackbar — 2026-05-19)
+
+| Decision | Rationale |
+|---|---|
+| `_optimisticDeletedIds` + `displayCards = combine(cards, _optimisticDeletedIds)` for instant UI removal | Room emits ~50–100ms after DB write completes. Optimistic filter hides selected cards immediately; Room cleanup follows in background. `_optimisticDeletedIds` reset after `awaitAll()` — by then Room has already emitted the clean list so there's no flicker. |
+| `deleteSelected()` calls `clearSelectMode()` before launching coroutine | Exits select mode instantly (snappy UX). `ids` captured in `val ids = _selectedIds.value` before the clear, so the coroutine still has the right set to delete. |
+| `selectAll()` uses `displayCards.value` not `cards.value` | `allSelected` compares `_selectedIds.size` against `displayCards.size`. Using `cards.value` in `selectAll()` could include optimistically-deleted IDs (in `cards` but not in `displayCards`), making `allSelected` report false even though all visible cards are selected. |
+| `allSelected: StateFlow<Boolean>` via `combine(displayCards, _selectedIds)` | Derived from the same filtered list the UI shows. Auto-updates when either optimistic deletions or selection changes — no manual sync required. |
+| `TriStateCheckbox` for select-all (not a plain `Checkbox`) | Indeterminate state (partial selection) is a native Material3 affordance users expect. Checkbox has no indeterminate state. TriStateCheckbox covers On/Off/Indeterminate with a single component. |
+| `SnackbarHost` moved to `Alignment.Center + padding(horizontal=24.dp)` | Default Material3 snackbar stretches edge-to-edge; on `#0A0A0A` dark background this looks oversized for short one-line messages. `padding(horizontal=24.dp)` reduces the host's available width by 48dp total, preventing edge-to-edge stretch. `Alignment.Center` positions it away from the Scan button (bottom) and status bar (top). |
 
 ## Key Decisions Made (CollectionScreen bulk delete + card detail view — 2026-05-19)
 

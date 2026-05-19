@@ -108,10 +108,13 @@ class CollectionViewModel @Inject constructor(
         _optimisticDeletedIds.value = ids
         clearSelectMode()
         viewModelScope.launch {
-            coroutineScope {
-                cards.value.filter { it.id in ids }.map { async { collectionRepository.delete(it) } }.awaitAll()
+            try {
+                coroutineScope {
+                    cards.value.filter { it.id in ids }.map { async { collectionRepository.delete(it) } }.awaitAll()
+                }
+            } finally {
+                _optimisticDeletedIds.value = emptySet()
             }
-            _optimisticDeletedIds.value = emptySet()
         }
     }
 

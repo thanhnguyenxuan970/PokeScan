@@ -1,16 +1,15 @@
 ---
 name: process
-description: Full delivery pipeline. Runs check_plan.md → implement → check_code.md → review → caveman-review & fix → close.md → caveman-commit in sequence.
+description: Full delivery pipeline. Runs check_plan → implement → check_code → review → caveman:caveman-review & fix → close → caveman:caveman-commit in sequence.
 ---
 
 Execute the full delivery pipeline for the current plan. Ask user which plan file if unclear.
 
 ## Phase 1 — VALIDATE PLAN
 
-1. Run `/check_plan.md` on the plan file.
-   - Do not proceed until check_plan.md reports ✅ PLAN CLEAN.
+1. Run skill `check_plan` on the plan file.
+   - Do not proceed until check_plan reports ✅ PLAN CLEAN.
    - If `[NEEDS CONFIRMATION]` items remain, surface them to user and wait for resolution.
-2. **Auto: run `/compact`** — execute immediately, no user prompt needed.
 
 ---
 
@@ -28,42 +27,52 @@ When all steps are done (or blocked with reason), state:
 - Steps completed: N
 - Steps blocked: M (with reasons)
 
-**Auto: run `/compact`** — execute immediately, no user prompt needed.
-
 ---
 
 ## Phase 3 — VERIFY CODE
 
-1. Run `/check_code.md` on all files created or modified during Phase 2.
+1. Run skill `check_code` on all files created or modified during Phase 2.
    - Scope: only files touched in Phase 2 (not the entire codebase).
-   - Do not proceed until check_code.md reports ✅ CODE CLEAN.
-2. **Auto: run `/compact`** — execute immediately, no user prompt needed.
+   - Do not proceed until check_code reports ✅ CODE CLEAN.
 
 ---
 
 ## Phase 4 — REVIEW & FIX
 
-1. Run `/review` then `/caveman-review` on all files created or modified during Phase 2.
+1. Run skill `review` then skill `caveman:caveman-review` on all files created or modified during Phase 2.
    - Fix every issue surfaced before proceeding.
    - Do not proceed to Phase 5 until review is clean.
-2. **Auto: run `/compact`** — execute immediately, no user prompt needed.
 
 ---
 
 ## Phase 5 — CLOSE
 
-1. Run `/close.md` to finalize the delivery.
-   - Do not run close.md until Phase 4 review is clean.
-2. **Auto: run `/compact`** — execute immediately, no user prompt needed.
+1. Run skill `close` to finalize the delivery.
+   - Do not run close until Phase 4 review is clean.
 
 ---
 
 ## Phase 6 — COMMIT
 
-Run `/caveman-commit` to generate and create the commit.
+Run skill `caveman:caveman-commit` to generate and create the commit.
 
 - Scope: all changes from Phases 2–5.
-- Do not commit until close.md completes successfully.
+- Do not commit until close completes successfully.
+
+---
+
+## Skill Reference (exact names for Skill tool)
+
+| Phase uses | Skill tool name | File |
+|---|---|---|
+| check_plan | `check_plan` | `check_plan.md` (project-local) |
+| check_code | `check_code` | `check_code.md` (project-local) |
+| review | `review` | `review.md` (project-local) |
+| close | `close` | `close.md` (project-local) |
+| caveman-review | `caveman:caveman-review` | global (caveman plugin) |
+| caveman-commit | `caveman:caveman-commit` | global (caveman plugin) |
+
+**Note:** compact is handled by Claude natively — do not invoke as a skill.
 
 ---
 
