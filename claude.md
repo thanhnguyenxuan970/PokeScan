@@ -39,6 +39,16 @@ Replaces the 5-command manual ADB loop. Run from `android/` directory.
 
 Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
 
+### Next Session — Android (updated 2026-05-19, CollectionScreen bulk delete + card detail view)
+
+**Completed this session (2026-05-19) — Bulk delete + card detail view + PokeScan regression confirm:**
+- ✅ **PokeScan regression**: zero "PokeScan" in all `.kt`/`.xml` sources — user-visible strings clean. Persistence on device = stale APK; `.\dev.ps1 install` clears it.
+- ✅ `android/.../ui/collection/CollectionViewModel.kt` — `BillingRepository` injected; `val isPro: StateFlow<Boolean> = billingRepository.isPro` added; `_isSelectMode`/`isSelectMode` + `_selectedIds`/`selectedIds` StateFlows added; 4 new methods: `enterSelectMode(firstId)`, `toggleSelection(id)`, `clearSelectMode()`, `deleteSelected()`; `import kotlinx.coroutines.flow.update` added
+- ✅ `android/.../ui/scanner/CardDetailSheet.kt` — `onSaveToCollection: (() -> Unit)? = null` (was non-nullable); button block: `if (onSaveToCollection != null)` → "Save to Collection" + "Scan another"; else → single "Close" (calls `onDismiss`). Scanner call site unchanged.
+- ✅ `android/.../ui/collection/CollectionScreen.kt` — collects `isSelectMode`, `selectedIds`, `isPro`; batch delete `AlertDialog`; detail sheet `detailCard: Card?` local state + `CardDetailSheet` invocation (null `onSaveToCollection`); action bar (Cancel | N selected | Delete w/ `ButtonDefaults.textButtonColors`); `CardRow` updated: `isSelectMode`/`isSelected`/`onLongPress`/`onClick` params; `combinedClickable` modifier; `Checkbox` in select mode / `IconButton` in normal mode; `@OptIn(ExperimentalFoundationApi::class)` on `CardRow`
+- **Tests: 102 passing** (`.\gradlew.bat :app:testDebugUnitTest`)
+- **E2E to verify:** tap card → `CardDetailSheet` opens read-only (Close button, no Save); long-press → select mode + checkbox + action bar; tap Cancel → exits; select 2+ → Delete → confirm → gone; single-delete icon still works in non-select mode
+
 ### Next Session — Android (updated 2026-05-19, T7-2 fix — network failure graceful handling)
 
 **Completed this session (2026-05-19) — T7-2: mock scan path fails gracefully on network error:**
@@ -445,6 +455,22 @@ adb install app\build\outputs\apk\debug\app-debug.apk
 | `deleteAll()` + `resetCount()` synchronous in `signOut()` (not fire-and-forget) | Fire-and-forget could race with new account's `pullFromServer()` and wipe freshly synced cards. Operations take <10ms; synchronous execution adds negligible sign-out latency. |
 | `startScan()` mock path calls `pricingService.fetchPrice(MOCK_IDENTIFIED.random(), isPro)` instead of `MOCK_CARDS.random().copy()` | `MOCK_CARDS` bypassed all network calls — T7-2 (airplane mode graceful failure) always passed because there was nothing to fail. `MOCK_IDENTIFIED` + `fetchPrice` makes a real HTTP call that throws `IOException` in airplane mode, which the catch block converts to `ScanEvent.NoCardDetected` → snackbar. Mirrors the pattern already used in `onFrameAnalyzed()`. |
 | `isProcessing = false` in `finally` only (removed from try block in `startScan()`) | `finally` always runs — covers both success and exception paths. Having it in both try and finally was redundant noise. Matches `onFrameAnalyzed()` pattern which only uses `finally`. |
+
+---
+
+## Key Decisions Made (CollectionScreen bulk delete + card detail view — 2026-05-19)
+
+| Decision | Rationale |
+|---|---|
+| `BillingRepository` injected into `CollectionViewModel` (not passed as UI param) | Mirrors `ScannerViewModel` pattern; ViewModel owns `isPro` state. Avoids threading billing state through NavGraph → CollectionScreen → CardDetailSheet. |
+| `onSaveToCollection: (() -> Unit)? = null` — nullable, not a boolean flag | `null` semantically means "already in collection" context; non-null means "scanner save" context. Existing `ScannerScreen` call site passes non-null — zero change needed there. Boolean flag would proliferate. |
+| Long-press enters select mode; tap in select mode toggles (not opens detail) | Standard Android multi-select UX (Gmail, Files). Clear mental model: long = mode switch, tap in select mode = toggle item. Prevents accidental detail opens while selecting. |
+| Action bar (Cancel / N selected / Delete) above `LazyColumn`, not bottom bar | `TopAppBar` area already occupied by Collection title + Logout. Bottom action bar overlaps navigation bar. Above-list position is closer to the stats header and avoids nav-bar conflicts. |
+| `detailCard: Card?` as local `remember` state (not ViewModel) | Transient UI state — which card's sheet is open. No config-change persistence needed (reopening is trivial). Avoids ViewModel state bloat. |
+| `combinedClickable` on entire `CardRow` (not just text/icon) | Full row tap target is standard Material3 list pattern. Larger touch target. `Checkbox` trailing icon sits outside the `combinedClickable` modifier chain — no conflict. |
+| `@OptIn(ExperimentalFoundationApi::class)` on `CardRow` only | Scopes the experimental opt-in to the function that uses `combinedClickable`. Does not need to propagate to `CollectionScreen` call site. |
+| `ButtonDefaults.textButtonColors(contentColor = error, disabledContentColor = error.copy(0.38f))` on batch delete button | Hardcoded `Text(color = error)` bypasses Material3 disabled alpha. `textButtonColors` propagates correct disabled appearance through `LocalContentColor`. `0.38f` is Material3's standard disabled content alpha. |
+| `clearSelectMode()` called inside `deleteSelected()` coroutine after all deletes | Clears selection state after deletion is confirmed in Room. If called before, the UI would flash "0 selected" while Room is still deleting. Ordering: delete all → clear mode. |
 
 ---
 
