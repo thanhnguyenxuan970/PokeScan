@@ -70,8 +70,9 @@ class ScannerViewModel @Inject constructor(
                     MOCK_IDENTIFIED.random(),
                     billingRepository.isPro.value,
                 )
-                scanCounterService.recordScan(isPro = billingRepository.isPro.value)
+                if (_state.value !is ScanState.Scanning) return@launch
                 _state.value = ScanState.Result(card)
+                scanCounterService.recordScan(isPro = billingRepository.isPro.value)
                 viewModelScope.launch {
                     try { collectionRepository.saveLocal(card) }
                     catch (e: Exception) { Log.w("ScannerViewModel", "saveLocal failed", e) }
