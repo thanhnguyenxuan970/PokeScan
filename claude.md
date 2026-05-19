@@ -39,6 +39,14 @@ Replaces the 5-command manual ADB loop. Run from `android/` directory.
 
 Key: `.\gradlew.bat :app:installDebug` uses `adb install -r` (reinstall without uninstall) — preserves app data. Gradle daemon caches unchanged modules: ~15–30 s per incremental change. `watch` uses `FileSystemWatcher.WaitForChanged` with 2 s debounce.
 
+### Next Session — Android (updated 2026-05-19, T6 auth edge case verification)
+
+**Completed this session (2026-05-19) — T6 auth edge cases verified (no code changes):**
+- ✅ **T6-1: 401 auto-redirect** — `AuthAuthenticator.kt` token-match branch calls `secureStorage.clearToken()` + `authEventBus.emitUnauthorized()` → NavGraph navigates to SignInScreen. Covered by `"token matches current — clear and emit unauthorized"` test.
+- ✅ **T6-2: 401 on auth endpoints skipped** — guard `response.request.url.encodedPath.contains("/auth/")` at line 16 returns `null` immediately. Covered by `"auth endpoint — skip and return null"` test.
+- **Tests: 5/5 passing** (`AuthAuthenticatorTest` — `tests=5, skipped=0, failures=0, errors=0`)
+- **No code written** — both cases already implemented and covered by existing unit tests added in 2026-05-18 regression fix session.
+
 ### Next Session — Android (updated 2026-05-18, post-rebrand audit fixes)
 
 **Completed this session (2026-05-18) — Post-rebrand audit fix plan (9/9 tasks):**
